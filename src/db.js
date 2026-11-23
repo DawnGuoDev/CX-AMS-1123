@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { buildSeed } = require('./seed');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const DATA_DIR = process.env.AMS_DATA_DIR || path.join(__dirname, '..', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 let db = null;
