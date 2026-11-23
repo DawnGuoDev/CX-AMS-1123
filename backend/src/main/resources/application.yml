@@ -1,0 +1,26 @@
+server:
+  port: ${PORT:8080}
+  address: ${HOST:127.0.0.1}
+  error:
+    include-message: never
+spring:
+  datasource:
+    url: ${AMS_DB_URL:jdbc:h2:file:./data/ams;DB_CLOSE_ON_EXIT=FALSE}
+    username: sa
+    password: ${AMS_DB_PASSWORD:}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /
+      path-mapping:
+        prometheus: metrics
+  endpoint:
+    health:
+      show-details: never
+ams:
+  scheduling: ${AMS_SCHEDULING:true}

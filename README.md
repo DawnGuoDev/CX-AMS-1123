@@ -1,4 +1,72 @@
-# AMS 警报管理系统（本地可运行版）
+# AMS 警报管理系统 · Java + Vue
+
+`feat/java-vue` 分支新增了独立的 Java 后端和 Vue 前端。业务依据为现有 Node.js 实现，以及 `外发资料/` 的操作手册、页面功能、系统需求和架构资料。
+
+| 组件 | 版本 |
+|---|---|
+| Java | 21 LTS |
+| Spring Boot | 3.5.7 |
+| Vue / Vue Router | 3.5.46 / 4.5.1 |
+| Vite / Vue 构建插件 | 6.4.6 / 5.2.4 |
+| 持久化 / Excel | H2 / Apache POI 5.4.1 |
+
+选择 Java 21、Spring Boot 3.5、Vue 3.5 等成熟版本线；Vue/Vite 使用该版本线的安全修复补丁。没有采用需求表中较新的 Java 25 / Spring Boot 4。
+
+这是与原仓库定位一致的**单机业务演示实现**：通知、MES 切机况与 SQL 测试保留模拟方式。生产 Oracle/Redis/MQ、高可用和性能指标尚未实现或验收，详见 [迁移与覆盖说明](docs/JAVA_VUE_MIGRATION.md)。
+
+## Java + Vue 快速启动
+
+准备 JDK 21（设置 `JAVA_HOME`）、Maven 3.9+、Node.js 20.19+（建议 22 LTS）。
+
+```bash
+cd /Users/bytedance/changxin/CX-AMS-1123
+bash scripts/build-java-vue.sh
+bash scripts/start-java.sh
+```
+
+访问 <http://127.0.0.1:8080>。构建脚本执行 `npm ci`、Vue 构建、Java 测试和打包，产物是 `backend/target/ams-1.0.0.jar`，包含前端资源。**构建后运行只需 Java 21，无需 Node 服务**。
+
+如果 8080 被占用：`PORT=8180 bash scripts/start-java.sh`，访问 <http://127.0.0.1:8180>。
+
+演示账号：`E0043258` / `123456`；主管：`E0043288`；制程工程师：`E0043271`，密码相同。
+
+### 开发模式
+
+两个终端分别运行：
+
+```bash
+# 后端，默认 8080
+cd backend
+mvn spring-boot:run
+```
+
+```bash
+# 前端，默认 5173
+cd frontend
+npm ci
+npm run dev
+```
+
+前端 API 代理默认指向 8080。改用其他后端端口时：
+
+```bash
+API_TARGET=http://127.0.0.1:8180 npm run dev
+```
+
+### 数据、检查与容器
+
+- Java 数据在 `backend/data/ams.mv.db`；首次启动初始化演示数据。与旧版 `data/db.json` 完全隔离。
+- 停止 Java 后，可备份并移走 `backend/data/` 以恢复初始演示资料。升级不会自动覆盖既有数据。
+- `/health` 提供健康状态，`/metrics` 提供 Prometheus 指标。
+- 运行测试：`cd backend && mvn test`。
+- 容器启动：`docker compose -f compose.java-vue.yml up --build -d`。端口可通过 `AMS_HTTP_PORT=8180` 调整，数据保存在独立 volume。
+- 自定义 Maven：`MAVEN_COMMAND=/path/to/mvn bash scripts/build-java-vue.sh -s /path/to/settings.xml`。
+
+完整配置、业务覆盖、已验证结果和生产差距见 [迁移文档](docs/JAVA_VUE_MIGRATION.md)。以下保留原 Node.js 版本说明；其中 `npm start` 和 3000 端口属于旧版本。
+
+---
+
+## 原 Node.js 版本说明
 
 以《AMS 背景介绍和名词解释》《AMS 架构图》《AMS 使用者操作手册》《AMS 系统需求》《AMS 系统页面功能汇整》五份资料为依据，在本地还原的一套可点击、可流转的 AMS（Alarm Management System）Web 应用。
 
