@@ -3,7 +3,10 @@ FROM node:20-alpine
 WORKDIR /opt/application
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
+
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install --omit=dev --no-audit --no-fund && \
+    ls node_modules/express/package.json
 
 COPY . .
 
