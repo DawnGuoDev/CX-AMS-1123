@@ -1,17 +1,13 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache bash
-
 WORKDIR /opt/application
 
-COPY package*.json ./
-RUN npm install --production
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
 
 COPY . .
 
-RUN echo '#!/bin/bash' > /opt/application/run.sh && \
-    echo 'cd /opt/application' >> /opt/application/run.sh && \
-    echo 'exec node server.js' >> /opt/application/run.sh && \
+RUN printf '#!/bin/sh\ncd /opt/application\nexec node server.js\n' > /opt/application/run.sh && \
     chmod +x /opt/application/run.sh
 
 EXPOSE 3000
