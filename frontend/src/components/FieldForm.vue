@@ -4,7 +4,7 @@ const props = defineProps({ fields: Array, model: Object, editing: Boolean })
 function options(field) {
   if (field.options) return field.options
   if (field.optionSet === 'subsystem' && props.model.FACTORY_KEY) return state.options.subsystemByFactory?.[props.model.FACTORY_KEY] || []
-  if (['event','eventGroup'].includes(field.optionSet)) return (state.options[field.optionSet] || []).filter(o =>
+  if (field.optionSet === 'event') return (state.options[field.optionSet] || []).filter(o =>
     (!props.model.FACTORY_KEY || o.factoryKey === props.model.FACTORY_KEY) && (!props.model.SUB_SYS_KEY || o.subsysKey === props.model.SUB_SYS_KEY))
   return state.options[field.optionSet] || []
 }

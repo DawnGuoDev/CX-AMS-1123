@@ -10,6 +10,7 @@ const router = createRouter({
     { path: '/home', component: Workspace, props: { code: 'HOME' } },
     { path: '/page/:code', component: Workspace, props: true },
     { path: '/alarm/:key', component: Workspace, props: route => ({ code: 'ACK', alarmKey: route.params.key }) },
+    { path: '/ack/:key', component: Workspace, props: route => ({ code: 'ACK', alarmKey: route.params.key }) },
     { path: '/:pathMatch(.*)*', redirect: '/home' },
   ],
 })

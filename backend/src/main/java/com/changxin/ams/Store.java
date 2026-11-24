@@ -31,7 +31,10 @@ public class Store {
             shiftDates(data, shift);
             obj(data.get("meta")).put("seededAt", now());
             persist();
-        } else data = obj(parse(saved.getFirst()));
+        } else {
+            data = obj(parse(saved.getFirst()));
+            require(eq(obj(data.get("meta")),"schema","checked-mvp-1"),"数据库属于旧版演示，请使用新的 ams-mvp 数据库");
+        }
     }
     private Map<String, Object> load(String file) throws IOException {
         try (var in = new ClassPathResource(file).getInputStream()) {

@@ -4,11 +4,11 @@ import { state, api, act, notify, t, openAlarm } from '../state'
 import RecordDialog from './RecordDialog.vue'
 import DataGrid from './DataGrid.vue'
 const emit = defineEmits(['changed'])
-const comment = ref(''), tab = ref('NOTIFICATIONS'), confirm = ref(false)
+const comment = ref(''), tab = ref('NOTIFICATIONS')
 async function perform(action) {
   await act(async () => {
     await api(`/alarms/${state.detail.ALARM_KEY}/${action}`, { cmt: comment.value })
-    notify(action === 'ack' ? '警报确认成功' : '警报已中断'); confirm.value = false
+    notify('警报确认成功')
     await openAlarm(state.detail); emit('changed')
   })
 }
@@ -23,10 +23,9 @@ const columns = {
   <RecordDialog v-if="state.detail" title="警报详情" wide @close="state.detail = null">
     <h2>{{ state.detail.TITLE }}</h2><div class="detail-meta"><span>{{ state.detail.ALARM_ID }}</span><span class="tag" :class="state.detail.STATUS">{{ state.detail.STATUS }}</span><span>{{ state.detail.FACTORY_ID }} / {{ state.detail.SUB_SYS_ID }} / {{ state.detail.EQP_ID }}</span></div>
     <p class="alarm-content">{{ state.detail.CONTENT }}</p>
-    <div class="toolbar"><span>LEVEL-{{ state.detail.CURRENT_LEVEL }} · {{ state.detail.LEVEL_ACK_COUNT }} / {{ state.detail.LEVEL_REQUIRED ?? '—' }} {{ t('已回应人数') }}</span></div>
-    <label v-if="state.detail.CAN_ACK || state.detail.CAN_TERMINATE" class="comment"><span>{{ t('回应备注') }}</span><textarea v-model="comment" rows="2"/></label>
-    <div class="toolbar"><button v-if="state.detail.CAN_ACK" class="primary" :disabled="state.busy > 0" @click="perform('ack')">{{ t('警报确认') }}</button><button v-if="state.detail.CAN_TERMINATE" class="danger" @click="confirm = true">{{ t('警报中断') }}</button></div>
-    <div v-if="confirm" class="warning"><p>{{ t('确认强制中断此警报？') }}</p><button class="danger" :disabled="state.busy > 0" @click="perform('terminate')">{{ t('确定') }}</button> <button @click="confirm = false">{{ t('取消') }}</button></div>
+    <div class="toolbar"><span>LEVEL-{{ state.detail.CURRENT_LEVEL }} · {{ state.detail.LEVEL_ACK_COUNT }} / {{ state.detail.LEVEL_REQUIRED ?? '—' }} {{ t('已回应人数') }}</span><button @click="openAlarm(state.detail)">刷新发送与确认状态</button></div>
+    <label v-if="state.detail.CAN_ACK" class="comment"><span>{{ t('回应备注') }}</span><textarea v-model="comment" rows="2"/></label>
+    <div class="toolbar"><button v-if="state.detail.CAN_ACK" class="primary" :disabled="state.busy > 0" @click="perform('ack')">{{ t('警报确认') }}</button><span v-else class="muted">当前账号暂无待确认操作（邮件待发送、非本层级人员、已确认或告警已结束）。</span></div>
     <div class="tabs"><button v-for="(label,key) in { NOTIFICATIONS:'通知发送记录', TRANSACTIONS:'交易履历', LEVELS:'事件层级', ACKS:'回应记录' }" :key="key" :class="{ active: tab === key }" @click="tab = key">{{ t(label) }}</button></div>
     <DataGrid :rows="state.detail[tab] || []" :columns="columns[tab].map(([field,label]) => ({field,label}))"/>
   </RecordDialog>

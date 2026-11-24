@@ -88,6 +88,10 @@ public class Masters {
                 "通知事件不属于所选厂别／子系统");
             require(n(row, "IGNORE_PERIOD") >= 0, "忽略间隔不可为负数");
         }
+        if (table.equals("users") && !s(row,"E_MAIL").isBlank()) {
+            try { new jakarta.mail.internet.InternetAddress(s(row,"E_MAIL"),true).validate(); }
+            catch (jakarta.mail.internet.AddressException e) { throw new ApiException(400,"E-Mail 格式无效"); }
+        }
     }
     public Map<String, Object> save(String kind, String code, String key, Map<String, Object> body, Map<String, Object> user) {
         var meta = meta(kind, code);
@@ -97,17 +101,21 @@ public class Masters {
         if (detail) key = s(body, keyField);
         boolean edit = key != null && !key.isBlank();
         var existing = edit ? store.mustFind(table, keyField, key) : m();
-        var row = copy(existing);
+        var row = edit ? copy(existing) : copy(obj(meta.get("defaults")));
         row.putAll(values(meta, body, edit));
         if (!edit) { row.put(keyField, store.key(table)); row.put("ACTIVE", "Y"); }
         validate(meta, row, table, keyField);
+        var before = edit ? clean(existing) : null;
+        if (detail && before != null) before.put("details",copy(m("rows",store.table("event_levels").stream()
+            .filter(r -> eq(r,"EVENT_KEY",existing.get("EVENT_KEY"))).toList())).get("rows"));
         if (detail) saveDetails(meta, row, body);
         String password = s(row, "PASSWORD"); row.remove("PASSWORD");
         if (table.equals("users") && (!edit || !password.isBlank()))
             row.put("PASSWORD_HASH", Auth.hash(password.isBlank() ? "123456" : password));
         stamp(row, user);
-        store.audit(table, s(row, keyField), edit ? "Modify" : "AddNew",
-            edit ? clean(existing) : null, clean(row), user);
+        var after=clean(row);
+        if (detail) after.put("details",store.table("event_levels").stream().filter(r -> eq(r,"EVENT_KEY",row.get("EVENT_KEY"))).toList());
+        store.audit(table, s(row, keyField), edit ? "Modify" : "AddNew", before, after, user);
         if (edit) { existing.clear(); existing.putAll(row); } else store.table(table).addFirst(row);
         return m("ok", true, "row", clean(row), "masterKey", row.get(keyField));
     }
@@ -115,13 +123,7 @@ public class Masters {
         var d = obj(meta.get("detail"));
         String table = s(d, "table"), fk = s(d, "fk"), masterKey = s(master, s(meta, "masterKey"));
         List<Map<String, Object>> details = new ArrayList<>();
-        if (eq(d, "mode", "transfer")) {
-            for (Object key : new LinkedHashSet<>(list(body.get("detailKeys")))) {
-                var item = store.mustFind(s(d, "itemTable"), s(d, "itemKey"), key);
-                require(active(item), "不能选取已隐藏的人员");
-                details.add(m("MAP_KEY", store.key(table), fk, masterKey, s(d, "itemKey"), key));
-            }
-        } else {
+        {
             var input = new ArrayList<>(rows(body.get("details")));
             require(!input.isEmpty(), "至少设定 LEVEL-1");
             input.sort(Comparator.comparingInt(r -> n(r, "EVENT_LEVEL_ID")));
@@ -133,6 +135,15 @@ public class Masters {
                 require(ack.equals("*") || ack.matches("\\d+"), "回应人数必须为非负整数或 *");
                 require(n(source, "LEVEL_INTERVAL") > 0, "升级间隔必须大于 0");
                 require(n(source, "FAIL_RETRY_TIMES") >= 0 && (n(source, "FAIL_RETRY_TIMES") == 0 || n(source, "FAIL_RETRY_INTERVAL") > 0), "重送次数或间隔无效");
+                for (String field : List.of("EVENT_LEVEL_ID","LEVEL_INTERVAL","FAIL_RETRY_TIMES","FAIL_RETRY_INTERVAL"))
+                    require(s(source,field).matches("\\d+(\\.0+)?"),"层级、间隔和重送次数必须为非负整数");
+                var recipients=new ArrayList<>(new LinkedHashSet<>(list(source.get("USER_KEYS"))));
+                require(!recipients.isEmpty(),"每个层级至少选择一位通知人员");
+                for (Object recipient : recipients) {
+                    var person=store.mustFind("users","USER_KEY",recipient);
+                    require(active(person) && !s(person,"E_MAIL").isBlank(),"通知人员必须启用且设定 E-Mail");
+                }
+                require(ack.equals("*") || n(source,"NUMBER_OF_ACK_USERS")<=recipients.size(),"回应人数不可超过本层级通知人数");
                 String key = s(source, s(d, "key"));
                 if (!key.isBlank()) {
                     var old = store.mustFind(table, s(d, "key"), key);
@@ -141,12 +152,9 @@ public class Masters {
                 require(keys.add(key), "层级资料重复");
                 var row = values(d, source, false);
                 row.putAll(m(s(d, "key"), key, fk, masterKey, "ACTIVE", "Y"));
+                row.put("USER_KEYS",recipients);
                 details.add(row);
             }
-            var retained = details.stream().map(r -> s(r, s(d, "key"))).toList();
-            var removed = store.table(table).stream().filter(r -> eq(r, fk, masterKey))
-                .map(r -> s(r, s(d, "key"))).filter(k -> !retained.contains(k)).toList();
-            store.table("event_level_groups").removeIf(r -> removed.contains(s(r, "EVENT_LEVEL_KEY")));
         }
         store.table(table).removeIf(r -> eq(r, fk, masterKey));
         store.table(table).addAll(details);
@@ -184,14 +192,9 @@ public class Masters {
             {"factory","factories","FACTORY_KEY","FACTORY_ID","FACTORY_NAME"},
             {"subsystem","subsystems","SUB_SYS_KEY","SUB_SYS_ID","SUB_SYS_NAME"},
             {"eqp","eqps","EQP_KEY","EQP_ID","EQP_NAME"},
-            {"eqpGroup","eqp_groups","EQP_GROUP_KEY","EQP_GROUP_ID","EQP_GROUP_NAME"},
-            {"eqpType","eqp_types","EQP_TYPE_KEY","EQP_TYPE_ID","EQP_TYPE_DESC"},
-            {"eqpStatus","eqp_status","EQP_STATUS_KEY","EQP_STATUS_ID","EQP_STATUS_DESC"},
-            {"user","users","USER_KEY","USER_ID","USER_NAME"}, {"userGroup","user_groups","GROUP_KEY","GROUP_ID","GROUP_NAME"},
+            {"user","users","USER_KEY","USER_ID","USER_NAME"},
             {"event","events","EVENT_KEY","EVENT_ID","EVENT_NAME"},
-            {"eventGroup","event_groups","EVENT_GROUP_KEY","EVENT_GROUP_ID","EVENT_GROUP_NAME"},
-            {"alarmSetting","alarm_settings","ALARM_INFO_KEY","ALARM_INFO_ID","ALARM_ID_DESC"},
-            {"chamber","chambers","PROCRSC_KEY","PROCRSC_ID","CHAMBER_NAME"}
+            {"alarmSetting","alarm_settings","ALARM_INFO_KEY","ALARM_INFO_ID","ALARM_ID_DESC"}
         };
         for (String[] set : sets) out.put(set[0], store.table(set[1]).stream().filter(Json::active).map(r ->
             m("value", r.get(set[2]), "code", r.get(set[3]), "name", r.get(set[4]),
@@ -202,22 +205,10 @@ public class Masters {
         for (var f : rows(out.get("factory"))) byFactory.put(s(f,"value"), rows(out.get("subsystem")).stream()
             .filter(s -> store.table("factory_subsys").stream().anyMatch(r -> eq(r,"FACTORY_KEY",f.get("value")) && eq(r,"SUB_SYS_KEY",s.get("value")))).toList());
         out.put("subsystemByFactory", byFactory);
-        for (String[] def : new String[][]{{"event","eventByFactorySubsys"},{"eventGroup","groupByFactorySubsys"}}) {
-            var groups = m();
-            for (var r : rows(out.get(def[0]))) rows(groups.computeIfAbsent(s(r,"factoryKey")+"||"+s(r,"subsysKey"), k -> new ArrayList<>())).add(r);
-            out.put(def[1], groups);
-        }
         out.put("department", store.table("users").stream().map(r -> s(r,"ORGAN_KEY")).distinct().map(v -> m("value",v,"label",v)).toList());
         Map<String, String> enums = Map.ofEntries(
             Map.entry("shift","A,B,C,D"),Map.entry("gender","M,F"),Map.entry("yesno","Y,N"),
-            Map.entry("channel","Email,Sms,Phone,IM"),Map.entry("sendChannel","Email,Sms,Phone,Voice,IM"),
-            Map.entry("alarmStatus","Open,Notifying,Process,Completed,NoNextLevel,Terminated,LogOnly"),
-            Map.entry("imGroupType","ByEventGroup,ByNotifyGroup,ByTool"),
-            Map.entry("deviceStatus","OK,Unknown,Close,Error,NG"),Map.entry("activeStatus","Y,N"),
-            Map.entry("operator","=,!=,>,>=,<,<=,LIKE,BETWEEN"),Map.entry("displayType","Grid,Chart,GridAndChart,TextBox"),
-            Map.entry("reportDataSourceType","SQL,Procedure"),Map.entry("exportType","Excel,CSV,PDF"),
-            Map.entry("inputType","TextBox,ComboBox,CheckBox,Number,DateBox,DateTimeBox,Password"),
-            Map.entry("pivotAxis","Column,Row,Value"),Map.entry("dataAfterQueryAction","None,DrillDown,Popup"));
+            Map.entry("alarmStatus","Process,Completed,NoNextLevel,LogOnly"),Map.entry("activeStatus","Y,N"));
         enums.forEach((k,v) -> out.put(k, Arrays.stream(v.split(",")).map(x -> m("value",x,"label",x)).toList()));
         return out;
     }

@@ -5,7 +5,7 @@ server:
     include-message: never
 spring:
   datasource:
-    url: ${AMS_DB_URL:jdbc:h2:file:./data/ams;DB_CLOSE_ON_EXIT=FALSE}
+    url: ${AMS_DB_URL:jdbc:h2:file:./data/ams-mvp;DB_CLOSE_ON_EXIT=FALSE}
     username: sa
     password: ${AMS_DB_PASSWORD:}
   jackson:
@@ -24,3 +24,13 @@ management:
       show-details: never
 ams:
   scheduling: ${AMS_SCHEDULING:true}
+  public-url: ${AMS_PUBLIC_URL:http://localhost:8180}
+  smtp:
+    host: ${AMS_SMTP_HOST:}
+    port: ${AMS_SMTP_PORT:587}
+    username: ${AMS_SMTP_USERNAME:}
+    password: ${AMS_SMTP_PASSWORD:}
+    from: ${AMS_SMTP_FROM:}
+    auth: ${AMS_SMTP_AUTH:true}
+    starttls: ${AMS_SMTP_STARTTLS:true}
+    ssl: ${AMS_SMTP_SSL:false}

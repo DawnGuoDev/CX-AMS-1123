@@ -25,7 +25,7 @@ function chooseMaster(row) {
 function start(row, copy = false) {
   editing.value = !!row && !copy
   edit.value = clone(row || meta.value.defaults || {})
-  if (copy) delete edit.value[keyField.value]
+  if (copy) { delete edit.value[keyField.value]; delete edit.value[meta.value.idField || meta.value.masterId] }
   if (kind.value === 'masterdetail') {
     const d = meta.value.detail
     const details = (data.value.details || []).filter(r => r[d.fk] === row?.[keyField.value])
@@ -35,7 +35,7 @@ function start(row, copy = false) {
     } else edit.value.detailKeys = details.map(r => r[d.itemKey])
   }
 }
-function addLevel() { edit.value.details.push({ EVENT_LEVEL_ID: edit.value.details.length + 1, EVENT_LEVEL_DESC: '', NUMBER_OF_ACK_USERS:'1', LEVEL_INTERVAL:10, FAIL_RETRY_TIMES:0, FAIL_RETRY_INTERVAL:60 }) }
+function addLevel() { edit.value.details.push({ EVENT_LEVEL_ID: edit.value.details.length + 1, EVENT_LEVEL_DESC: '', NUMBER_OF_ACK_USERS:'1', LEVEL_INTERVAL:10, FAIL_RETRY_TIMES:0, FAIL_RETRY_INTERVAL:60,USER_KEYS:[] }) }
 async function save() {
   await act(async () => {
     const url = kind.value === 'master' && editing.value ? `${route.value}/${edit.value[keyField.value]}` : route.value
@@ -87,7 +87,7 @@ onMounted(() => act(load))
   <DataGrid v-if="tab === 'history'" :rows="data.history || []" :columns="historyColumns"/>
   <div v-else-if="kind === 'mapping' && meta.master" class="mapping-layout">
     <section class="panel"><h3>{{ t(meta.master.label) }}</h3><input v-model="itemSearch" :placeholder="t('过滤')">
-      <button v-for="row in rows.filter(r => meta.master.display.some(k => String(r[k] || '').includes(itemSearch)))" :key="row[meta.master.key]" class="master-choice" :class="{active:masterKey === row[meta.master.key]}" @click="chooseMaster(row)">{{ meta.master.display.slice(0,2).map(k => row[k]).join(' · ') }}</button>
+      <button v-for="row in data.masters.filter(r => meta.master.display.some(k => String(r[k] || '').includes(itemSearch)))" :key="row[meta.master.key]" class="master-choice" :class="{active:masterKey === row[meta.master.key]}" @click="chooseMaster(row)">{{ meta.master.display.slice(0,2).map(k => row[k]).join(' · ') }}</button>
     </section>
     <section class="panel"><h3>{{ t(meta.item.label) }} · {{ itemKeys.length }} {{ t('已选择') }}</h3><div class="transfer-list"><label v-for="item in data.items" :key="item[meta.item.key]" class="check"><input type="checkbox" v-model="itemKeys" :value="item[meta.item.key]">{{ meta.item.display.map(k => item[k]).filter(Boolean).join(' · ') }}</label></div>
       <button class="primary" :disabled="!masterKey" @click="act(async () => { await api(`${route}/${masterKey}`,{itemKeys}); await refreshOptions(); await load(); notify('储存成功') })">{{ t('储存') }}</button>
@@ -97,8 +97,7 @@ onMounted(() => act(load))
   <RecordDialog v-if="edit" :title="editing ? '修改' : '新增'" wide @close="edit = null">
     <form @submit.prevent="save"><FieldForm :fields="meta.fields" :model="edit" :editing="editing"/>
       <template v-if="kind === 'masterdetail'"><h3>{{ t(meta.detail.title) }}</h3>
-        <div v-if="meta.detail.mode === 'transfer'" class="transfer-list"><label v-for="u in state.options.user" :key="u.value" class="check"><input type="checkbox" v-model="edit.detailKeys" :value="u.value">{{ u.label }} · {{ u.organ }}</label></div>
-        <template v-else><div v-for="(level,index) in edit.details" :key="index" class="level-card"><div class="toolbar"><strong>LEVEL-{{ index+1 }}</strong><button type="button" @click="edit.details.splice(index,1)">{{ t('移除') }}</button></div><FieldForm :fields="meta.detail.fields" :model="level"/></div><button type="button" @click="addLevel">{{ t('新增层级') }}</button></template>
+        <div v-for="(level,index) in edit.details" :key="index" class="level-card"><div class="toolbar"><strong>LEVEL-{{ index+1 }}</strong><button type="button" @click="edit.details.splice(index,1);edit.details.forEach((r,i)=>r.EVENT_LEVEL_ID=i+1)">{{ t('移除') }}</button></div><FieldForm :fields="meta.detail.fields" :model="level"/><h4>本层级通知人员 · Email</h4><div class="transfer-list"><label v-for="u in state.options.user" :key="u.value" class="check"><input type="checkbox" v-model="level.USER_KEYS" :value="u.value">{{ u.label }}</label></div></div><button type="button" @click="addLevel">{{ t('新增层级') }}</button>
       </template>
       <div class="form-actions"><button type="button" @click="edit = null">{{ t('取消') }}</button><button class="primary" :disabled="state.busy > 0">{{ t('储存') }}</button></div>
     </form>

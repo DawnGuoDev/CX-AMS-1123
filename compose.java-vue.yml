@@ -7,6 +7,15 @@ services:
       - "127.0.0.1:${AMS_HTTP_PORT:-8080}:8080"
     environment:
       AMS_SCHEDULING: "true"
+      AMS_PUBLIC_URL: ${AMS_PUBLIC_URL:-http://localhost:8080}
+      AMS_SMTP_HOST: ${AMS_SMTP_HOST:-}
+      AMS_SMTP_PORT: ${AMS_SMTP_PORT:-587}
+      AMS_SMTP_USERNAME: ${AMS_SMTP_USERNAME:-}
+      AMS_SMTP_PASSWORD: ${AMS_SMTP_PASSWORD:-}
+      AMS_SMTP_FROM: ${AMS_SMTP_FROM:-}
+      AMS_SMTP_AUTH: ${AMS_SMTP_AUTH:-true}
+      AMS_SMTP_STARTTLS: ${AMS_SMTP_STARTTLS:-true}
+      AMS_SMTP_SSL: ${AMS_SMTP_SSL:-false}
     volumes:
       - ams-java-data:/app/data
     restart: unless-stopped

@@ -36,7 +36,11 @@ public class Excel {
         var meta=masters.meta(kind,code);
         if (kind.equals("mappings")) {
             var master=obj(meta.get("master")); var item=obj(meta.get("item"));
-            var data=template ? List.<Map<String,Object>>of() : store.table(s(meta,"mapTable")).stream().map(r -> {
+            var data=template ? List.<Map<String,Object>>of() : store.table(s(meta,"mapTable")).stream().filter(r -> {
+                var a=store.find(s(master,"table"),s(master,"key"),r.get(s(meta,"mapMasterFk")));
+                var b=store.find(s(item,"table"),s(item,"key"),r.get(s(meta,"mapItemFk")));
+                return a!=null && b!=null && active(a) && active(b);
+            }).map(r -> {
                 var a=store.find(s(master,"table"),s(master,"key"),r.get(s(meta,"mapMasterFk")));
                 var b=store.find(s(item,"table"),s(item,"key"),r.get(s(meta,"mapItemFk")));
                 return m("MASTER_CODE",a == null ? "" : a.get(str(list(master.get("display")).getFirst())),
@@ -46,7 +50,7 @@ public class Excel {
         }
         var columns=rows(meta.get("fields")).stream().filter(f -> !eq(f,"type","password") && !Boolean.TRUE.equals(f.get("readOnly")))
             .map(f -> m("field",f.get("name"),"label",f.get("name"))).toList();
-        return workbook(code+(template?"_template":"_data"),columns,template ? List.of() : store.table(s(meta,"table")).stream().map(Json::clean).toList());
+        return workbook(code+(template?"_template":"_data"),columns,template ? List.of() : store.table(s(meta,"table")).stream().filter(Json::active).map(Json::clean).toList());
     }
     public Map<String,Object> verify(String kind,String code,String base64) {
         require(base64.length()<=16_000_000,"Excel 文件过大（限 12 MB）");
@@ -106,8 +110,14 @@ public class Excel {
                 if (kind.equals("mappings")) {
                     var meta=masters.meta(kind,code); var keys=mappingKeys(meta,obj(candidate.get("values")));
                     var current=new ArrayList<Object>(store.table(s(meta,"mapTable")).stream().filter(r -> eq(r,s(meta,"mapMasterFk"),keys.get("masterKey"))).map(r -> r.get(s(meta,"mapItemFk"))).toList());
-                    if (!current.contains(keys.get("itemKey"))) { current.add(keys.get("itemKey")); masters.saveMapping(code,s(keys,"masterKey"),current,user); success++; }
-                } else { masters.save("masters",code,null,obj(candidate.get("values")),user); success++; }
+                    if (!current.contains(keys.get("itemKey"))) {
+                        current.add(keys.get("itemKey")); masters.saveMapping(code,s(keys,"masterKey"),current,user);
+                        store.table("history").getFirst().put("ACTION","Import"); success++;
+                    }
+                } else {
+                    masters.save("masters",code,null,obj(candidate.get("values")),user);
+                    store.table("history").getFirst().put("ACTION","Import"); success++;
+                }
             } catch (ApiException e) { errors.add("第 "+s(candidate,"rowNo")+" 列："+e.getMessage()); }
         }
         return m("ok",true,"success",success,"errors",errors);

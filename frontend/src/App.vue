@@ -49,13 +49,12 @@ onMounted(async () => {
       </template></nav><footer>AMS · JAVA / VUE<br><small>v1.0.0</small></footer>
     </aside>
     <div class="main-shell"><header class="topbar"><span class="muted">CHANGXIN / {{ t('警报管理系统') }}</span><div class="top-actions">
-      <label>{{ t('演示时钟') }} <select :value="state.settings.demoSpeed" @change="act(async () => { state.settings = (await api('/settings',{demoSpeed:Number($event.target.value)})).settings })"><option v-for="n in [1,10,30,60]" :key="n" :value="n">×{{ n }}</option></select></label>
       <select :value="language" @change="changeLanguage($event.target.value)" aria-label="语言"><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="en">English</option></select>
-      <RouterLink to="/page/INBOX" class="inbox-link">{{ t('通知收件箱') }}</RouterLink><span class="avatar">{{ state.user.USER_NAME?.slice(-1) }}</span><span>{{ state.user.USER_NAME }}</span><button @click="logout">{{ t('登出') }}</button>
+      <RouterLink to="/page/ACK_LIST" class="inbox-link">待我确认</RouterLink><span class="avatar">{{ state.user.USER_NAME?.slice(-1) }}</span><span>{{ state.user.USER_NAME }}</span><button @click="logout">{{ t('登出') }}</button>
     </div></header>
     <main>
       <RouterView :key="route.fullPath"/>
-    </main><footer class="page-footer">AMS · {{ t('登入时间') }} {{ new Date(state.loginAt).toLocaleString() }}<span>通知渠道为本地模拟</span></footer></div>
+    </main><footer class="page-footer">AMS · {{ t('登入时间') }} {{ new Date(state.loginAt).toLocaleString() }}<span>Email · {{ state.smtpConfigured?'SMTP 已配置':'SMTP 未配置' }}</span></footer></div>
     <AlarmDetail/>
   </div>
   <div v-if="state.user && state.error" class="error global-error" role="alert">{{ state.error }}<button @click="state.error = ''" aria-label="关闭错误">×</button></div>
