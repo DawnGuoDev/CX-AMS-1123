@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { state, api, act, bootstrap, t, language, changeLanguage } from './state'
 import AlarmDetail from './components/AlarmDetail.vue'
 const route = useRoute(), router = useRouter()
-const credentials = ref({ userId: 'E0043258', password: '123456' }), ready = ref(false), navSearch = ref('')
+const credentials = ref({ userId: 'E0043258', password: '' }), ready = ref(false), navSearch = ref('')
 const flattened = computed(() => {
   const items = []
   function visit(nodes, depth = 0) {
@@ -19,6 +19,7 @@ const flattened = computed(() => {
 async function login() {
   await act(async () => {
     const result = await api('/login', credentials.value); sessionStorage.setItem('ams_java_token', result.token)
+    credentials.value.password = ''
     await bootstrap()
   })
 }
@@ -37,14 +38,14 @@ onMounted(async () => {
       <label>{{ t('密码') }}<input v-model="credentials.password" type="password" autocomplete="current-password" required></label>
       <p v-if="state.error" class="error" role="alert">{{ state.error }}</p>
       <button class="primary" :disabled="state.busy > 0">{{ state.busy ? t('载入中') : t('登入') }}</button>
-      <div class="demo-users"><span>{{ t('演示账号') }}</span><button type="button" v-for="(name,id) in { E0043258:'系统管理员',E0043288:'值班主管',E0043271:'制程工程师' }" :key="id" @click="credentials = { userId:id,password:'123456' }">{{ t(name) }}</button></div>
+      <div class="demo-users"><span>{{ t('演示账号') }}</span><button type="button" v-for="(name,id) in { E0043258:'系统管理员',E0043288:'值班主管',E0043271:'制程工程师' }" :key="id" @click="credentials = { userId:id,password:'' }">{{ t(name) }}</button></div>
     </form>
   </div>
   <div v-else class="app-shell">
     <aside class="sidebar"><a href="#/home" class="brand">AMS <span>警报管理系统</span></a><div class="environment"><i/> 本地演示环境</div>
-      <input v-model="navSearch" class="nav-search" placeholder="搜索功能 / 页面代码">
+      <input v-model="navSearch" class="nav-search" placeholder="搜索功能">
       <nav><template v-for="node in flattened" :key="node.key">
-        <RouterLink v-if="node.path" :to="node.path.replace(/^#/, '')" :style="{ paddingLeft: `${16 + Math.max(0,node.depth - 1) * 12}px` }" :class="{ current: route.path === node.path.replace(/^#/, '') }"><span>{{ t(node.name) }}</span><small>{{ node.id === 'HOME' ? '⌂' : node.id }}</small></RouterLink>
+        <RouterLink v-if="node.path" :to="node.path.replace(/^#/, '')" :style="{ paddingLeft: `${16 + Math.max(0,node.depth - 1) * 12}px` }" :class="{ current: route.path === node.path.replace(/^#/, '') }"><span>{{ t(node.name) }}</span></RouterLink>
         <div v-else class="nav-section">{{ t(node.name) }}</div>
       </template></nav><footer>AMS · JAVA / VUE<br><small>v1.0.0</small></footer>
     </aside>

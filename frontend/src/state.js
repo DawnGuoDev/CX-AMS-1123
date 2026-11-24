@@ -19,7 +19,10 @@ export async function api(path, body, method = 'POST') {
   const data = await response.json()
   if (!response.ok || data.ok === false) {
     if (response.status === 401 && path !== '/login') { sessionStorage.removeItem('ams_java_token'); state.user = null }
-    throw new Error(data.message || `HTTP ${response.status}`)
+    const error = new Error(data.message || `HTTP ${response.status}`)
+    error.status = response.status
+    error.data = data
+    throw error
   }
   return data
 }

@@ -10,7 +10,7 @@ const title=computed(()=>master.value?.title||state.meta.pageTitles?.[props.code
 onMounted(()=>{if(props.code==='ACK')openAlarm(props.alarmKey)})
 </script>
 <template>
-  <div class="page-heading"><div><div class="eyebrow">{{ code }}</div><h1>{{ t(title) }}</h1></div></div>
+  <div class="page-heading"><h1>{{ t(title) }}</h1></div>
   <MasterPage v-if="master" :code="code"/>
   <OperationsPage v-else-if="['TEST','ACK_LIST'].includes(code)" :code="code"/>
   <ReportPage v-else-if="['HOME','AVPA013','AVPA004','AVPA007'].includes(code)" :code="code==='HOME'?'AVPA013':code"/>

@@ -661,6 +661,26 @@ const EN = {
   '更新': 'Refresh'
 };
 
+// Keep persisted menu names compatible while using consistent user-facing names.
+const pageLabels = {
+  '使用者设定': '使用者管理',
+  '厂别设定': '厂别管理',
+  '机台设定': '机台管理',
+  '子系统设定': '子系统管理',
+  '厂别子系统对应设定': '厂别子系统对应管理',
+  '事件通知设定': '事件通知管理',
+  '警报通知设定': '警报通知管理',
+};
+Object.assign(EN, {
+  '使用者管理': 'User Management',
+  '厂别管理': 'Factory Management',
+  '机台管理': 'Equipment Management',
+  '子系统管理': 'Subsystem Management',
+  '厂别子系统对应管理': 'Factory Subsystem Mapping',
+  '事件通知管理': 'Event Notification Management',
+  '警报通知管理': 'Alarm Notification Management',
+});
+
 const cache = new Map();
 let converter = null;
 let lang = localStorage.getItem('ams_lang') || 'zh-CN';
@@ -685,8 +705,8 @@ function toTW(s) {
 
 export function t(key, vars) {
   if (key == null) return '';
-  let s = String(key);
-  if (lang === 'en') s = EN[key] !== undefined ? EN[key] : s;
+  let s = pageLabels[key] || String(key);
+  if (lang === 'en') s = EN[s] !== undefined ? EN[s] : s;
   else if (lang === 'zh-TW') s = toTW(s);
   if (vars) {
     Object.entries(vars).forEach(([k, v]) => {
