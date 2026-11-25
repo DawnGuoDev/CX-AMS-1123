@@ -32,27 +32,35 @@
           "name": "LAST_NAME",
           "label": "使用者姓",
           "type": "text",
-          "grid": false
+          "grid": true
         },
         {
           "name": "FIRST_NAME",
           "label": "使用者名",
           "type": "text",
-          "grid": false
+          "grid": true
         },
+        {"name":"MIDDLE_NAME","label":"中间名","type":"text"},
+        {"name":"IPPHONE_IM","label":"IPPhone(IM)","type":"text"},
+        {"name":"IPPHONE_EXT","label":"IPPhone(分机)","type":"text"},
+        {"name":"ALARM_SMS_PHONE","label":"警报短信电话","type":"text"},
+        {"name":"ALARM_PHONE","label":"警报电话","type":"text"},
+        {"name":"HIRE_DATE","label":"到职日","type":"date"},
+        {"name":"IS_EMPLOYEE","label":"是否公司员工","type":"checkbox"},
         {
           "name": "GENDER",
           "label": "性别",
           "type": "select",
           "optionSet": "gender",
-          "grid": false
+          "grid": true
         },
         {
           "name": "PASSWORD",
           "label": "密码",
           "type": "password",
           "grid": false,
-          "help": "新增时默认 123456"
+          "requiredOnCreate": true,
+          "help": "新增时必填；修改时留空保留原密码"
         },
         {
           "name": "E_MAIL",
@@ -102,7 +110,6 @@
         "ORGAN_KEY"
       ],
       "defaults": {
-        "PASSWORD": "123456",
         "SHIFT_KEY": "A",
         "GENDER": "M"
       }
@@ -301,20 +308,26 @@
           "name": "EVENT_PTY_ID",
           "label": "优先权代码",
           "type": "number",
-          "width": 110
+          "width": 110,
+          "required": true,
+          "integer": true,
+          "min": 0
         },
         {
           "name": "IGNORE_PERIOD",
           "label": "忽略相同警报时间间隔(秒)",
           "type": "number",
           "width": 190,
-          "help": "默认 900 秒"
+          "help": "默认 900 秒",
+          "required": true,
+          "integer": true,
+          "min": 0
         },
         {
           "name": "ALARM_CMT",
           "label": "备注",
           "type": "text",
-          "grid": false
+          "grid": true
         }
       ],
       "filters": [
@@ -377,6 +390,7 @@
       "masterTable": "events",
       "masterKey": "EVENT_KEY",
       "masterId": "EVENT_ID",
+      "defaults": {"EVENT_PRIORITY_ID": 5},
       "masterUnique": [
         [
           "EVENT_ID"
@@ -407,6 +421,7 @@
           "optionSet": "factory",
           "width": 180,
           "filter": true,
+          "readOnlyOnEdit": true,
           "required": true
         },
         {
@@ -416,6 +431,7 @@
           "optionSet": "subsystem",
           "width": 180,
           "filter": true,
+          "readOnlyOnEdit": true,
           "required": true,
           "dependsOn": "FACTORY_KEY"
         },
@@ -429,7 +445,10 @@
           "name": "EVENT_PRIORITY_ID",
           "label": "优先权代码",
           "type": "number",
-          "width": 110
+          "width": 110,
+          "required": true,
+          "integer": true,
+          "min": 0
         }
       ],
       "filters": [
@@ -450,7 +469,10 @@
             "name": "EVENT_LEVEL_ID",
             "label": "事件层级代码",
             "type": "number",
-            "width": 110
+            "width": 110,
+            "required": true,
+            "integer": true,
+            "min": 1
           },
           {
             "name": "EVENT_LEVEL_DESC",
@@ -463,25 +485,35 @@
             "label": "需要回应的人数",
             "type": "text",
             "width": 130,
-            "help": "0=不需回应，*=全员"
+            "help": "0=不需回应，*=全员",
+            "required": true
           },
           {
             "name": "LEVEL_INTERVAL",
             "label": "升级层级时间间隔(分)",
             "type": "number",
-            "width": 170
+            "width": 170,
+            "required": true,
+            "integer": true,
+            "min": 1
           },
           {
             "name": "FAIL_RETRY_TIMES",
             "label": "失败重送次数",
             "type": "number",
-            "width": 120
+            "width": 120,
+            "required": true,
+            "integer": true,
+            "min": 0
           },
           {
             "name": "FAIL_RETRY_INTERVAL",
             "label": "失败重送时间间隔(秒)",
             "type": "number",
-            "width": 170
+            "width": 170,
+            "required": true,
+            "integer": true,
+            "min": 0
           }
         ]
       }

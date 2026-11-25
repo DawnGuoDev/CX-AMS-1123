@@ -21,7 +21,21 @@ public class Masters {
             .filter(r -> filters.entrySet().stream().allMatch(e -> str(e.getValue()).isEmpty() ||
                 s(r, e.getKey()).toLowerCase(Locale.ROOT).contains(str(e.getValue()).toLowerCase(Locale.ROOT))))
             .sorted(Comparator.comparing((Map<String, Object> r) -> s(r, "MTR_DATE")).reversed())
-            .map(Json::clean).toList();
+            .map(this::display).toList();
+    }
+    private Map<String,Object> display(Map<String,Object> source) {
+        var row=clean(source);
+        var modifier=store.find("users","USER_KEY",row.get("MTR_USER_KEY"));
+        if (!row.containsKey("MTR_USER_ID") && modifier!=null) row.put("MTR_USER_ID",modifier.get("USER_ID"));
+        for (String[] link : new String[][]{{"factories","FACTORY_KEY","FACTORY_ID","FACTORY_NAME"},
+            {"subsystems","SUB_SYS_KEY","SUB_SYS_ID","SUB_SYS_NAME"},{"eqps","EQP_KEY","EQP_ID","EQP_NAME"},
+            {"events","EVENT_KEY","EVENT_ID","EVENT_NAME"}}) {
+            if (s(row,link[1]).isBlank()) continue;
+            var item=store.find(link[0],link[1],row.get(link[1]));
+            if(item!=null) {row.put(link[2],item.get(link[2]));row.put(link[3],item.get(link[3]));}
+            else if(eq(row,link[1],"*")) {row.put(link[2],"*");row.put(link[3],"任一机台");}
+        }
+        return row;
     }
     public Map<String, Object> get(String kind, String code, Map<String, Object> query) {
         var meta = meta(kind, code);
@@ -62,6 +76,10 @@ public class Masters {
     public void validate(Map<String, Object> meta, Map<String, Object> row, String table, String keyField) {
         for (var f : rows(meta.get("fields"))) {
             if (Boolean.TRUE.equals(f.get("required"))) require(!s(row, s(f, "name")).isBlank(), s(f, "label") + "为必填");
+            if (Boolean.TRUE.equals(f.get("requiredOnCreate")) && s(row,keyField).isBlank())
+                require(!s(row,s(f,"name")).isBlank(),s(f,"label")+"为必填");
+            if (Boolean.TRUE.equals(f.get("integer")) && !s(row,s(f,"name")).isBlank())
+                require(s(row,s(f,"name")).matches("\\d+(\\.0+)?") && n(row,s(f,"name"))>=n(f,"min"),s(f,"label")+"必须为不小于 "+n(f,"min")+" 的整数");
         }
         var unique = new ArrayList<List<Object>>();
         for (Object key : list(meta.get("uniqueFields"))) unique.add(List.of(key));
@@ -103,15 +121,16 @@ public class Masters {
         var existing = edit ? store.mustFind(table, keyField, key) : m();
         var row = edit ? copy(existing) : copy(obj(meta.get("defaults")));
         row.putAll(values(meta, body, edit));
-        if (!edit) { row.put(keyField, store.key(table)); row.put("ACTIVE", "Y"); }
+        if (!edit) row.put("ACTIVE", "Y");
         validate(meta, row, table, keyField);
+        if (!edit) row.put(keyField, store.key(table));
         var before = edit ? clean(existing) : null;
         if (detail && before != null) before.put("details",copy(m("rows",store.table("event_levels").stream()
             .filter(r -> eq(r,"EVENT_KEY",existing.get("EVENT_KEY"))).toList())).get("rows"));
         if (detail) saveDetails(meta, row, body);
         String password = s(row, "PASSWORD"); row.remove("PASSWORD");
         if (table.equals("users") && (!edit || !password.isBlank()))
-            row.put("PASSWORD_HASH", Auth.hash(password.isBlank() ? "123456" : password));
+            row.put("PASSWORD_HASH", Auth.hash(password));
         stamp(row, user);
         var after=clean(row);
         if (detail) after.put("details",store.table("event_levels").stream().filter(r -> eq(r,"EVENT_KEY",row.get("EVENT_KEY"))).toList());
@@ -137,7 +156,8 @@ public class Masters {
                 require(n(source, "FAIL_RETRY_TIMES") >= 0 && (n(source, "FAIL_RETRY_TIMES") == 0 || n(source, "FAIL_RETRY_INTERVAL") > 0), "重送次数或间隔无效");
                 for (String field : List.of("EVENT_LEVEL_ID","LEVEL_INTERVAL","FAIL_RETRY_TIMES","FAIL_RETRY_INTERVAL"))
                     require(s(source,field).matches("\\d+(\\.0+)?"),"层级、间隔和重送次数必须为非负整数");
-                var recipients=new ArrayList<>(new LinkedHashSet<>(list(source.get("USER_KEYS"))));
+                var recipients=new ArrayList<>(list(source.get("USER_KEYS")));
+                require(new HashSet<>(recipients).size()==recipients.size(),"通知人员不可重复");
                 require(!recipients.isEmpty(),"每个层级至少选择一位通知人员");
                 for (Object recipient : recipients) {
                     var person=store.mustFind("users","USER_KEY",recipient);
@@ -184,7 +204,7 @@ public class Masters {
         return m("ok", true, "count", keys.size());
     }
     public void stamp(Map<String, Object> row, Map<String, Object> user) {
-        row.putAll(m("MTR_DATE", now(), "MTR_USER_KEY", user.get("USER_KEY"), "MTR_USER_NAME", user.get("USER_NAME")));
+        row.putAll(m("MTR_DATE", now(), "MTR_USER_KEY", user.get("USER_KEY"), "MTR_USER_ID", user.get("USER_ID"), "MTR_USER_NAME", user.get("USER_NAME")));
     }
     public Map<String, Object> options() {
         var out = m();

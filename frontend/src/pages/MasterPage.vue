@@ -8,14 +8,29 @@ const props = defineProps({ code: String })
 const kind = computed(() => state.meta.masters?.[props.code] ? 'master' : state.meta.mappings?.[props.code] ? 'mapping' : 'masterdetail')
 const data = ref({}), showHidden = ref(false), tab = ref('data'), selected = ref([]), edit = ref(null), editing = ref(false), confirm = ref(''), fileInput = ref(null)
 const importRows = ref(null), importSelected = ref([]), masterKey = ref(''), itemKeys = ref([]), itemSearch = ref('')
+const editorTab=ref('main'),levelDraft=ref(null),levelIndex=ref(-1)
+const mapEdit=ref(null),mapCopy=ref(false),availableSelected=ref([]),assignedSelected=ref([])
 const meta = computed(() => data.value.meta || { fields: [] })
 const rows = computed(() => data.value.rows || data.value.masters || [])
 const keyField = computed(() => meta.value.keyField || meta.value.masterKey || meta.value.master?.key)
-const columns = computed(() => (meta.value.fields || []).filter(f => f.grid !== false && f.type !== 'password').map(f => ({...f,field:f.name})))
+const auditColumns=[{field:'MTR_DATE',label:'修改时间',type:'date'},{field:'MTR_USER_ID',label:'修改人员代码'},{field:'MTR_USER_NAME',label:'修改人员名称'}]
+const columns = computed(() => {
+  const fields=(meta.value.fields || []).filter(f => f.grid !== false && f.type !== 'password').map(f => ({...f,field:f.name}))
+  if(props.code==='AVMA009') {
+    for(const [field,label] of [['FACTORY_ID','厂别代码'],['FACTORY_NAME','厂别名称'],['SUB_SYS_ID','子系统代码'],['SUB_SYS_NAME','子系统名称'],['EQP_ID','机台代码'],['EQP_NAME','机台名称'],['EVENT_ID','事件通知代码'],['EVENT_NAME','事件通知名称']])
+      fields.push({field,label})
+  }
+  return [...fields,...auditColumns]
+})
+const levelColumns=computed(()=>[...(meta.value.detail?.fields||[]).map(f=>({...f,field:f.name})),{field:'RECIPIENTS',label:'通知人员'}])
+const withRecipients=levels=>levels.map(r=>({...r,RECIPIENTS:(r.USER_KEYS||[]).map(k=>state.options.user?.find(u=>u.value===k)?.label||k).join('；')}))
+const selectedDetails=computed(()=>withRecipients((data.value.details||[]).filter(r=>r.EVENT_KEY===selected.value[0]?.EVENT_KEY)))
+const assigned=computed(()=>(data.value.items||[]).filter(r=>itemKeys.value.includes(r[meta.value.item?.key])))
 const route = computed(() => `/${kind.value}/${props.code}`)
 async function load() {
   data.value = await api(`${route.value}?showHidden=${showHidden.value ? 1 : 0}`)
-  if (kind.value === 'mapping' && !masterKey.value) chooseMaster(data.value.masters[0])
+  selected.value=[]
+  if (kind.value === 'mapping') chooseMaster(data.value.masters.find(r=>r[meta.value.master.key]===masterKey.value)||data.value.masters[0])
 }
 function chooseMaster(row) {
   if (!row) return
@@ -23,8 +38,10 @@ function chooseMaster(row) {
   itemKeys.value = data.value.mapRows.filter(r => r[meta.value.mapMasterFk] === masterKey.value).map(r => r[meta.value.mapItemFk])
 }
 function start(row, copy = false) {
+  editorTab.value='main';levelDraft.value=null
   editing.value = !!row && !copy
   edit.value = clone(row || meta.value.defaults || {})
+  delete edit.value.PASSWORD
   if (copy) { delete edit.value[keyField.value]; delete edit.value[meta.value.idField || meta.value.masterId] }
   if (kind.value === 'masterdetail') {
     const d = meta.value.detail
@@ -35,8 +52,38 @@ function start(row, copy = false) {
     } else edit.value.detailKeys = details.map(r => r[d.itemKey])
   }
 }
-function addLevel() { edit.value.details.push({ EVENT_LEVEL_ID: edit.value.details.length + 1, EVENT_LEVEL_DESC: '', NUMBER_OF_ACK_USERS:'1', LEVEL_INTERVAL:10, FAIL_RETRY_TIMES:0, FAIL_RETRY_INTERVAL:60,USER_KEYS:[] }) }
+function addLevel(row) {
+  levelIndex.value=row ? edit.value.details.findIndex(r=>Number(r.EVENT_LEVEL_ID)===Number(row.EVENT_LEVEL_ID)) : -1
+  levelDraft.value=row ? clone(edit.value.details[levelIndex.value]) : { EVENT_LEVEL_ID: Math.max(0,...edit.value.details.map(r=>Number(r.EVENT_LEVEL_ID)))+1, EVENT_LEVEL_DESC:'',NUMBER_OF_ACK_USERS:'1',LEVEL_INTERVAL:10,FAIL_RETRY_TIMES:0,FAIL_RETRY_INTERVAL:60,USER_KEYS:[] }
+}
+function confirmLevel() {
+  const l=levelDraft.value
+  for(const f of meta.value.detail.fields) {
+    if(f.required&&(l[f.name]===null||String(l[f.name]??'').trim()==='')){state.error=`${f.label}为必填`;return}
+    if(f.integer&&(!Number.isInteger(Number(l[f.name]))||Number(l[f.name])<f.min)){state.error=`${f.label}必须为不小于 ${f.min} 的整数`;return}
+  }
+  if(!l.USER_KEYS?.length){state.error='每层至少选择一位通知人员';return}
+  if(l.NUMBER_OF_ACK_USERS!=='*'&&(!/^\d+$/.test(String(l.NUMBER_OF_ACK_USERS))||Number(l.NUMBER_OF_ACK_USERS)>l.USER_KEYS.length)){state.error='回应人数必须为 * 或不超过通知人数的非负整数';return}
+  if(Number(l.FAIL_RETRY_TIMES)>0&&Number(l.FAIL_RETRY_INTERVAL)<=0){state.error='失败重送时间间隔必须大于 0';return}
+  if(edit.value.details.some((r,i)=>i!==levelIndex.value&&Number(r.EVENT_LEVEL_ID)===Number(l.EVENT_LEVEL_ID))){state.error='事件层级代码不可重复';return}
+  if(levelIndex.value<0)edit.value.details.push(clone(l));else edit.value.details[levelIndex.value]=clone(l)
+  edit.value.details.sort((a,b)=>Number(a.EVENT_LEVEL_ID)-Number(b.EVENT_LEVEL_ID))
+  levelDraft.value=null;state.error=''
+}
+function startMapping(copy=false) {
+  mapCopy.value=copy;mapEdit.value={masterKey:copy?'':masterKey.value,itemKeys:clone(itemKeys.value)}
+  availableSelected.value=[];assignedSelected.value=[]
+}
+function transfer(add) {
+  mapEdit.value.itemKeys=add?[...new Set([...mapEdit.value.itemKeys,...availableSelected.value])]:mapEdit.value.itemKeys.filter(k=>!assignedSelected.value.includes(k))
+  availableSelected.value=[];assignedSelected.value=[]
+}
+async function saveMapping() {
+  await act(async()=>{await api(`${route.value}/${mapEdit.value.masterKey}`,{itemKeys:mapEdit.value.itemKeys})
+    masterKey.value=mapEdit.value.masterKey;mapEdit.value=null;await refreshOptions();await load();notify('储存成功')})
+}
 async function save() {
+  if(levelDraft.value){state.error='请先确认或取消正在编辑的层级';return}
   await act(async () => {
     const url = kind.value === 'master' && editing.value ? `${route.value}/${edit.value[keyField.value]}` : route.value
     await api(url, edit.value, kind.value === 'master' && editing.value ? 'PUT' : 'POST')
@@ -76,6 +123,7 @@ onMounted(() => act(load))
       <button :disabled="!selected.length" @click="confirm = 'hide'">{{ t('隐藏') }}</button><button :disabled="!selected.length" @click="confirm = 'show'">{{ t('取消隐藏') }}</button>
       <label class="check"><input type="checkbox" v-model="showHidden" @change="act(load)">{{ t('显示已隐藏资料') }}</label>
     </template>
+    <template v-else><button :disabled="!masterKey" @click="startMapping(true)">复制</button><button :disabled="!masterKey" @click="startMapping()">修改</button></template>
     <button @click="act(load)">{{ t('重新整理') }}</button><span class="spacer"/>
     <template v-if="kind !== 'masterdetail'">
       <button @click="act(async () => download(await api(`${route}/export`,{})))">{{ t('汇出') }}</button>
@@ -89,17 +137,43 @@ onMounted(() => act(load))
     <section class="panel"><h3>{{ t(meta.master.label) }}</h3><input v-model="itemSearch" :placeholder="t('过滤')">
       <button v-for="row in data.masters.filter(r => meta.master.display.some(k => String(r[k] || '').includes(itemSearch)))" :key="row[meta.master.key]" class="master-choice" :class="{active:masterKey === row[meta.master.key]}" @click="chooseMaster(row)">{{ meta.master.display.slice(0,2).map(k => row[k]).join(' · ') }}</button>
     </section>
-    <section class="panel"><h3>{{ t(meta.item.label) }} · {{ itemKeys.length }} {{ t('已选择') }}</h3><div class="transfer-list"><label v-for="item in data.items" :key="item[meta.item.key]" class="check"><input type="checkbox" v-model="itemKeys" :value="item[meta.item.key]">{{ meta.item.display.map(k => item[k]).filter(Boolean).join(' · ') }}</label></div>
-      <button class="primary" :disabled="!masterKey" @click="act(async () => { await api(`${route}/${masterKey}`,{itemKeys}); await refreshOptions(); await load(); notify('储存成功') })">{{ t('储存') }}</button>
+    <section class="panel"><h3>已对应子系统 · {{ itemKeys.length }}</h3>
+      <DataGrid :rows="assigned" :columns="[{field:'SUB_SYS_ID',label:'子系统代码'},{field:'SUB_SYS_NAME',label:'子系统名称'}]"/>
     </section>
   </div>
-  <DataGrid v-else :rows="rows" :columns="[...columns,{field:'ACTIVE',label:'状态'}]" selectable :row-key="keyField" @select="selected = $event" @open="start($event)"/>
+  <template v-else>
+    <DataGrid :rows="rows" :columns="[...columns,{field:'ACTIVE',label:'状态'}]" selectable :row-key="keyField" @select="selected = $event" @open="kind==='masterdetail' ? selected=[$event] : start($event)"/>
+    <section v-if="kind==='masterdetail'" class="panel"><h3>事件层级清单 <span v-if="selected.length">{{selected[0].EVENT_ID}}</span></h3>
+      <p v-if="!selected.length" class="muted">请选择事件查看层级。</p><DataGrid :rows="selectedDetails" :columns="levelColumns"/>
+    </section>
+  </template>
   <RecordDialog v-if="edit" :title="editing ? '修改' : '新增'" wide @close="edit = null">
-    <form @submit.prevent="save"><FieldForm :fields="meta.fields" :model="edit" :editing="editing"/>
-      <template v-if="kind === 'masterdetail'"><h3>{{ t(meta.detail.title) }}</h3>
-        <div v-for="(level,index) in edit.details" :key="index" class="level-card"><div class="toolbar"><strong>LEVEL-{{ index+1 }}</strong><button type="button" @click="edit.details.splice(index,1);edit.details.forEach((r,i)=>r.EVENT_LEVEL_ID=i+1)">{{ t('移除') }}</button></div><FieldForm :fields="meta.detail.fields" :model="level"/><h4>本层级通知人员 · Email</h4><div class="transfer-list"><label v-for="u in state.options.user" :key="u.value" class="check"><input type="checkbox" v-model="level.USER_KEYS" :value="u.value">{{ u.label }}</label></div></div><button type="button" @click="addLevel">{{ t('新增层级') }}</button>
+    <div v-if="kind==='masterdetail'" class="tabs"><button :class="{active:editorTab==='main'}" @click="editorTab='main'">主要资讯</button><button :class="{active:editorTab==='details'}" @click="editorTab='details'">清单资讯</button></div>
+    <form @submit.prevent="save"><FieldForm v-if="editorTab==='main'" :fields="meta.fields" :model="edit" :editing="editing"/>
+      <template v-if="kind === 'masterdetail'&&editorTab==='details'">
+        <p class="muted">层级确认后加入暂存清单；最终储存才生效。取消会丢弃本次修改。</p>
+        <DataGrid :rows="withRecipients(edit.details)" :columns="levelColumns" @open="addLevel">
+          <template #actions="{row}"><button type="button" @click="edit.details=edit.details.filter(r=>Number(r.EVENT_LEVEL_ID)!==Number(row.EVENT_LEVEL_ID))">删除</button></template>
+        </DataGrid>
+        <button type="button" :disabled="!!levelDraft" @click="addLevel()">新增层级</button>
+        <div v-if="levelDraft" class="level-card">
+          <FieldForm :fields="meta.detail.fields" :model="levelDraft"/>
+          <h4>本层级通知人员 · Email</h4><div class="transfer-list"><label v-for="u in state.options.user" :key="u.value" class="check"><input type="checkbox" v-model="levelDraft.USER_KEYS" :value="u.value">{{u.label}}</label></div>
+          <div class="toolbar"><button type="button" @click="levelDraft=null">取消层级编辑</button><button type="button" class="primary" @click="confirmLevel">确认层级</button></div>
+        </div>
       </template>
       <div class="form-actions"><button type="button" @click="edit = null">{{ t('取消') }}</button><button class="primary" :disabled="state.busy > 0">{{ t('储存') }}</button></div>
+    </form>
+  </RecordDialog>
+  <RecordDialog v-if="mapEdit" :title="mapCopy?'复制对应':'修改对应'" wide @close="mapEdit=null">
+    <form @submit.prevent="saveMapping">
+      <label>厂别 <select v-model="mapEdit.masterKey" :disabled="!mapCopy" required><option value="">请选择目标厂别</option><option v-for="r in data.masters" :key="r[meta.master.key]" :value="r[meta.master.key]">{{meta.master.display.map(k=>r[k]).join(' · ')}}</option></select></label>
+      <p class="muted">储存将以右侧清单替换所选厂别的对应；取消不保存。</p>
+      <div class="mapping-layout">
+        <section class="panel"><h3>未对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>!mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><input type="checkbox" v-model="availableSelected" :value="item[meta.item.key]">{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><button type="button" :disabled="!availableSelected.length" @click="transfer(true)">加入 →</button></section>
+        <section class="panel"><h3>已对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><input type="checkbox" v-model="assignedSelected" :value="item[meta.item.key]">{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><button type="button" :disabled="!assignedSelected.length" @click="transfer(false)">← 移除</button></section>
+      </div>
+      <div class="form-actions"><button type="button" @click="mapEdit=null">取消</button><button class="primary" :disabled="!mapEdit.masterKey">储存</button></div>
     </form>
   </RecordDialog>
   <RecordDialog v-if="confirm" title="确认" @close="confirm = ''"><p>{{ t(confirm === 'hide' ? '确认隐藏所选资料？' : '确认取消隐藏所选资料？') }}（{{ selected.length }}）</p><div class="form-actions"><button @click="confirm = ''">{{ t('取消') }}</button><button class="primary" @click="changeActive">{{ t('确定') }}</button></div></RecordDialog>

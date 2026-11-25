@@ -5,6 +5,7 @@ data/
 npm-debug.log*
 .tmp/
 backend/target/
+backend/.runtime/
 frontend/dist/
 .idea/
 *.iml

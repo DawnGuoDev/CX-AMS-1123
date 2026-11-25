@@ -24,7 +24,8 @@ public class ApiController {
         String header=req.getHeader("Authorization"), token=header != null && header.startsWith("Bearer ") ? header.substring(7) : "";
         Supplier<Object> work=() -> {
             if (path.equals("login") && method.equals("POST")) return auth.login(body);
-            var user=auth.user(token);
+            var user=copy(auth.user(token));
+            user.put("_REQUEST_IP",req.getRemoteAddr());
             if (path.equals("logout") && method.equals("POST")) { auth.logout(token); return m("ok",true); }
             if (path.equals("bootstrap") && method.equals("GET")) return m("ok",true,"user",user,"loginAt",auth.loginAt(token),
                 "nav",masters.nav(),"options",masters.options(),"meta",store.metadata,"smtpConfigured",smtp.configured(),"serverTime",now());
@@ -55,7 +56,8 @@ public class ApiController {
             case "alarms/pending" -> m("ok",true,"rows",reports.pending(user));
             case "alarms/test/options" -> alarmOptions(q);
             default -> {
-                if (p.length==2 && p[0].equals("alarms")) yield m("ok",true,"alarm",engine.detail(p[1],user));
+                if (p.length==2 && p[0].equals("alarms")) yield m("ok",true,"alarm",s(q,"transaction").isBlank()
+                    ? engine.detail(p[1],user) : engine.historicalDetail(p[1],s(q,"transaction"),user));
                 throw new ApiException(404,"API 不存在");
             }
         };
@@ -78,13 +80,15 @@ public class ApiController {
             if (method.equals("PUT") && p[0].equals("master") && p.length==3) return masters.save(kind,p[1],p[2],body,user);
         }
         if (method.equals("POST") && p.length==3 && p[0].equals("reports")) {
-            var def=reports.definition(p[1]); var data=reports.query(p[1],obj(body.get("conditions")));
-            var columns=rows(def.get("COLUMNS"));
+            var def=reports.definition(p[1]);
+            var columns=p[1].equals("AVPA013") ? reports.summaryColumns(!s(body,"factory").isBlank()) : rows(def.get("COLUMNS"));
+            // Export the visible query snapshot, including column filters and sort order.
+            // Only declared report columns are written; this endpoint never mutates business data.
+            if (p[2].equals("export")) return excel.workbook(s(def,"REPORT_NAME"),columns,rows(body.get("rows")));
+            var data=reports.query(p[1],obj(body.get("conditions")));
             if (p[1].equals("AVPA013") && !s(body,"factory").isBlank()) {
                 data=reports.summary(s(body,"factory"),s(body,"subsys"));
-                columns=List.of(m("field","EQP_ID","label","机台代码"),m("field","EQP_NAME","label","机台名称"),m("field","ALARM_COUNT","label","警报数量"));
             }
-            if (p[2].equals("export")) return excel.workbook(p[1],columns,data);
             if (p[2].equals("query")) return m("ok",true,"rows",data,"columns",columns,"total",data.size(),"lastUpdate",now());
         }
         if (method.equals("POST") && p.length==3 && p[0].equals("alarms") && p[2].equals("ack")) return engine.action(p[1],"ack",body,user);

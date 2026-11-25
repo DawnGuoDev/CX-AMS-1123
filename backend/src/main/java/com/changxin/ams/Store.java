@@ -93,7 +93,7 @@ public class Store {
             "ACTIVE", after instanceof Map ? obj(after).getOrDefault("ACTIVE", "Y") : "Y",
             "BEFORE_JSON", before == null ? null : encode(before), "AFTER_JSON", after == null ? null : encode(after),
             "TRX_DT", now(), "USER_KEY", u.get("USER_KEY"), "USER_ID", u.get("USER_ID"),
-            "USER_NAME", u.get("USER_NAME"), "IP", "local", "HOST", "AMS-JAVA"));
+            "USER_NAME", u.get("USER_NAME"), "IP", u.getOrDefault("_REQUEST_IP",""), "HOST", ""));
     }
     public List<Map<String, Object>> history(String table, String key) {
         return table("history").stream().filter(r -> eq(r, "TABLE_NAME", table))

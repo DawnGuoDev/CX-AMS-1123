@@ -27,13 +27,16 @@ public class AlarmEngine {
     }
     private void transaction(Map<String, Object> alarm, String type, String before, Map<String, Object> user, String note) {
         var snapshot=copy(alarm); snapshot.remove("LEVEL_DEFINITIONS");
+        var detailSnapshot=copy(m("LEVELS",related("alarm_levels",alarm.get("ALARM_KEY")),
+            "ACKS",related("alarm_acks",alarm.get("ALARM_KEY")),"NOTIFICATIONS",related("alarm_notifications",alarm.get("ALARM_KEY"))));
         store.table("alarm_transactions").add(m("TRX_KEY",store.key("alarm_transactions"),"ALARM_KEY",alarm.get("ALARM_KEY"),
             "SEQ",related("alarm_transactions",alarm.get("ALARM_KEY")).size()+1,"TRX_TYPE",type,
             "STATUS_BEFORE",before,"STATUS_AFTER",alarm.get("STATUS"),"USER_KEY",user == null ? null : user.get("USER_KEY"),
-            "TRX_DT",now(),"NOTE",note,"SNAPSHOT",snapshot));
+            "TRX_DT",now(),"NOTE",note,"SNAPSHOT",snapshot,"DETAIL_SNAPSHOT",detailSnapshot));
     }
     public Map<String, Object> enrich(Map<String, Object> alarm, Map<String, Object> user) {
         var result = copy(alarm);
+        result.putIfAbsent("CONTENT_TYPE","text/plain");
         for (String[] join : new String[][]{{"factories","FACTORY_KEY","FACTORY_ID","FACTORY_NAME"},
                 {"subsystems","SUB_SYS_KEY","SUB_SYS_ID","SUB_SYS_NAME"},{"eqps","EQP_KEY","EQP_ID","EQP_NAME"},
                 {"events","EVENT_KEY","EVENT_ID","EVENT_NAME"},{"alarm_settings","ALARM_INFO_KEY","ALARM_INFO_ID","ALARM_ID_DESC"}}) {
@@ -59,9 +62,47 @@ public class AlarmEngine {
         var result = enrich(alarm,user);
         for (String[] section : new String[][]{{"LEVELS","alarm_levels"},{"ACKS","alarm_acks"},{"NOTIFICATIONS","alarm_notifications"},{"TRANSACTIONS","alarm_transactions"}})
             result.put(section[0],related(section[1],alarm.get("ALARM_KEY")).stream().map(r -> {
-                var out = copy(r); var u = store.find("users","USER_KEY",r.get("USER_KEY"));
+                var out = copy(r);out.remove("SNAPSHOT");out.remove("DETAIL_SNAPSHOT");
+                var u = store.find("users","USER_KEY",r.get("USER_KEY"));
                 out.put("USER_ID",u == null ? "SYSTEM" : u.get("USER_ID")); out.put("USER_NAME",u == null ? "系统" : u.get("USER_NAME")); return out;
             }).toList());
+        return result;
+    }
+    public Map<String,Object> historicalDetail(String key,String trx,Map<String,Object> user) {
+        var result=detail(key,user);
+        var transaction=store.mustFind("alarm_transactions","TRX_KEY",trx);
+        require(eq(transaction,"ALARM_KEY",result.get("ALARM_KEY")),"交易不属于本警报");
+        var snapshot=obj(transaction.get("SNAPSHOT"));
+        require(!snapshot.isEmpty(),"该历史交易未保存资料快照");
+        result.putAll(enrich(snapshot,null));
+        result.put("CAN_ACK",false);
+        var context=clean(transaction);context.remove("SNAPSHOT");context.remove("DETAIL_SNAPSHOT");
+        result.put("HISTORY_CONTEXT",context);
+        // Related records reflect the event log, with an explicit timestamp bound.
+        long at=time(transaction.get("TRX_DT"));
+        for(String[] section:new String[][]{{"ACKS","ACK_DT"},{"NOTIFICATIONS","SEND_DT"}})
+            result.put(section[0],rows(result.get(section[0])).stream()
+                .filter(r->!s(r,section[1]).isBlank() && time(r.get(section[1]))<=at).toList());
+        result.put("TRANSACTIONS",rows(result.get("TRANSACTIONS")).stream()
+            .filter(r->n(r,"SEQ")<=n(transaction,"SEQ")).toList());
+        result.put("LEVELS",rows(result.get("LEVELS")).stream().filter(r->time(r.get("START_DT"))<=at).toList());
+        var saved=obj(transaction.get("DETAIL_SNAPSHOT"));
+        if(!saved.isEmpty()) {
+            for(String section:List.of("LEVELS","ACKS","NOTIFICATIONS"))
+                result.put(section,rows(saved.get(section)).stream().map(r->{
+                    var out=copy(r);var person=store.find("users","USER_KEY",r.get("USER_KEY"));
+                    out.put("USER_ID",person==null?"":person.get("USER_ID"));out.put("USER_NAME",person==null?"":person.get("USER_NAME"));return out;
+                }).toList());
+        } else {
+            // Older transactions did not snapshot mutable execution counters.
+            // Leave those fields unavailable instead of presenting today's state as history.
+            for(var level:rows(result.get("LEVELS"))) {level.remove("STATUS");level.remove("ACK_COUNT");level.remove("RESEND_COUNT");}
+        }
+        var historicalAcks=rows(result.get("ACKS")).stream().filter(r->n(r,"LEVEL_ID")==n(snapshot,"CURRENT_LEVEL")).toList();
+        result.put("LEVEL_ACK_COUNT",historicalAcks.size());result.put("ACK_USERS",historicalAcks);
+        result.put("LEVEL_REQUIRED",snapshot.get("ACK_REQUIRED"));
+        result.put("LEVEL_START",snapshot.get("LEVEL_PROCESS_DT"));
+        result.remove("LEVEL_RESEND_COUNT");
         return result;
     }
     private Map<String, Object> invalid(Map<String, Object> body, String reason) {
@@ -104,7 +145,7 @@ public class AlarmEngine {
     }
     private Map<String, Object> create(Map<String, Object> b, Map<String, Object> setting, Map<String, Object> event) {
         var alarm = m("ALARM_KEY",store.key("alarms"),"ALARM_ID",store.key("alarmId"),"TITLE",s(b,"title").isBlank() ? "Empty Subject" : b.get("title"),
-            "CONTENT",s(b,"content").isBlank() ? "Empty Content" : b.get("content"),"STATUS","Process","FACTORY_KEY",b.get("factoryKey"),"SUB_SYS_KEY",b.get("subsysKey"),
+            "CONTENT",s(b,"content").isBlank() ? "Empty Content" : b.get("content"),"CONTENT_TYPE","text/plain","STATUS","Process","FACTORY_KEY",b.get("factoryKey"),"SUB_SYS_KEY",b.get("subsysKey"),
             "EQP_KEY",b.get("eqpKey"),"ALARM_INFO_KEY",setting.get("ALARM_INFO_KEY"),
             "EVENT_KEY",event.get("EVENT_KEY"),"CURRENT_LEVEL",1,"PRIORITY",setting.getOrDefault("EVENT_PTY_ID",event.getOrDefault("EVENT_PRIORITY_ID",5)),
             "CREATE_DT",now(),"FIRST_PROCESS_DT",now(),"LEVEL_PROCESS_DT",now(),"SEND_DT",now(),"LAST_ACK_DT",null,"COMPLETE_DT",null,
