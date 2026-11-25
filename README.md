@@ -1,6 +1,6 @@
 # AMS · Java + Vue MVP
 
-分支：`feat/java-vue`。按《AMS系统澄清》最后一列带 ✅ 的 11 项需求收敛为 **10 个业务页面 + Email 能力**，另外保留用户确认的测试触发与 ACK。
+分支：`release`。按《AMS系统澄清》最后一列带 ✅ 的 11 项需求收敛为 **10 个业务页面 + Email 能力**，另外保留用户确认的测试触发与 ACK。
 
 需求来源：[AMS系统澄清](https://bytedance.larkoffice.com/wiki/VY5jwU9ToiKDWwkdTaZcVPaonBh?fromScene=spaceOverview&sheet=0TbGHF)。业务操作参照 `外发资料/AMS使用者操作手冊.docx`。
 
