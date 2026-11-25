@@ -26,7 +26,8 @@ const KEY_FORMATS = {
   chamber_alarm: ['CA', 3],
   factory_subsys: ['FS', 3],
   event_levels: ['LV', 4],
-  event_group_users: ['EGU', 3]
+  event_group_users: ['EGU', 3],
+  repos: ['RP', 2]
 };
 
 function newKeyFor(table) {

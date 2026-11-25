@@ -178,6 +178,21 @@ const MASTERS = {
     ],
     filters: ['ALARM_INFO_ID', 'ALARM_ID_DESC', 'FACTORY_KEY', 'SUB_SYS_KEY', 'EQP_KEY'],
     defaults: { IGNORE_PERIOD: 900, EVENT_PTY_ID: 5, EQP_KEY: '*' }
+  },
+  SBRM_REPO: {
+    code: 'SBRM_REPO',
+    title: '仓库设定',
+    table: 'repos',
+    keyField: 'REPO_KEY',
+    idField: 'REPO_ID',
+    uniqueFields: ['REPO_ID'],
+    desc: '维护仓库基本资料（名称与地址）。',
+    fields: [
+      f.code('REPO_ID', '仓库代码'),
+      { name: 'REPO_NAME', label: '仓库名称', type: 'text', required: true, width: 190, filter: true },
+      { name: 'REPO_ADDR', label: '仓库地址', type: 'text', required: true, width: 300, filter: true }
+    ],
+    filters: ['REPO_ID', 'REPO_NAME', 'REPO_ADDR']
   }
 };
 
@@ -329,7 +344,8 @@ const PAGE_TITLES = {
   AVPA015: '警报装置参数设定',
   CVMA014: '警报通知设定批次隐藏',
   AVMA008: '事件层级与事件通知群组对应设定',
-  AVMA010: '警报触发条件设定'
+  AVMA010: '警报触发条件设定',
+  SBRM_REPO: '仓库设定'
 };
 
 const REPORT_SEEDS = [
