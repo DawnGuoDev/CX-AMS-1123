@@ -203,7 +203,7 @@
       "uniqueFields": [
         "SUB_SYS_ID"
       ],
-      "desc": "厂别下的系统维度（EAP／FDC／MES／SPC／EDC…）。支持 BYPASS 只留 Log 不发送。",
+      "desc": "厂别下的系统维度（EAP／FDC／MES／SPC／EDC…）。",
       "fields": [
         {
           "name": "SUB_SYS_ID",
@@ -221,12 +221,6 @@
           "required": true,
           "width": 220,
           "filter": true
-        },
-        {
-          "name": "BYPASS",
-          "label": "BYPASS",
-          "type": "checkbox",
-          "help": "启用后警报只留 Log，不发送通知"
         }
       ],
       "filters": [
@@ -377,8 +371,7 @@
       ],
       "itemColumns": [
         "SUB_SYS_ID",
-        "SUB_SYS_NAME",
-        "BYPASS"
+        "SUB_SYS_NAME"
       ]
     }
   },

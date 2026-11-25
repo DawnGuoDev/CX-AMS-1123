@@ -65,7 +65,7 @@
 | # | 步骤 | 预期 |
 | - | ---- | ---- |
 | 1 | `GET /api/alarms/test/options?factoryKey=F01&subsysKey=SS03&eqpKey=EQP01` | 200；`alarmCodes` 含 `PRT_NODYE` |
-| 2 | `POST /api/alarms/test`（四要素 + 唯一标题） | 200；`alarm.STATUS=Process`；`logOnly=false` |
+| 2 | `POST /api/alarms/test`（四要素 + 唯一标题） | 200；`alarm.STATUS=Process`；创建正常层级通知 |
 | 3 | `GET /api/alarms/pending` | **不含**该告警（邮件未成功送达，当前账号不可 ACK） |
 | 4 | `GET /api/alarms/{key}` | 200；`TITLE` 为步骤 2 的标题；`LEVEL_REQUIRED>0`；通知记录为 `Pending`/`Email` |
 | 5 | 立即 `POST /api/alarms/{key}/ack` | 4xx，`ok=false`，`message` 含“待确认人员” |

@@ -162,6 +162,24 @@ class ManualAlignmentIntegrationTest {
             assertThat(rows(masters.get("masters",code,m()).get("rows"))).anyMatch(r->eq(r,keyField,key)&&eq(r,"ACTIVE","Y"));
         }
     }
+    @Test void retiredSubsystemFlagIsRemovedOnReloadWithoutChangingHistoricalAlarms() throws Exception {
+        store.write(()->{
+            store.mustFind("subsystems","SUB_SYS_KEY","SS03").put("BYPASS","Y");
+            store.table("alarms").add(m("ALARM_KEY","OLD_LOG","STATUS","LogOnly"));
+            return null;
+        });
+        var reopened=new Store(jdbc);
+        assertThat(reopened.read(()->reopened.mustFind("subsystems","SUB_SYS_KEY","SS03"))).doesNotContainKey("BYPASS");
+        assertThat(reopened.read(()->reopened.mustFind("alarms","ALARM_KEY","OLD_LOG"))).containsEntry("STATUS","LogOnly");
+        var engineAfterReload=new AlarmEngine(reopened,null);
+        var result=reopened.write(()->engineAfterReload.trigger(m("factoryKey","F01","subsysKey","SS03","eqpKey","EQP01",
+            "alarmCode","PRT_NODYE","title","normal notification","content","after migration"),user));
+        assertThat(result).doesNotContainKey("logOnly");
+        assertThat(obj(result.get("alarm"))).containsEntry("STATUS","Process");
+        assertThat(reopened.read(()->reopened.table("alarm_notifications"))).hasSize(3);
+        var persistedAgain=new Store(jdbc);
+        assertThat(persistedAgain.read(()->persistedAgain.mustFind("subsystems","SUB_SYS_KEY","SS03"))).doesNotContainKey("BYPASS");
+    }
     @Test void alarmCompositeAndAssociationValidationAndMappingSave() {
         var setting=store.read(()->clean(store.table("alarm_settings").getFirst()));
         setting.remove("ALARM_INFO_KEY");

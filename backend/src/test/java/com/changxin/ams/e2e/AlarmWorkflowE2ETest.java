@@ -36,7 +36,7 @@ class AlarmWorkflowE2ETest extends E2ETestBase {
         var key = triggered.text("/alarm/ALARM_KEY");
         assertThat(key).isNotBlank();
         assertThat(triggered.text("/alarm/STATUS")).isEqualTo("Process");
-        assertThat(triggered.json().path("logOnly").asBoolean()).isFalse();
+        assertThat(triggered.json().has("logOnly")).isFalse();
 
         // /alarms/pending lists what the current account may ACK. Without SMTP the first-level mail
         // delivery fails, so the alarm must NOT be ackable yet; the detail endpoint still returns it.

@@ -131,17 +131,11 @@ public class AlarmEngine {
             && eq(r,"SUB_SYS_KEY",body.get("subsysKey")) && eq(r,"EQP_KEY",body.get("eqpKey")) && eq(r,"ALARM_INFO_KEY",settingKey)
             && System.currentTimeMillis()-time(r.get("CREATE_DT")) < ignore * 1000L);
         if (duplicate) return invalid(body,"忽略相同警报");
-        if (eq(s,"BYPASS","Y")) {
-            var alarm = create(body,setting,event);
-            alarm.put("STATUS","LogOnly"); alarm.put("COMPLETE_DT",now());
-            transaction(alarm,"Modify","Process",user,"子系统 BYPASS，仅记录");
-            return m("ok",true,"alarm",enrich(alarm,user),"matchedBy",match,"logOnly",true);
-        }
         var first = levels(event.get("EVENT_KEY")).stream().filter(r -> n(r,"EVENT_LEVEL_ID")==1).findFirst().orElse(null);
         if (first == null) return invalid(body,"未设定层级1");
         if (members(first.get("EVENT_LEVEL_KEY")).isEmpty()) return invalid(body,"未设定发送人员");
         var alarm = create(body,setting,event); startLevel(alarm,first,user);
-        return m("ok",true,"alarm",enrich(alarm,user),"matchedBy",match,"logOnly",false);
+        return m("ok",true,"alarm",enrich(alarm,user),"matchedBy",match);
     }
     private Map<String, Object> create(Map<String, Object> b, Map<String, Object> setting, Map<String, Object> event) {
         var alarm = m("ALARM_KEY",store.key("alarms"),"ALARM_ID",store.key("alarmId"),"TITLE",s(b,"title").isBlank() ? "Empty Subject" : b.get("title"),

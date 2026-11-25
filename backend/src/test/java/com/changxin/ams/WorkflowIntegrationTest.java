@@ -121,15 +121,12 @@ class WorkflowIntegrationTest {
         assertThat(smtp.messages).hasSize(3);
         assertThat(store.read(()->reports.pending(user))).hasSize(1);
     }
-    @Test void zeroAckWaitsForSmtpAndBypassDoesNotSend() {
+    @Test void zeroAckWaitsForSuccessfulSmtpDelivery() {
         store.write(()->{store.mustFind("event_levels","EVENT_LEVEL_KEY","LV0001").put("NUMBER_OF_ACK_USERS","0");return null;});
         assertThat(alarm()).containsEntry("STATUS","Process");tick();
         assertThat(store.read(()->store.table("alarms").getFirst())).containsEntry("STATUS","Process");
         engine.dispatch();tick();
         assertThat(store.read(()->store.table("alarms").getFirst())).containsEntry("STATUS","Completed");
-        store.write(()->{store.table("alarms").clear();store.table("alarm_notifications").clear();store.mustFind("subsystems","SUB_SYS_KEY","SS03").put("BYPASS","Y");return null;});
-        assertThat(alarm()).containsEntry("STATUS","LogOnly");
-        assertThat(store.read(()->store.table("alarm_notifications"))).isEmpty();
     }
     @Test void zeroAckStillRetriesFailedEmail() {
         store.write(()->{store.mustFind("event_levels","EVENT_LEVEL_KEY","LV0001").put("NUMBER_OF_ACK_USERS","0");return null;});

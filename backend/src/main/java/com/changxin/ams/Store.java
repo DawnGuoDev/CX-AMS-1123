@@ -34,6 +34,12 @@ public class Store {
         } else {
             data = obj(parse(saved.getFirst()));
             require(eq(obj(data.get("meta")),"schema","checked-mvp-1"),"数据库属于旧版演示，请使用新的 ams-mvp 数据库");
+            // Remove the retired subsystem flag without altering historical alarms.
+            boolean migrated=false;
+            for(var subsystem:table("subsystems")) {
+                if(subsystem.containsKey("BYPASS")) {subsystem.remove("BYPASS");migrated=true;}
+            }
+            if(migrated) persist();
         }
     }
     private Map<String, Object> load(String file) throws IOException {
