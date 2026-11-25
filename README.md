@@ -90,3 +90,15 @@ SMTP 未配置或发送失败会记录为 `Fail`，不会显示模拟成功。`S
 本次 23 项集成测试通过，包含本机 SMTP 与邮件正文、单笔 ACK 授权与重复确认拦截、16 并发告警去重、失败重试、层级升级、配置与历史交易快照、秒级条件、过滤结果导出和旧持久数据兼容。逐项修复见 [手册核对清单](docs/MANUAL_ALIGNMENT.md)。
 
 详细边界与设计见 [实现说明](docs/JAVA_VUE_MIGRATION.md)，页面清单见 [PAGE_MAP.md](PAGE_MAP.md)。Docker 配置保留，尚未在本次环境执行镜像构建。
+
+## 测试
+
+| 层级 | 命令 | 说明 |
+| ---- | ---- | ---- |
+| 后端单元 + 集成 | `cd backend && mvn test` | 40 个用例（`unit/` 纯逻辑 + 既有 `*IntegrationTest`） |
+| 后端接口 E2E | `bash scripts/run-java-e2e.sh` | 打包后启动真实进程（随机端口、临时 H2），4 条 HTTP 用例 |
+| 前端单元 | `cd frontend && npm run test:unit` | 58 个 Vitest 用例 |
+| 前端 E2E | `bash scripts/run-frontend-e2e.sh` | 构建 + 临时后端 + Playwright Chromium，13 条用例 |
+
+E2E 文本用例（先于代码编写，随代码提交）见 [docs/e2e](docs/e2e/README.md)；用例 ID 在文档、测试名称与报告中一致。
+默认 `mvn test` 不启动后端 E2E（需要 `ams.e2e.enabled=true`，由脚本设置），也不会写仓库内数据库文件。

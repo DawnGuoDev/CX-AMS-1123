@@ -86,6 +86,11 @@ public class Masters {
         for (Object group : list(meta.get("uniqueComposite"))) unique.add(list(group));
         for (Object group : list(meta.get("masterUnique"))) unique.add(list(group));
         for (var fields : unique) {
+            // The row being edited is identified by keyField, so it is excluded (an unchanged save
+            // stays valid). Any other row — including the first active one — is a conflict: the
+            // previous check used "r has fields different from the row", which let the very first
+            // duplicate through because its ID differed from the empty/new ID. On create the new
+            // row has no key yet, so every stored row is a candidate.
             boolean duplicate = store.table(table).stream().anyMatch(r -> !eq(r, keyField, row.get(keyField))
                 && fields.stream().allMatch(f -> eq(r, str(f), row.get(str(f)))));
             require(!duplicate, "唯一键组合已存在：" + fields);

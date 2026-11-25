@@ -113,6 +113,8 @@ async function importSelectedRows() {
   })
 }
 onMounted(() => act(load))
+// Exposed for the page-level unit test (script setup bindings are not part of the public API).
+defineExpose({ load, start, save, changeActive, edit, editing, selected, confirm, levelDraft, mapEdit, mapCopy, startMapping, saveMapping })
 </script>
 <template>
   <p class="description">{{ t(meta.desc) }}</p>
@@ -176,6 +178,6 @@ onMounted(() => act(load))
       <div class="form-actions"><button type="button" @click="mapEdit=null">取消</button><button class="primary" :disabled="!mapEdit.masterKey">储存</button></div>
     </form>
   </RecordDialog>
-  <RecordDialog v-if="confirm" title="确认" @close="confirm = ''"><p>{{ t(confirm === 'hide' ? '确认隐藏所选资料？' : '确认取消隐藏所选资料？') }}（{{ selected.length }}）</p><div class="form-actions"><button @click="confirm = ''">{{ t('取消') }}</button><button class="primary" @click="changeActive">{{ t('确定') }}</button></div></RecordDialog>
+  <RecordDialog v-if="confirm" :title="confirm === 'hide' ? '确认隐藏所选资料？' : '确认取消隐藏所选资料？'" @close="confirm = ''"><p>{{ t('确认') }}（{{ selected.length }}）</p><div class="form-actions"><button @click="confirm = ''">{{ t('取消') }}</button><button class="primary" @click="changeActive">{{ t('确定') }}</button></div></RecordDialog>
   <RecordDialog v-if="importRows" title="汇入验证" wide @close="importRows = null"><p>请勾选通过验证的资料。保存时会再次校验。</p><DataGrid :rows="importRows" :columns="[{field:'rowNo',label:'行号'},{field:'valid',label:'可汇入'},{field:'message',label:'验证信息'},{field:'values',label:'资料'}]" selectable @select="importSelected = $event"/><div class="form-actions"><button class="primary" :disabled="!importSelected.some(r => r.valid)" @click="importSelectedRows">{{ t('汇入') }}</button></div></RecordDialog>
 </template>

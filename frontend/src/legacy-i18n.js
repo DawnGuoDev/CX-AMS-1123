@@ -718,6 +718,8 @@ export function t(key, vars) {
 
 export function setLang(next) {
   lang = next;
+  // Translations are memoized; a cached value from the previous language must not leak through.
+  cache.clear();
   localStorage.setItem('ams_lang', next);
   document.documentElement.lang = next === 'en' ? 'en' : next === 'zh-TW' ? 'zh-Hant' : 'zh-CN';
 }
