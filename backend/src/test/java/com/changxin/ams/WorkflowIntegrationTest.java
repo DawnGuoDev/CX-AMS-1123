@@ -76,6 +76,59 @@ class WorkflowIntegrationTest {
         assertThat(obj(store.write(()->engine.action(key,"ack",m("cmt","second"),second)).get("alarm"))).containsEntry("STATUS","Completed");
         assertThat(store.read(()->reports.summary("",""))).isEmpty();
     }
+    @Test void batchAckConfirmsMultipleAlarmsWithSharedComment() {
+        // 两个代码同机台：把忽略期间降为 0，确保产生两笔独立警报。
+        store.write(()->{store.mustFind("alarm_settings","ALARM_INFO_ID","PRT_NODYE").put("IGNORE_PERIOD",0);
+            store.mustFind("alarm_settings","ALARM_INFO_ID","PRT_MOTOR_ERR").put("IGNORE_PERIOD",0);return null;});
+        var first=alarm(); engine.dispatch();
+        String key1=s(first,"ALARM_KEY");
+        var b2=body(); b2.put("alarmCode","PRT_MOTOR_ERR");
+        var second=obj(store.write(()->engine.trigger(b2,user)).get("alarm"));
+        String key2=s(second,"ALARM_KEY");
+        engine.dispatch();
+        assertThat(store.read(()->reports.pending(user))).hasSize(2);
+        var result=store.write(()->engine.batchAck(m("keys",List.of(key1,key2),"cmt","批量回应备注"),user));
+        assertThat(n(result,"successCount")).isEqualTo(2);
+        assertThat(n(result,"failCount")).isZero();
+        assertThat(rows(result.get("items"))).allSatisfy(i->assertThat(i.get("ok")).isEqualTo(true));
+        for(String key:List.of(key1,key2)) {
+            var ack=store.read(()->store.table("alarm_acks").stream().filter(r->eq(r,"ALARM_KEY",key)).toList()).getFirst();
+            assertThat(ack).containsEntry("USER_KEY","U001").containsEntry("ACK_CMT","批量回应备注").containsEntry("LEVEL_ID",1);
+            assertThat(store.read(()->s(store.mustFind("alarms","ALARM_KEY",key),"ACK_CMT"))).isEqualTo("批量回应备注");
+        }
+        assertThat(store.read(()->reports.pending(user))).isEmpty();
+    }
+    @Test void batchAckKeepsValidItemsWhenOneItemIsNotAckable() throws Exception {
+        String key=s(alarm(),"ALARM_KEY"); engine.dispatch();
+        var outsider=store.read(()->clean(store.mustFind("users","USER_KEY","U012")));
+        // 空 keys / 超量 / 超长备注：整批请求级校验，直接拒绝。
+        assertThatThrownBy(()->store.write(()->engine.batchAck(m("keys",List.of()),user))).isInstanceOf(ApiException.class);
+        assertThatThrownBy(()->store.write(()->engine.batchAck(m("keys",List.of("x","y"),"cmt","z".repeat(501)),user))).isInstanceOf(ApiException.class);
+        var over=new ArrayList<String>();for(int i=0;i<101;i++)over.add("k"+i);
+        assertThatThrownBy(()->store.write(()->engine.batchAck(m("keys",over),user))).isInstanceOf(ApiException.class);
+        // 批量混入：不存在的 key、非本层级送达人员（U012 从未收到成功邮件）。
+        var mixed=store.write(()->engine.batchAck(m("keys",List.of(key,"NOT-EXISTING"),"cmt",""),user));
+        assertThat(n(mixed,"successCount")).isEqualTo(1);
+        assertThat(n(mixed,"failCount")).isEqualTo(1);
+        var failed=rows(mixed.get("items")).stream().filter(r->!Boolean.TRUE.equals(r.get("ok"))).findFirst().orElseThrow();
+        assertThat(failed).containsEntry("ALARM_KEY","NOT-EXISTING").containsEntry("message","警报不存在");
+        var outsiderResult=store.write(()->engine.batchAck(m("keys",List.of(key),"cmt",""),outsider));
+        assertThat(n(outsiderResult,"successCount")).isZero();
+        assertThat(rows(outsiderResult.get("items")).getFirst().get("message").toString()).contains("待确认人员");
+        // U001 已确认过 key，重复确认只拒绝该笔，不产生第二条 ACK。
+        var repeat=store.write(()->engine.batchAck(m("keys",List.of(key),"cmt",""),user));
+        assertThat(n(repeat,"successCount")).isZero();
+        assertThat(rows(repeat.get("items")).getFirst().get("message").toString()).contains("已确认");
+        assertThat(store.read(()->store.table("alarm_acks").stream().filter(r->eq(r,"ALARM_KEY",key)).count())).isEqualTo(1);
+    }
+    @Test void batchAckEndpointRequiresAuthentication() throws Exception {
+        http.perform(post("/api/alarms/ack").contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isUnauthorized());
+        String token=login();
+        http.perform(post("/api/alarms/ack").header("Authorization","Bearer "+token)
+            .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().is4xxClientError());
+    }
+
     @Test void duplicateAlarmsAreIgnoredConcurrently() throws Exception {
         try(var pool=Executors.newFixedThreadPool(8)) {
             var tasks=new ArrayList<Callable<Map<String,Object>>>();

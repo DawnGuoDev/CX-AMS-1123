@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { Button as AButton, Input as AInput, Select as ASelect, Table as ATable, Tag as ATag } from 'ant-design-vue'
 import { t, state } from '../state'
 import { textOps,dateOps,emptyFilter,matches,isDate } from '../filters'
-const props = defineProps({ rows: { type: Array, default: () => [] }, columns: { type: Array, default: () => [] }, selectable: Boolean, rowKey: { type: String, default: '' } })
+const props = defineProps({ rows: { type: Array, default: () => [] }, columns: { type: Array, default: () => [] }, selectable: Boolean, rowKey: { type: String, default: '' }, clearSelectionOnRefresh: { type: Boolean, default: true } })
 const emit = defineEmits(['select', 'open', 'filtered'])
 const search = ref(''), page = ref(1), size = ref(20), selected = ref([]), sort = ref(''), descending = ref(false)
 const columnFilters=ref({}),showFilters=ref(false)
@@ -27,9 +27,19 @@ const tableColumns = computed(() => [...columns.value.map(col => ({
   title: t(col.label || col.field || col.name),
   customHeaderCell: () => ({ onClick: () => order(col), style: { cursor: 'pointer' } }),
 })), { key: '__actions', title: t('操作') }])
+const rowKeyOf = row => String(recordKey(row))
+// 勾选状态始终以行对象保存；跨页/跨刷新时用 rowKey 去重合并，保证全选当前筛选结果与翻页保留。
 const rowSelection = computed(() => props.selectable ? {
-  selectedRowKeys: selected.value.map(recordKey),
-  onChange: (_keys, rows) => { selected.value = rows; emit('select', rows) },
+  selectedRowKeys: selected.value.map(rowKeyOf),
+  preserveSelectedRowKeys: true,
+  onChange: (_pageKeys, pageRows) => {
+    if (!props.rowKey) { selected.value = pageRows; emit('select', selected.value); return }
+    const currentKeys = new Set(filtered.value.map(rowKeyOf))
+    const pickedKeys = new Set(pageRows.map(rowKeyOf))
+    const kept = selected.value.filter(row => !currentKeys.has(rowKeyOf(row)))
+    selected.value = [...kept, ...pageRows.filter(row => pickedKeys.has(rowKeyOf(row)))]
+    emit('select', selected.value)
+  },
   getCheckboxProps: () => ({ 'aria-label': '选择资料' }),
 } : undefined)
 const pagination = computed(() => ({ current: page.value, pageSize: size.value, total: filtered.value.length,
@@ -42,7 +52,8 @@ function tagColor(value) {
   if (['Process','Unknown'].includes(value)) return 'warning'
   return 'default'
 }
-watch([search, size, () => props.rows], () => { page.value = 1; selected.value = []; emit('select', []) })
+watch([search, size], () => { page.value = 1; selected.value = []; emit('select', []) })
+watch(() => props.rows, () => { page.value = 1; if (props.clearSelectionOnRefresh) { selected.value = []; emit('select', []) } })
 watch(columnFilters,()=>{page.value=1;selected.value=[];emit('select',[])},{deep:true})
 function label(row, col) {
   const value = row[col.field || col.name]
@@ -81,7 +92,7 @@ function order(col) { const key = col.field || col.name; descending.value = sort
     </div>
     <a-table :columns="tableColumns" :data-source="filtered" :row-key="recordKey" :row-selection="rowSelection"
       :pagination="pagination" :scroll="{ x: 'max-content' }" size="middle" :locale="{ emptyText: t('查无资料') }"
-      :row-class-name="row => [selected.includes(row) ? 'selected' : '', row.ACTIVE==='N' ? 'hidden' : ''].join(' ')">
+      :row-class-name="row => [selected.some(item => recordKey(item) === recordKey(row)) ? 'selected' : '', row.ACTIVE==='N' ? 'hidden' : ''].join(' ')">
       <template #headerCell="{ column }">
         {{ column.title }}<small v-if="sort === column.dataIndex"> {{ descending ? '↓' : '↑' }}</small>
       </template>

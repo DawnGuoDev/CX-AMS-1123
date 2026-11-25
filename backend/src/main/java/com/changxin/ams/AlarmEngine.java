@@ -195,18 +195,56 @@ public class AlarmEngine {
         transaction(alarm,type,"Process",user,note);
     }
     public Map<String, Object> action(String key, String action, Map<String, Object> b, Map<String, Object> user) {
+        if (!"ack".equals(action)) throw new ApiException(404,"未知警报操作");
+        validateComment(b);
         var alarm = store.mustFind("alarms","ALARM_KEY",key);
+        return m("ok",true,"alarm",ack(alarm,b,user),"completed",eq(alarm,"STATUS","Completed"));
+    }
+    /** ACK 备注沿用 alarm_acks.ACK_CMT；前后端一致限制 500 字符，超长拒绝而非截断。 */
+    static final int ACK_COMMENT_MAX = 500;
+    /** 单次批量确认上限，超出时前端应提示分批，服务端同样拒绝。 */
+    static final int BATCH_ACK_MAX_KEYS = 100;
+    private void validateComment(Map<String,Object> b) {
+        Object raw = b.get("cmt");
+        require(raw == null || String.valueOf(raw).length() <= ACK_COMMENT_MAX,"回应备注长度不可超过 "+ACK_COMMENT_MAX+" 字符");
+    }
+    private Map<String,Object> ack(Map<String,Object> alarm, Map<String,Object> b, Map<String,Object> user) {
         require(eq(alarm,"STATUS","Process"),"该警报已非处理中状态");
-        if (action.equals("ack")) {
-            require(Boolean.TRUE.equals(enrich(alarm,user).get("CAN_ACK")),"您不是本层级待确认人员，或已确认过此警报");
-            store.table("alarm_acks").add(m("ACK_KEY",store.key("alarm_acks"),"ALARM_KEY",key,"USER_KEY",user.get("USER_KEY"),
-                "LEVEL_ID",alarm.get("CURRENT_LEVEL"),"ACK_DT",now(),"ACK_CMT",b.get("cmt")));
-            var run = run(alarm); run.put("ACK_COUNT",n(run,"ACK_COUNT")+1);
-            alarm.put("LAST_ACK_DT",now()); alarm.put("ACK_CMT",b.get("cmt"));
-            transaction(alarm,"UserAck","Process",user,s(b,"cmt"));
-            if (n(run,"ACK_COUNT") >= n(run,"REQUIRED_ACK")) close(alarm,"Completed","AlarmComplete",user,"回应人数达标");
-        } else throw new ApiException(404,"未知警报操作");
-        return m("ok",true,"alarm",enrich(alarm,user),"completed",eq(alarm,"STATUS","Completed"));
+        require(Boolean.TRUE.equals(enrich(alarm,user).get("CAN_ACK")),"您不是本层级待确认人员，或已确认过此警报");
+        store.table("alarm_acks").add(m("ACK_KEY",store.key("alarm_acks"),"ALARM_KEY",alarm.get("ALARM_KEY"),"USER_KEY",user.get("USER_KEY"),
+            "LEVEL_ID",alarm.get("CURRENT_LEVEL"),"ACK_DT",now(),"ACK_CMT",b.get("cmt")));
+        var run = run(alarm); run.put("ACK_COUNT",n(run,"ACK_COUNT")+1);
+        alarm.put("LAST_ACK_DT",now()); alarm.put("ACK_CMT",b.get("cmt"));
+        transaction(alarm,"UserAck","Process",user,s(b,"cmt"));
+        if (n(run,"ACK_COUNT") >= n(run,"REQUIRED_ACK")) close(alarm,"Completed","AlarmComplete",user,"回应人数达标");
+        return enrich(alarm,user);
+    }
+    /**
+     * 批量确认回报：对每个 key 复用与单条 ACK 完全一致的校验与写入。单项失败（警报不存在、
+     * 已非处理中、非本层级送达人员、已确认等）只拒绝该笔，不影响其余笔；全部笔在同一写入
+     * 事务内顺序处理，保证计数与达标状态一致。
+     */
+    public Map<String,Object> batchAck(Map<String,Object> body, Map<String,Object> user) {
+        var rawKeys = list(body.get("keys")).stream().map(Json::str).filter(k -> !k.isBlank()).distinct().toList();
+        require(!rawKeys.isEmpty(),"请至少选择一笔警报");
+        require(rawKeys.size() <= BATCH_ACK_MAX_KEYS,"单次最多确认 "+BATCH_ACK_MAX_KEYS+" 笔，请分批操作");
+        validateComment(body);
+        var comment = body.get("cmt");
+        var itemBody = m("cmt",comment);
+        var items = new ArrayList<Map<String,Object>>();
+        int success = 0;
+        for (String key : rawKeys) {
+            var alarm = store.table("alarms").stream().filter(r -> eq(r,"ALARM_KEY",key)).findFirst().orElse(null);
+            if (alarm == null) { items.add(m("ALARM_KEY",key,"ok",false,"message","警报不存在")); continue; }
+            try {
+                var updated = ack(alarm,itemBody,user);
+                items.add(m("ALARM_KEY",key,"ok",true,"completed",eq(updated,"STATUS","Completed")));
+                success++;
+            } catch (ApiException e) {
+                items.add(m("ALARM_KEY",key,"ok",false,"message",e.getMessage()));
+            }
+        }
+        return m("ok",true,"items",items,"successCount",success,"failCount",items.size()-success);
     }
     public void tick() {
         long now = System.currentTimeMillis();

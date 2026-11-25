@@ -91,6 +91,7 @@ public class ApiController {
             }
             if (p[2].equals("query")) return m("ok",true,"rows",data,"columns",columns,"total",data.size(),"lastUpdate",now());
         }
+        if (method.equals("POST") && path.equals("alarms/ack")) return engine.batchAck(body,user);
         if (method.equals("POST") && p.length==3 && p[0].equals("alarms") && p[2].equals("ack")) return engine.action(p[1],"ack",body,user);
         if (method.equals("POST") && path.equals("alarms/test")) return engine.trigger(body,user);
         throw new ApiException(404,"API 不存在");

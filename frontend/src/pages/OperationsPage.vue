@@ -1,5 +1,5 @@
 <script setup>
-import { Button as AButton, Input as AInput, Textarea as ATextarea, Select as ASelect, SelectOption as ASelectOption } from 'ant-design-vue'
+import { Button as AButton, Input as AInput, Textarea as ATextarea, Select as ASelect, SelectOption as ASelectOption, Modal as AModal } from 'ant-design-vue'
 import { onMounted,onUnmounted,ref,watch } from 'vue'
 import { state,api,act,t,notify,alarmColumns,openAlarm } from '../state'
 import DataGrid from '../components/DataGrid.vue'
@@ -8,6 +8,10 @@ const props=defineProps({code:String})
 const form=ref({factoryKey:'',subsysKey:'',eqpKey:'',alarmCode:'',title:'',content:''})
 const options=ref({}),rows=ref([])
 const tab=ref('manual'),simBusy=ref(false)
+// 批量确认回报（ACK_LIST）
+const ACK_COMMENT_MAX=500
+const selectedKeys=ref(new Set())
+const batchOpen=ref(false),batchComment=ref(''),batchBusy=ref(false)
 let version=0,timer
 async function loadOptions(){
   const current=++version
@@ -16,7 +20,34 @@ async function loadOptions(){
 }
 watch(()=>form.value.factoryKey,()=>{form.value.subsysKey='';form.value.alarmCode='';act(loadOptions)})
 watch(()=>[form.value.subsysKey,form.value.eqpKey],()=>{form.value.alarmCode='';act(loadOptions)})
-async function load(){if(props.code==='TEST')await loadOptions();else rows.value=(await api('/alarms/pending')).rows}
+async function load(){
+  if(props.code==='TEST'){await loadOptions();return}
+  const latest=(await api('/alarms/pending')).rows
+  // 轮询/筛选刷新后，仅保留仍可确认的选择，避免对失效选择静默成功。
+  const valid=new Set(latest.map(r=>r.ALARM_KEY))
+  selectedKeys.value=new Set([...selectedKeys.value].filter(k=>valid.has(k)))
+  rows.value=latest
+}
+function onSelect(selectedRows){ selectedKeys.value=new Set(selectedRows.map(r=>String(r.ALARM_KEY))) }
+function openBatch(){ batchComment.value='';batchOpen.value=true }
+function cancelBatch(){ if(!batchBusy.value)batchOpen.value=false }
+async function submitBatch(){
+  if(batchBusy.value||selectedKeys.value.size===0)return
+  if(batchComment.value.length>ACK_COMMENT_MAX){state.error=`回应备注长度不可超过 ${ACK_COMMENT_MAX} 字符`;return}
+  batchBusy.value=true
+  try {
+    const result=await api('/alarms/ack',{keys:[...selectedKeys.value],cmt:batchComment.value})
+    const failed=result.items.filter(i=>!i.ok)
+    notify(failed.length?`确认完成：成功 ${result.successCount} 笔，失败 ${result.failCount} 笔`:`警报确认成功：共 ${result.successCount} 笔`)
+    if(failed.length){
+      state.error='失败明细：'+failed.map(i=>`${i.ALARM_KEY}（${i.message}）`).join('；')
+    } else state.error=''
+    batchOpen.value=false
+    await act(load)
+  } catch(error) {
+    state.error=error.message
+  } finally { batchBusy.value=false }
+}
 async function submit(){
   await act(async()=>{
     const result=await api('/alarms/test',form.value)
@@ -24,7 +55,7 @@ async function submit(){
     await openAlarm(result.alarm)
   })
 }
-onMounted(()=>{act(load);if(props.code==='ACK_LIST')timer=setInterval(()=>{if(!document.hidden)act(load)},10000)})
+onMounted(()=>{act(load);if(props.code==='ACK_LIST')timer=setInterval(()=>{if(!document.hidden&&!batchOpen.value)act(load)},10000)})
 onUnmounted(()=>clearInterval(timer))
 </script>
 <template>
@@ -42,5 +73,19 @@ onUnmounted(()=>clearInterval(timer))
     <div class="form-actions"><a-button class="primary" :disabled="state.busy>0 || !form.factoryKey || !form.subsysKey || !form.eqpKey || !form.alarmCode" type="primary" html-type="submit">触发测试告警</a-button></div>
     </form>
   </section>
-  <template v-else><div class="toolbar"><a-button @click="act(load)" type="default" html-type="button">{{ t('重新整理') }}</a-button><span class="muted">打开详情后确认；每 10 秒更新。</span></div><DataGrid :rows="rows" :columns="alarmColumns" @open="openAlarm"/></template>
+  <template v-else>
+    <div class="toolbar">
+      <a-button @click="act(load)" type="default" html-type="button">{{ t('重新整理') }}</a-button>
+      <a-button type="primary" html-type="button" :disabled="selectedKeys.size===0 || state.busy>0" @click="openBatch">批量确认回报</a-button>
+      <span class="muted">已选 {{ selectedKeys.size }} 笔；打开详情可逐笔确认；每 10 秒更新。</span>
+    </div>
+    <DataGrid :rows="rows" :columns="alarmColumns" selectable row-key="ALARM_KEY" :clear-selection-on-refresh="false" @select="onSelect" @open="openAlarm"/>
+    <a-modal :open="batchOpen" title="批量确认回报" :confirm-loading="batchBusy" :ok-text="batchBusy?'确认中…':'确认回报'" cancel-text="取消"
+      :ok-button-props="{disabled:selectedKeys.size===0}" @ok="submitBatch" @cancel="cancelBatch">
+      <p>将对已选的 <strong>{{ selectedKeys.size }}</strong> 笔警报执行确认回报，对每笔套用相同的服务端校验；提交期间不可重复送出。</p>
+      <label class="comment batch-comment"><span>{{ t('回应备注') }}（选填，最多 {{ ACK_COMMENT_MAX }} 字符）</span>
+        <a-textarea v-model:value="batchComment" :rows="3" :maxlength="ACK_COMMENT_MAX" show-count :disabled="batchBusy"/>
+      </label>
+    </a-modal>
+  </template>
 </template>

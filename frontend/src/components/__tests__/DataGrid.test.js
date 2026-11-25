@@ -86,13 +86,33 @@ describe('DataGrid filtering and selection', () => {
     expect(wrapper.text()).toContain('一厂')
   })
 
-  it('selects the current page and emits selection', async () => {
+  it('selects the current page and emits selected rows', async () => {
     const wrapper = mountGrid({ selectable: true, rowKey: 'FACTORY_KEY' })
     const selectAll = wrapper.find('thead input[type="checkbox"]')
     await selectAll.setChecked(true)
-    expect(wrapper.emitted('select').at(-1)[0]).toHaveLength(3)
+    expect(wrapper.emitted('select').at(-1)[0]).toEqual(rows)
     await wrapper.findAll('tbody input[aria-label="选择资料"]').at(0).setChecked(false)
-    expect(wrapper.emitted('select').at(-1)[0]).toHaveLength(2)
+    expect(wrapper.emitted('select').at(-1)[0]).toEqual([rows[1], rows[2]])
+  })
+  it('keeps selection across pages when clearSelectionOnRefresh is false', async () => {
+    const manyRows = Array.from({ length: 25 }, (_, i) => ({
+      FACTORY_KEY: `k-${i + 1}`, FACTORY_ID: `F${i + 1}`, FACTORY_NAME: `厂${i + 1}`, ACTIVE: 'Y',
+    }))
+    const wrapper = mount({
+      components: { DataGrid },
+      data() {
+        return { rows: manyRows, picked: [], gridColumns: [{ field: 'FACTORY_ID', label: '代码' }] }
+      },
+      template: '<DataGrid :rows="rows" :columns="gridColumns" selectable row-key="FACTORY_KEY" :clear-selection-on-refresh="false" @select="picked=$event"/>',
+    })
+    const selectAll = wrapper.find('thead input[type="checkbox"]')
+    await selectAll.setChecked(true)
+    expect(wrapper.vm.picked).toHaveLength(20)
+    // 跳到第 2 页后全选，第 1 页选择应保留（跨页全选）。
+    await wrapper.findAll('.ant-pagination-item').at(1).trigger('click')
+    await wrapper.find('thead input[type="checkbox"]').setChecked(true)
+    expect(wrapper.vm.picked).toHaveLength(25)
+    expect(wrapper.vm.picked.map(r => r.FACTORY_KEY)).toEqual(manyRows.map(r => r.FACTORY_KEY))
   })
 
   it('emits open when a row action or link cell is clicked', async () => {
