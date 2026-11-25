@@ -47,6 +47,8 @@ bash scripts/start-java.sh
 UI 使用固定版本 `ant-design-vue@4.2.6`（4.x），按组件导入，入口引入 `reset.css`。
 `App.vue` 通过 `ConfigProvider` 统一主题和简体／繁体／英文组件文案。
 登录、主档、查询、告警详情及设备模拟使用 Ant Design Vue 的按钮、输入框、下拉框、复选框、表格、分页、标签和弹窗。
+侧栏使用 `Layout.Sider + Menu`，提供业务分组、图标、分组展开／收起、72px 图标模式及悬浮子菜单；折叠偏好保存在本机。搜索支持名称与功能代码、空结果提示和 Esc 清除；直接进入页面会展开所属分组，窄屏自动收起。菜单仅展示后端返回的功能。
+
 `UiCheckbox` 在组件边界适配 API 的 `Y/N` 和人员数组，表格筛选后的数据继续用于 Excel 汇出。
 
 前后端分开开发时，先按上文启动 Java 服务，再执行：
@@ -116,7 +118,7 @@ SMTP 未配置或发送失败会记录为 `Fail`，不会显示模拟成功。`S
 | 后端单元 + 集成 | `cd backend && mvn test` | 40 个用例（`unit/` 纯逻辑 + 既有 `*IntegrationTest`） |
 | 后端接口 E2E | `bash scripts/run-java-e2e.sh` | 打包后启动真实进程（随机端口、临时 H2），4 条 HTTP 用例 |
 | 前端单元 | `cd frontend && npm run test:unit` | 60 个 Vitest 用例 |
-| 前端 E2E | `bash scripts/run-frontend-e2e.sh` | 构建 + 临时后端 + Playwright Chromium，13 条用例 |
+| 前端 E2E | `bash scripts/run-frontend-e2e.sh` | 构建 + 临时后端 + Playwright Chromium，16 条用例 |
 
 E2E 文本用例（先于代码编写，随代码提交）见 [docs/e2e](docs/e2e/README.md)；用例 ID 在文档、测试名称与报告中一致。
 默认 `mvn test` 不启动后端 E2E（需要 `ams.e2e.enabled=true`，由脚本设置），也不会写仓库内数据库文件。

@@ -1,25 +1,15 @@
 <script setup>
 import { ConfigProvider as AConfigProvider, Alert as AAlert, Button as AButton, Input as AInput, Select as ASelect, SelectOption as ASelectOption } from 'ant-design-vue'
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { state, api, act, bootstrap, t, language, changeLanguage } from './state'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import zhTW from 'ant-design-vue/es/locale/zh_TW'
 import enUS from 'ant-design-vue/es/locale/en_US'
 import AlarmDetail from './components/AlarmDetail.vue'
+import AppSidebar from './components/AppSidebar.vue'
 const route = useRoute(), router = useRouter()
-const credentials = ref({ userId: 'E0043258', password: '' }), ready = ref(false), navSearch = ref('')
-const flattened = computed(() => {
-  const items = []
-  function visit(nodes, depth = 0) {
-    for (const node of nodes) {
-      if (!navSearch.value || !node.path || `${node.id} ${node.name} ${t(node.name)}`.toLowerCase().includes(navSearch.value.toLowerCase())) items.push({ ...node, depth })
-      visit(node.children || [], depth + 1)
-    }
-  }
-  visit(state.nav)
-  return items
-})
+const credentials = ref({ userId: 'E0043258', password: '' }), ready = ref(false)
 async function login() {
   await act(async () => {
     const result = await api('/login', credentials.value); sessionStorage.setItem('ams_java_token', result.token)
@@ -47,13 +37,7 @@ onMounted(async () => {
     </form>
   </div>
   <div v-else class="app-shell">
-    <aside class="sidebar"><a href="#/home" class="brand">AMS <span>警报管理系统</span></a><div class="environment"><i/> 本地演示环境</div>
-      <a-input v-model:value="navSearch" class="nav-search" placeholder="搜索功能"/>
-      <nav><template v-for="node in flattened" :key="node.key">
-        <RouterLink v-if="node.path" :to="node.path.replace(/^#/, '')" :style="{ paddingLeft: `${16 + Math.max(0,node.depth - 1) * 12}px` }" :class="{ current: route.path === node.path.replace(/^#/, '') }"><span>{{ t(node.name) }}</span></RouterLink>
-        <div v-else class="nav-section">{{ t(node.name) }}</div>
-      </template></nav><footer>AMS · JAVA / VUE<br><small>v1.0.0</small></footer>
-    </aside>
+    <AppSidebar/>
     <div class="main-shell"><header class="topbar"><span class="muted">CHANGXIN / {{ t('警报管理系统') }}</span><div class="top-actions">
       <a-select :value="language" @change="changeLanguage($event)" aria-label="语言"><a-select-option value="zh-CN">简体中文</a-select-option><a-select-option value="zh-TW">繁體中文</a-select-option><a-select-option value="en">English</a-select-option></a-select>
       <RouterLink to="/page/ACK_LIST" class="inbox-link">待我确认</RouterLink><span class="avatar">{{ state.user.USER_NAME?.slice(-1) }}</span><span>{{ state.user.USER_NAME }}</span><a-button @click="logout" type="default" html-type="button">{{ t('登出') }}</a-button>

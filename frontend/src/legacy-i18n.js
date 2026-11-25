@@ -1,6 +1,18 @@
 'use strict';
 
 const EN = {
+  '基础资料': 'Master Data',
+  '通知配置': 'Notifications',
+  '查询报表': 'Reports & History',
+  '其他功能': 'Other',
+  '展开导航': 'Expand navigation',
+  '收起导航': 'Collapse navigation',
+  '搜索功能': 'Search features',
+  '功能导航': 'Main navigation',
+  '未找到匹配功能': 'No matching features',
+  '项功能': 'features',
+  '本地演示环境': 'Local demo',
+
   // 导航 / 页面
   '首页': 'Home',
   '系统设定': 'System',

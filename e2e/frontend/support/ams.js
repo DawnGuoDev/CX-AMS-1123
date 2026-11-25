@@ -33,6 +33,10 @@ export const MENU = {
 
 export async function openMenu(page, menu = MENU.factories) {
   const link = page.locator(`.sidebar nav a[href="#${menu.route}"]`)
+  if (!await link.isVisible()) {
+    const group = page.locator('.sidebar .ant-menu-submenu').filter({ has: page.locator(`a[href="#${menu.route}"]`) })
+    await group.locator(':scope > .ant-menu-submenu-title').click()
+  }
   await expect(link).toBeVisible()
   await link.click()
   await expect(page.locator('.page-heading h1')).toHaveText(menu.title)
