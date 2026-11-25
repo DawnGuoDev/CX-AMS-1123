@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 import Workspace from './pages/Workspace.vue'
+import 'ant-design-vue/dist/reset.css'
 import './style.css'
 const router = createRouter({
   history: createWebHashHistory(),

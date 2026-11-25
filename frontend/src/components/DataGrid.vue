@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { Button as AButton, Input as AInput, Select as ASelect, Table as ATable, Tag as ATag } from 'ant-design-vue'
 import { t, state } from '../state'
 import { textOps,dateOps,emptyFilter,matches,isDate } from '../filters'
 const props = defineProps({ rows: { type: Array, default: () => [] }, columns: { type: Array, default: () => [] }, selectable: Boolean, rowKey: { type: String, default: '' } })
@@ -14,19 +15,35 @@ const filtered = computed(() => {
   return rows
 })
 const pages = computed(() => Math.max(1, Math.ceil(filtered.value.length / size.value)))
-const visible = computed(() => filtered.value.slice((page.value - 1) * size.value, page.value * size.value))
+
 watch(filtered,rows=>{emit('filtered',rows);page.value=Math.min(page.value,pages.value)},{immediate:true})
 watch(()=>columns.value.map(c=>`${c.field||c.name}:${c.type}`).join('|'),()=>{
   columnFilters.value=Object.fromEntries(columns.value.map(c=>[c.field||c.name,emptyFilter(c)]))
 },{immediate:true})
 defineExpose({filtered})
+const recordKey = row => props.rowKey ? row[props.rowKey] : props.rows.indexOf(row)
+const tableColumns = computed(() => [...columns.value.map(col => ({
+  ...col, key: col.field || col.name, dataIndex: col.field || col.name,
+  title: t(col.label || col.field || col.name),
+  customHeaderCell: () => ({ onClick: () => order(col), style: { cursor: 'pointer' } }),
+})), { key: '__actions', title: t('操作') }])
+const rowSelection = computed(() => props.selectable ? {
+  selectedRowKeys: selected.value.map(recordKey),
+  onChange: (_keys, rows) => { selected.value = rows; emit('select', rows) },
+  getCheckboxProps: () => ({ 'aria-label': '选择资料' }),
+} : undefined)
+const pagination = computed(() => ({ current: page.value, pageSize: size.value, total: filtered.value.length,
+  showSizeChanger: true, pageSizeOptions: ['20','25','50','100','200','500'],
+  onChange: (next, nextSize) => { page.value = next; size.value = nextSize },
+}))
+function tagColor(value) {
+  if (['Completed','Success','OK','Y'].includes(value)) return 'success'
+  if (['NoNextLevel','Fail','Error','NG'].includes(value)) return 'error'
+  if (['Process','Unknown'].includes(value)) return 'warning'
+  return 'default'
+}
 watch([search, size, () => props.rows], () => { page.value = 1; selected.value = []; emit('select', []) })
 watch(columnFilters,()=>{page.value=1;selected.value=[];emit('select',[])},{deep:true})
-function choose(row, checked) {
-  selected.value = checked ? [...selected.value, row] : selected.value.filter(x => x !== row)
-  emit('select', selected.value)
-}
-function selectPage(checked) { selected.value = checked ? [...visible.value] : []; emit('select', selected.value) }
 function label(row, col) {
   const value = row[col.field || col.name]
   if (value === null || value === undefined || value === '') return '—'
@@ -39,41 +56,47 @@ function order(col) { const key = col.field || col.name; descending.value = sort
 </script>
 <template>
   <div class="grid">
-    <div class="grid-tools"><input v-model="search" :placeholder="t('过滤')" aria-label="过滤列表"><button type="button" @click="showFilters=!showFilters">列过滤</button><span>{{ filtered.length }} {{ t('笔资料') }}</span><slot name="tools"/></div>
-    <div class="table-scroll">
-      <table><thead><tr>
-        <th v-if="selectable"><input type="checkbox" :checked="visible.length > 0 && visible.every(r => selected.includes(r))" @change="selectPage($event.target.checked)" aria-label="选择本页"/></th>
-        <th v-for="col in columns" :key="col.field || col.name" @click="order(col)">{{ t(col.label || col.field || col.name) }} <small v-if="sort === (col.field || col.name)">{{ descending ? '↓' : '↑' }}</small></th>
-        <th>{{ t('操作') }}</th>
-      </tr><tr v-if="showFilters"><th v-if="selectable"/><th v-for="col in columns" :key="col.field||col.name">
-        <div v-if="columnFilters[col.field||col.name]" class="column-filter">
-          <select v-model="columnFilters[col.field||col.name].operator" :aria-label="`${col.label}运算`">
-            <option v-for="[value,label] in isDate(col)?dateOps:textOps" :key="value" :value="value">{{label}}</option>
-          </select>
-          <template v-if="isDate(col)&&columnFilters[col.field||col.name].operator==='between'">
-            <input v-for="bound in ['from','to']" :key="bound" type="datetime-local" step="1" v-model="columnFilters[col.field||col.name][bound]" @input="columnFilters[col.field||col.name].enabled=true" :aria-label="`${col.label}${bound==='from'?'起始':'结束'}`">
-          </template>
-          <input v-else :type="isDate(col)?'datetime-local':'text'" step="1" v-model="columnFilters[col.field||col.name].value" @input="columnFilters[col.field||col.name].enabled=true" :aria-label="`过滤${col.label}`">
-          <button type="button" @click="columnFilters[col.field||col.name]=emptyFilter(col)">重置本列</button>
-        </div>
-      </th><th><button type="button" @click="columnFilters=Object.fromEntries(columns.map(c=>[c.field||c.name,emptyFilter(c)]))">全部重置</button></th></tr></thead><tbody>
-        <tr v-for="(row, index) in visible" :key="rowKey ? row[rowKey] : index" :class="{ selected: selected.includes(row), hidden: row.ACTIVE === 'N' }">
-          <td v-if="selectable"><input type="checkbox" :checked="selected.includes(row)" @change="choose(row, $event.target.checked)" aria-label="选择资料"/></td>
-          <td v-for="col in columns" :key="col.field || col.name" :title="label(row,col)">
-            <span v-if="['STATUS','ACTIVE','DEVICE_STATUS','AGENT_STATUS','RESULT'].includes(col.field || col.name)" class="tag" :class="String(row[col.field || col.name])">{{ label(row,col) }}</span>
-            <button type="button" v-else-if="col.link" class="link" @click="emit('open',row)">{{label(row,col)}}</button>
-            <template v-else>{{ label(row,col) }}</template>
-          </td>
-          <td><button type="button" class="link" @click="emit('open', row)">{{ t('查看') }}</button><slot name="actions" :row="row"/></td>
-        </tr>
-        <tr v-if="!visible.length"><td :colspan="columns.length + 2" class="empty">{{ t('查无资料') }}</td></tr>
-      </tbody></table>
+    <div class="grid-tools">
+      <a-input v-model:value="search" :placeholder="t('过滤')" aria-label="过滤列表"/>
+      <a-button @click="showFilters=!showFilters">列过滤</a-button>
+      <span>{{ filtered.length }} {{ t('笔资料') }}</span><slot name="tools"/>
     </div>
-    <div class="pagination"><span>{{ t('每页') }} <select v-model.number="size"><option v-for="n in [20,25,50,100,200,500]" :key="n">{{ n }}</option></select></span>
-      <button type="button" :disabled="page <= 1" @click="page--">‹</button><span>{{ page }} / {{ pages }}</span><button type="button" :disabled="page >= pages" @click="page++">›</button></div>
+    <div v-if="showFilters" class="column-filters">
+      <div v-for="col in columns" :key="col.field || col.name" class="column-filter">
+        <template v-if="columnFilters[col.field || col.name]">
+          <span>{{ t(col.label || col.field || col.name) }}</span>
+          <a-select v-model:value="columnFilters[col.field || col.name].operator" :aria-label="`${col.label}运算`"
+            :options="(isDate(col) ? dateOps : textOps).map(([value,label]) => ({value,label}))"/>
+          <template v-if="isDate(col) && columnFilters[col.field || col.name].operator === 'between'">
+            <a-input v-for="bound in ['from','to']" :key="bound" type="datetime-local" step="1"
+              v-model:value="columnFilters[col.field || col.name][bound]" @input="columnFilters[col.field || col.name].enabled=true"
+              :aria-label="`${col.label}${bound==='from'?'起始':'结束'}`"/>
+          </template>
+          <a-input v-else :type="isDate(col) ? 'datetime-local' : 'text'" step="1"
+            v-model:value="columnFilters[col.field || col.name].value" @input="columnFilters[col.field || col.name].enabled=true" :aria-label="`过滤${col.label}`"/>
+          <a-button @click="columnFilters[col.field || col.name]=emptyFilter(col)">重置本列</a-button>
+        </template>
+      </div>
+      <a-button @click="columnFilters=Object.fromEntries(columns.map(c=>[c.field||c.name,emptyFilter(c)]))">全部重置</a-button>
+    </div>
+    <a-table :columns="tableColumns" :data-source="filtered" :row-key="recordKey" :row-selection="rowSelection"
+      :pagination="pagination" :scroll="{ x: 'max-content' }" size="middle" :locale="{ emptyText: t('查无资料') }"
+      :row-class-name="row => [selected.includes(row) ? 'selected' : '', row.ACTIVE==='N' ? 'hidden' : ''].join(' ')">
+      <template #headerCell="{ column }">
+        {{ column.title }}<small v-if="sort === column.dataIndex"> {{ descending ? '↓' : '↑' }}</small>
+      </template>
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === '__actions'">
+          <a-button type="link" class="link" @click="emit('open', record)">{{ t('查看') }}</a-button><slot name="actions" :row="record"/>
+        </template>
+        <a-tag v-else-if="['STATUS','ACTIVE','DEVICE_STATUS','AGENT_STATUS','RESULT'].includes(column.dataIndex)" class="tag" :color="tagColor(String(record[column.dataIndex]))">{{ label(record,column) }}</a-tag>
+        <a-button v-else-if="column.link" type="link" class="link" @click="emit('open',record)">{{ label(record,column) }}</a-button>
+        <span v-else :title="label(record,column)">{{ label(record,column) }}</span>
+      </template>
+    </a-table>
   </div>
 </template>
 <style scoped>
-.column-filter {display:grid;gap:5px;min-width:165px}
-.column-filter input,.column-filter select {width:100%;min-width:0}
+.column-filters {display:flex;flex-wrap:wrap;gap:16px;padding:16px;border-bottom:1px solid var(--border);align-items:end}
+.column-filter {display:grid;gap:6px;width:190px}
 </style>

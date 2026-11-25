@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MENU, apiToken, login, openMenu, unique } from './support/ams.js'
+import { MENU, apiToken, login, openMenu, unique, selectOption } from './support/ams.js'
 
 /**
  * TC-FE-E2E-004: trigger a test alarm from the console, inspect the detail dialog and open the
@@ -16,14 +16,13 @@ test.describe('TC-FE-E2E-004 测试告警触发、详情与确认入口', () => 
     const warning = page.locator('.warning')
     await expect(warning).toContainText('SMTP 尚未配置')
 
-    const selects = page.locator('.send-form select')
+    const selects = page.locator('.send-form .fields .ant-select')
     await expect(selects).toHaveCount(4)
-    await selects.nth(0).selectOption('F01')
+    await selectOption(page, selects.nth(0), /^Fab01/)
     await expect(selects.nth(1)).toBeEnabled()
-    await selects.nth(1).selectOption('SS03')
-    await selects.nth(2).selectOption('EQP01')
-    await expect(selects.nth(3).locator('option')).not.toHaveCount(0)
-    await selects.nth(3).selectOption('PRT_NODYE')
+    await selectOption(page, selects.nth(1), /^MES/)
+    await selectOption(page, selects.nth(2), /^PRT01/)
+    await selectOption(page, selects.nth(3), /^PRT_NODYE/)
 
     await page.getByLabel('警报标题').fill(`E2E 测试告警 ${marker}`)
     await page.getByLabel('详细内容').fill('由前端 E2E 触发的测试告警内容')
@@ -44,7 +43,7 @@ test.describe('TC-FE-E2E-004 测试告警触发、详情与确认入口', () => 
     await expect(detail.getByRole('button', { name: '警报确认' })).toHaveCount(0)
     await expect(detail).toContainText('当前账号暂无待确认操作')
 
-    await detail.getByRole('button', { name: '关闭' }).click()
+    await detail.getByRole('button', { name: /close|关闭/i }).click()
     await expect(detail).toHaveCount(0)
   })
 

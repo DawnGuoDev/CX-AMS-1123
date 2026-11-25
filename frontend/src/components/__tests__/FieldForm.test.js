@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import { Select } from 'ant-design-vue'
 import FieldForm from '../FieldForm.vue'
 import { state } from '../../state'
 
@@ -30,7 +31,7 @@ describe('FieldForm', () => {
     for (const expected of ['厂别', '子系统', '事件', '忽略间隔', '启用', '说明']) {
       expect(labels.some(label => label.startsWith(expected))).toBe(true)
     }
-    expect(wrapper.findAll('select')).toHaveLength(3)
+    expect(wrapper.findAllComponents(Select)).toHaveLength(3)
     expect(wrapper.find('small').text()).toBe('最多 200 字')
   })
 
@@ -72,21 +73,22 @@ describe('FieldForm', () => {
     }
     const model = baseModel()
     const wrapper = mount(FieldForm, { props: { fields, model } })
-    const optionTexts = () => wrapper.findAll('select').at(1).findAll('option').map(o => o.text())
+    const optionTexts = () => wrapper.findAllComponents(Select).at(1).props('options').map(o => o.label)
 
     expect(optionTexts()).toEqual(['请选择', 'S01 子系统一'])
 
     // A fresh form rendered for the other factory shows the matching subsystem list.
     const other = { FACTORY_KEY: 'F02', SUB_SYS_KEY: '', EVENT_KEY: '' }
     const otherWrapper = mount(FieldForm, { props: { fields, model: other } })
-    expect(otherWrapper.findAll('select').at(1).findAll('option').map(o => o.text()))
+    expect(otherWrapper.findAllComponents(Select).at(1).props('options').map(o => o.label))
             .toEqual(['请选择', 'S02 子系统二'])
 
-    // The parent's `changed()` contract clears dependent selections when the factory changes (as
-    // done by MasterPage before the API call).
-    const cleared = { ...model, SUB_SYS_KEY: '', EVENT_KEY: '' }
-    await wrapper.setProps({ model: cleared })
-    expect(cleared.SUB_SYS_KEY).toBe('')
+    await wrapper.findAllComponents(Select)[0].vm.$emit('update:value', 'F02')
+    await wrapper.findAllComponents(Select)[0].vm.$emit('change', 'F02')
+    expect(model.SUB_SYS_KEY).toBe('')
+    expect(model.EVENT_KEY).toBe('')
+
+
   })
 
   it('filters event options by factory and subsystem', () => {
@@ -97,7 +99,7 @@ describe('FieldForm', () => {
       ],
     }
     const wrapper = mountForm()
-    const eventSelect = wrapper.findAll('select').at(2)
-    expect(eventSelect.findAll('option').map(o => o.text())).toEqual(['请选择', 'E01 事件一'])
+    const eventSelect = wrapper.findAllComponents(Select).at(2)
+    expect(eventSelect.props('options').map(o => o.label)).toEqual(['请选择', 'E01 事件一'])
   })
 })

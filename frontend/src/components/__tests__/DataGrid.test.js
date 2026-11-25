@@ -24,23 +24,23 @@ describe('DataGrid rendering', () => {
     const headers = wrapper.findAll('thead th').map(th => th.text())
     expect(headers).toContain('厂别代码')
     expect(headers).toContain('操作')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(3)
+    expect(wrapper.findAll('tbody tr:not(.ant-table-measure-row)')).toHaveLength(3)
     expect(wrapper.text()).toContain('3 笔资料')
   })
 
   it('renders a dash for empty values and marks hidden rows', () => {
     const wrapper = mountGrid({ rows: [{ FACTORY_ID: '', FACTORY_NAME: null }] })
-    const cells = wrapper.findAll('tbody tr').at(0).findAll('td')
+    const cells = wrapper.findAll('tbody tr:not(.ant-table-measure-row)').at(0).findAll('td')
     expect(cells.at(1).text()).toBe('—')
     expect(cells.at(2).text()).toBe('—')
-    expect(mountGrid({ rows: [{ ...rows[2] }] }).find('tbody tr').classes()).toContain('hidden')
+    expect(mountGrid({ rows: [{ ...rows[2] }] }).find('tbody tr.ant-table-row').classes()).toContain('hidden')
   })
 
   it('shows an empty placeholder when nothing matches', async () => {
     const wrapper = mountGrid()
     await wrapper.find('input[aria-label="过滤列表"]').setValue('不存在的关键字')
     expect(wrapper.text()).toContain('查无资料')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(1)
+    expect(wrapper.findAll('tbody tr:not(.ant-table-measure-row)')).toHaveLength(1)
   })
 
   it('toggles sort direction by clicking a header', async () => {
@@ -54,11 +54,11 @@ describe('DataGrid rendering', () => {
     // Headers are: CODE | NAME | 操作
     const codeHeader = wrapper.findAll('thead th').at(0)
     await codeHeader.trigger('click')
-    expect(wrapper.findAll('tbody tr').at(0).text()).toContain('Alpha')
+    expect(wrapper.findAll('tbody tr:not(.ant-table-measure-row)').at(0).text()).toContain('Alpha')
     expect(codeHeader.text()).toContain('↑')
     await codeHeader.trigger('click')
     expect(codeHeader.text()).toContain('↓')
-    expect(wrapper.findAll('tbody tr').at(0).text()).toContain('Gamma')
+    expect(wrapper.findAll('tbody tr:not(.ant-table-measure-row)').at(0).text()).toContain('Gamma')
   })
 })
 
@@ -66,7 +66,7 @@ describe('DataGrid filtering and selection', () => {
   it('filters rows by the toolbar search case-insensitively', async () => {
     const wrapper = mountGrid()
     await wrapper.find('input[aria-label="过滤列表"]').setValue('HIDDEN')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(1)
+    expect(wrapper.findAll('tbody tr:not(.ant-table-measure-row)')).toHaveLength(1)
     expect(wrapper.text()).toContain('1 笔资料')
   })
 
@@ -82,19 +82,17 @@ describe('DataGrid filtering and selection', () => {
     await wrapper.findAll('button').find(button => button.text() === '列过滤').trigger('click')
     const nameFilter = wrapper.findAll('input[aria-label="过滤厂别名称"]').at(0)
     await nameFilter.setValue('一厂')
-    expect(wrapper.findAll('tbody tr')).toHaveLength(1)
+    expect(wrapper.findAll('tbody tr:not(.ant-table-measure-row)')).toHaveLength(1)
     expect(wrapper.text()).toContain('一厂')
   })
 
   it('selects the current page and emits selection', async () => {
     const wrapper = mountGrid({ selectable: true, rowKey: 'FACTORY_KEY' })
-    const selectAll = wrapper.find('thead input[aria-label="选择本页"]')
+    const selectAll = wrapper.find('thead input[type="checkbox"]')
     await selectAll.setChecked(true)
     expect(wrapper.emitted('select').at(-1)[0]).toHaveLength(3)
-    // Unchecking is a controlled-input update: the parent owns the selection, so the emitted
-    // payload simply reports the checkbox state change for that row.
-    await wrapper.findAll('tbody input[aria-label="选择资料"]').at(0).trigger('change')
-    expect(wrapper.emitted('select').length).toBeGreaterThanOrEqual(2)
+    await wrapper.findAll('tbody input[aria-label="选择资料"]').at(0).setChecked(false)
+    expect(wrapper.emitted('select').at(-1)[0]).toHaveLength(2)
   })
 
   it('emits open when a row action or link cell is clicked', async () => {

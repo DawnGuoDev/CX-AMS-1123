@@ -31,13 +31,14 @@ bash ../scripts/run-java-e2e.sh   # 额外跑 4 个后端接口 E2E（真实进�
 | `__tests__/legacy-i18n.test.js` | 已知词条与未知词条回退；**切换语言后缓存失效**（回归）；`html lang`；日期时间格式化与非法值透传 |
 | `components/__tests__/DataGrid.test.js` | 表头/行数/记录数；空值占位与隐藏行样式；搜索与“查无资料”；排序与升降序；列过滤；本页全选与选择事件；行操作/链接触发 open |
 | `components/__tests__/RecordDialog.test.js` | Teleport 渲染、标题、插槽；头部关闭；遮罩点击关闭而内容点击不关闭；wide 样式 |
+| `components/__tests__/UiCheckbox.test.js` | Ant 复选框的 `Y/N` 双向映射；人员数组增删且不修改输入数组 |
 | `components/__tests__/FieldForm.test.js` | 跳过 readOnly 字段；必填星号；各类型输入；`readOnlyOnEdit` 仅编辑态禁用；子系统随厂别变化、切厂清空依赖；事件按厂别/子系统过滤 |
 | `pages/__tests__/MasterPage.test.js` | 列表加载参数（`showHidden=0/1`）；新增走 POST、修改走 PUT；复制去掉主键与 ID；隐藏前确认（标题为问句）；层级草稿未确认时阻止保存并提示 |
 
 执行：
 
 ```bash
-cd frontend && npm run test:unit        # 58 个用例
+cd frontend && npm run test:unit        # 60 个用例
 cd frontend && npm run test:unit:watch  # 监听模式
 ```
 

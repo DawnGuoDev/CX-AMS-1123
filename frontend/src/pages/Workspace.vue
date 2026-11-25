@@ -1,4 +1,5 @@
 <script setup>
+import { Button as AButton } from 'ant-design-vue'
 import { computed,onMounted } from 'vue'
 import { state,t,openAlarm } from '../state'
 import MasterPage from './MasterPage.vue'
@@ -14,5 +15,5 @@ onMounted(()=>{if(props.code==='ACK')openAlarm(props.alarmKey)})
   <MasterPage v-if="master" :code="code"/>
   <OperationsPage v-else-if="['TEST','ACK_LIST'].includes(code)" :code="code"/>
   <ReportPage v-else-if="['HOME','AVPA013','AVPA004','AVPA007'].includes(code)" :code="code==='HOME'?'AVPA013':code"/>
-  <template v-else-if="code==='ACK'"><p>请查看告警详情，以本层级通知人员账号确认。打开邮件链接不会自动 ACK。</p><button class="primary" @click="openAlarm(alarmKey)">打开确认页</button></template>
+  <template v-else-if="code==='ACK'"><p>请查看告警详情，以本层级通知人员账号确认。打开邮件链接不会自动 ACK。</p><a-button class="primary" @click="openAlarm(alarmKey)" type="primary" html-type="button">打开确认页</a-button></template>
 </template>

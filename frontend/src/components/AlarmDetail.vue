@@ -1,4 +1,5 @@
 <script setup>
+import { Button as AButton, Textarea as ATextarea } from 'ant-design-vue'
 import { ref,watch } from 'vue'
 import { state, api, act, notify, t, openAlarm } from '../state'
 import RecordDialog from './RecordDialog.vue'
@@ -28,13 +29,13 @@ function value(key){const v=state.detail?.[key];return key.endsWith('_DT')&&v?ne
   <RecordDialog v-if="state.detail" title="警报详情" wide @close="state.detail = null">
     <h2>{{ state.detail.TITLE }}</h2><div class="detail-meta"><span>{{ state.detail.ALARM_ID }}</span><span class="tag" :class="state.detail.STATUS">{{ state.detail.STATUS }}</span><span>{{ state.detail.FACTORY_ID }} / {{ state.detail.SUB_SYS_ID }} / {{ state.detail.EQP_ID }}</span></div>
     <p v-if="state.detail.HISTORY_CONTEXT" class="warning">历史交易 {{state.detail.HISTORY_CONTEXT.SEQ}} · {{new Date(state.detail.HISTORY_CONTEXT.TRX_DT).toLocaleString()}} · 当时状态 {{state.detail.HISTORY_CONTEXT.STATUS_AFTER}}（只读）</p>
-    <div class="tabs"><button v-for="(label,key) in {MAIN:'基本资讯',CONTENT:'详细内容',COMMENT:'回应备注'}" :key="key" :class="{active:tab===key}" @click="tab=key">{{label}}</button></div>
+    <div class="tabs"><a-button v-for="(label,key) in {MAIN:'基本资讯',CONTENT:'详细内容',COMMENT:'回应备注'}" :key="key" :class="{active:tab===key}" @click="tab=key" type="default" html-type="button">{{label}}</a-button></div>
     <div v-if="tab==='MAIN'" class="fields"><label v-for="[key,label] in info" :key="key"><span>{{label}}</span><strong>{{value(key)}}</strong></label><label><span>当前账号</span><strong>{{state.user.USER_ID}} {{state.user.USER_NAME}}</strong></label></div>
     <p v-if="tab==='CONTENT'" class="alarm-content">{{ state.detail.CONTENT }}</p>
-    <div class="toolbar"><span>LEVEL-{{ state.detail.CURRENT_LEVEL }} · {{ state.detail.LEVEL_ACK_COUNT }} / {{ state.detail.LEVEL_REQUIRED ?? '—' }} {{ t('已回应人数') }}</span><button v-if="!state.detail.HISTORY_CONTEXT" @click="openAlarm(state.detail)">刷新发送与确认状态</button></div>
-    <label v-if="tab==='COMMENT'" class="comment"><span>{{ t('回应备注') }}</span><textarea v-if="state.detail.CAN_ACK" v-model="comment" rows="2"/><p v-else>{{state.detail.ACK_CMT||'暂无回应备注'}}</p></label>
-    <div v-if="!state.detail.HISTORY_CONTEXT" class="toolbar"><button v-if="state.detail.CAN_ACK" class="primary" :disabled="state.busy > 0" @click="perform('ack')">{{ t('警报确认') }}</button><span v-else class="muted">当前账号暂无待确认操作（邮件待发送、非本层级人员、已确认或告警已结束）。</span></div>
-    <div class="tabs"><button v-for="(label,key) in { NOTIFICATIONS:'通知发送记录', TRANSACTIONS:'交易履历', LEVELS:'事件层级', ACKS:'回应记录' }" :key="key" :class="{ active: recordTab === key }" @click="recordTab = key">{{ t(label) }}</button></div>
+    <div class="toolbar"><span>LEVEL-{{ state.detail.CURRENT_LEVEL }} · {{ state.detail.LEVEL_ACK_COUNT }} / {{ state.detail.LEVEL_REQUIRED ?? '—' }} {{ t('已回应人数') }}</span><a-button v-if="!state.detail.HISTORY_CONTEXT" @click="openAlarm(state.detail)" type="default" html-type="button">刷新发送与确认状态</a-button></div>
+    <label v-if="tab==='COMMENT'" class="comment"><span>{{ t('回应备注') }}</span><a-textarea v-if="state.detail.CAN_ACK" v-model:value="comment" rows="2"/><p v-else>{{state.detail.ACK_CMT||'暂无回应备注'}}</p></label>
+    <div v-if="!state.detail.HISTORY_CONTEXT" class="toolbar"><a-button v-if="state.detail.CAN_ACK" class="primary" :disabled="state.busy > 0" @click="perform('ack')" type="primary" html-type="button">{{ t('警报确认') }}</a-button><span v-else class="muted">当前账号暂无待确认操作（邮件待发送、非本层级人员、已确认或告警已结束）。</span></div>
+    <div class="tabs"><a-button v-for="(label,key) in { NOTIFICATIONS:'通知发送记录', TRANSACTIONS:'交易履历', LEVELS:'事件层级', ACKS:'回应记录' }" :key="key" :class="{ active: recordTab === key }" @click="recordTab = key" type="default" html-type="button">{{ t(label) }}</a-button></div>
     <DataGrid :rows="state.detail[recordTab] || []" :columns="columns[recordTab].map(([field,label]) => ({field,label}))"/>
   </RecordDialog>
 </template>

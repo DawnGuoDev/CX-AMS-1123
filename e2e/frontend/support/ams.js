@@ -46,3 +46,9 @@ export async function apiToken(request, user = ADMIN) {
   expect(body.ok).toBe(true)
   return body.token
 }
+
+/** Select an Ant Design Vue option in its portaled dropdown. */
+export async function selectOption(page, select, label) {
+  await select.click()
+  await page.locator('.ant-select-dropdown:visible .ant-select-item-option').filter({ hasText: label }).click()
+}

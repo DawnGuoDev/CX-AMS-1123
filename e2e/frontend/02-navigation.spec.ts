@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { MENU, login, openMenu } from './support/ams.js'
+import { MENU, login, openMenu, selectOption } from './support/ams.js'
 
 test.describe('TC-FE-E2E-002 侧栏导航、搜索与主档页面', () => {
   test.beforeEach(async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe('TC-FE-E2E-002 侧栏导航、搜索与主档页面', () => {
 
   test('switches the interface language without stale translations', async ({ page }) => {
     const language = page.getByLabel('语言')
-    await language.selectOption('en')
+    await selectOption(page, language, 'English')
     await expect(page.locator('.top-actions')).toContainText('Sign out')
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     // The sidebar is translated immediately; a cached label from the previous language must not
@@ -42,7 +42,7 @@ test.describe('TC-FE-E2E-002 侧栏导航、搜索与主档页面', () => {
 
     // The language select keeps its Chinese aria-label (the label is not part of the dictionary),
     // and only its options are localized by the browser.
-    await page.locator('.top-actions select').selectOption('zh-CN')
+    await selectOption(page, language, '简体中文')
     await expect(page.locator('.sidebar nav a[href="#/page/SBRM_FACTORY"]')).toHaveText('厂别管理')
     await expect(page.locator('.top-actions')).toContainText('登出')
     await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')

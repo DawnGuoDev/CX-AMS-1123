@@ -1,13 +1,12 @@
 <script setup>
+import { Modal as AModal } from 'ant-design-vue'
 import { t } from '../state'
 defineProps({ title: String, wide: Boolean })
 defineEmits(['close'])
 </script>
 <template>
-  <Teleport to="body"><div class="overlay" @click.self="$emit('close')">
-    <section class="dialog" :class="{ large: wide }" role="dialog" aria-modal="true" :aria-label="title" @keydown.esc="$emit('close')" tabindex="-1">
-      <header><h2>{{ t(title) }}</h2><button @click="$emit('close')" aria-label="关闭">×</button></header>
-      <div class="dialog-body"><slot/></div>
-    </section>
-  </div></Teleport>
+  <a-modal :open="true" :title="t(title)" :width="wide ? 1120 : 640" :footer="null" centered destroy-on-close
+    :wrap-class-name="wide ? 'record-modal large' : 'record-modal'" @cancel="$emit('close')">
+    <div class="dialog-body"><slot/></div>
+  </a-modal>
 </template>

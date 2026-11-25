@@ -1,4 +1,6 @@
 <script setup>
+import UiCheckbox from '../components/UiCheckbox.vue'
+import { Button as AButton, Input as AInput, Select as ASelect, SelectOption as ASelectOption } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
 import { state, api, act, t, clone, notify, refreshOptions, download, historyColumns } from '../state'
 import DataGrid from '../components/DataGrid.vue'
@@ -84,6 +86,11 @@ async function saveMapping() {
 }
 async function save() {
   if(levelDraft.value){state.error='请先确认或取消正在编辑的层级';return}
+  for (const field of meta.value.fields || []) {
+    if (!field.readOnly && !(editing.value && field.readOnlyOnEdit) && (field.required || (field.requiredOnCreate && !editing.value)) && String(edit.value[field.name] ?? '').trim() === '') {
+      state.error = `${t(field.label || field.name)}为必填`; return
+    }
+  }
   await act(async () => {
     const url = kind.value === 'master' && editing.value ? `${route.value}/${edit.value[keyField.value]}` : route.value
     await api(url, edit.value, kind.value === 'master' && editing.value ? 'PUT' : 'POST')
@@ -120,24 +127,24 @@ defineExpose({ load, start, save, changeActive, edit, editing, selected, confirm
   <p class="description">{{ t(meta.desc) }}</p>
   <div class="toolbar">
     <template v-if="kind !== 'mapping'">
-      <button class="primary" @click="start()">{{ t('新增') }}</button><button :disabled="selected.length !== 1" @click="start(selected[0],true)">{{ t('复制') }}</button>
-      <button :disabled="selected.length !== 1" @click="start(selected[0])">{{ t('修改') }}</button>
-      <button :disabled="!selected.length" @click="confirm = 'hide'">{{ t('隐藏') }}</button><button :disabled="!selected.length" @click="confirm = 'show'">{{ t('取消隐藏') }}</button>
-      <label class="check"><input type="checkbox" v-model="showHidden" @change="act(load)">{{ t('显示已隐藏资料') }}</label>
+      <a-button class="primary" @click="start()" type="primary" html-type="button">{{ t('新增') }}</a-button><a-button :disabled="selected.length !== 1" @click="start(selected[0],true)" type="default" html-type="button">{{ t('复制') }}</a-button>
+      <a-button :disabled="selected.length !== 1" @click="start(selected[0])" type="default" html-type="button">{{ t('修改') }}</a-button>
+      <a-button :disabled="!selected.length" @click="confirm = 'hide'" type="default" html-type="button">{{ t('隐藏') }}</a-button><a-button :disabled="!selected.length" @click="confirm = 'show'" type="default" html-type="button">{{ t('取消隐藏') }}</a-button>
+      <label class="check"><UiCheckbox  v-model="showHidden" @change="act(load)"/>{{ t('显示已隐藏资料') }}</label>
     </template>
-    <template v-else><button :disabled="!masterKey" @click="startMapping(true)">复制</button><button :disabled="!masterKey" @click="startMapping()">修改</button></template>
-    <button @click="act(load)">{{ t('重新整理') }}</button><span class="spacer"/>
+    <template v-else><a-button :disabled="!masterKey" @click="startMapping(true)" type="default" html-type="button">复制</a-button><a-button :disabled="!masterKey" @click="startMapping()" type="default" html-type="button">修改</a-button></template>
+    <a-button @click="act(load)" type="default" html-type="button">{{ t('重新整理') }}</a-button><span class="spacer"/>
     <template v-if="kind !== 'masterdetail'">
-      <button @click="act(async () => download(await api(`${route}/export`,{})))">{{ t('汇出') }}</button>
-      <button @click="act(async () => download(await api(`${route}/export`,{mode:'template'})))">{{ t('汇出范本') }}</button>
-      <button @click="fileInput.click()">{{ t('汇入') }}</button><input ref="fileInput" type="file" accept=".xlsx" hidden @change="upload">
+      <a-button @click="act(async () => download(await api(`${route}/export`,{})))" type="default" html-type="button">{{ t('汇出') }}</a-button>
+      <a-button @click="act(async () => download(await api(`${route}/export`,{mode:'template'})))" type="default" html-type="button">{{ t('汇出范本') }}</a-button>
+      <a-button @click="fileInput.click()" type="default" html-type="button">{{ t('汇入') }}</a-button><input ref="fileInput" type="file" accept=".xlsx" hidden @change="upload">
     </template>
   </div>
-  <div class="tabs"><button :class="{active:tab === 'data'}" @click="tab = 'data'">{{ t('资料') }}</button><button :class="{active:tab === 'history'}" @click="tab = 'history'">{{ t('履历') }}</button></div>
+  <div class="tabs"><a-button :class="{active:tab === 'data'}" @click="tab = 'data'" type="default" html-type="button">{{ t('资料') }}</a-button><a-button :class="{active:tab === 'history'}" @click="tab = 'history'" type="default" html-type="button">{{ t('履历') }}</a-button></div>
   <DataGrid v-if="tab === 'history'" :rows="data.history || []" :columns="historyColumns"/>
   <div v-else-if="kind === 'mapping' && meta.master" class="mapping-layout">
-    <section class="panel"><h3>{{ t(meta.master.label) }}</h3><input v-model="itemSearch" :placeholder="t('过滤')">
-      <button v-for="row in data.masters.filter(r => meta.master.display.some(k => String(r[k] || '').includes(itemSearch)))" :key="row[meta.master.key]" class="master-choice" :class="{active:masterKey === row[meta.master.key]}" @click="chooseMaster(row)">{{ meta.master.display.slice(0,2).map(k => row[k]).join(' · ') }}</button>
+    <section class="panel"><h3>{{ t(meta.master.label) }}</h3><a-input v-model:value="itemSearch" :placeholder="t('过滤')"/>
+      <a-button v-for="row in data.masters.filter(r => meta.master.display.some(k => String(r[k] || '').includes(itemSearch)))" :key="row[meta.master.key]" class="master-choice" :class="{active:masterKey === row[meta.master.key]}" @click="chooseMaster(row)" type="default" html-type="button">{{ meta.master.display.slice(0,2).map(k => row[k]).join(' · ') }}</a-button>
     </section>
     <section class="panel"><h3>已对应子系统 · {{ itemKeys.length }}</h3>
       <DataGrid :rows="assigned" :columns="[{field:'SUB_SYS_ID',label:'子系统代码'},{field:'SUB_SYS_NAME',label:'子系统名称'}]"/>
@@ -150,34 +157,34 @@ defineExpose({ load, start, save, changeActive, edit, editing, selected, confirm
     </section>
   </template>
   <RecordDialog v-if="edit" :title="editing ? '修改' : '新增'" wide @close="edit = null">
-    <div v-if="kind==='masterdetail'" class="tabs"><button :class="{active:editorTab==='main'}" @click="editorTab='main'">主要资讯</button><button :class="{active:editorTab==='details'}" @click="editorTab='details'">清单资讯</button></div>
+    <div v-if="kind==='masterdetail'" class="tabs"><a-button :class="{active:editorTab==='main'}" @click="editorTab='main'" type="default" html-type="button">主要资讯</a-button><a-button :class="{active:editorTab==='details'}" @click="editorTab='details'" type="default" html-type="button">清单资讯</a-button></div>
     <form @submit.prevent="save"><FieldForm v-if="editorTab==='main'" :fields="meta.fields" :model="edit" :editing="editing"/>
       <template v-if="kind === 'masterdetail'&&editorTab==='details'">
         <p class="muted">层级确认后加入暂存清单；最终储存才生效。取消会丢弃本次修改。</p>
         <DataGrid :rows="withRecipients(edit.details)" :columns="levelColumns" @open="addLevel">
-          <template #actions="{row}"><button type="button" @click="edit.details=edit.details.filter(r=>Number(r.EVENT_LEVEL_ID)!==Number(row.EVENT_LEVEL_ID))">删除</button></template>
+          <template #actions="{row}"><a-button @click="edit.details=edit.details.filter(r=>Number(r.EVENT_LEVEL_ID)!==Number(row.EVENT_LEVEL_ID))" type="default" html-type="button">删除</a-button></template>
         </DataGrid>
-        <button type="button" :disabled="!!levelDraft" @click="addLevel()">新增层级</button>
+        <a-button :disabled="!!levelDraft" @click="addLevel()" type="default" html-type="button">新增层级</a-button>
         <div v-if="levelDraft" class="level-card">
           <FieldForm :fields="meta.detail.fields" :model="levelDraft"/>
-          <h4>本层级通知人员 · Email</h4><div class="transfer-list"><label v-for="u in state.options.user" :key="u.value" class="check"><input type="checkbox" v-model="levelDraft.USER_KEYS" :value="u.value">{{u.label}}</label></div>
-          <div class="toolbar"><button type="button" @click="levelDraft=null">取消层级编辑</button><button type="button" class="primary" @click="confirmLevel">确认层级</button></div>
+          <h4>本层级通知人员 · Email</h4><div class="transfer-list"><label v-for="u in state.options.user" :key="u.value" class="check"><UiCheckbox  v-model="levelDraft.USER_KEYS" :value="u.value"/>{{u.label}}</label></div>
+          <div class="toolbar"><a-button @click="levelDraft=null" type="default" html-type="button">取消层级编辑</a-button><a-button class="primary" @click="confirmLevel" type="primary" html-type="button">确认层级</a-button></div>
         </div>
       </template>
-      <div class="form-actions"><button type="button" @click="edit = null">{{ t('取消') }}</button><button class="primary" :disabled="state.busy > 0">{{ t('储存') }}</button></div>
+      <div class="form-actions"><a-button @click="edit = null" type="default" html-type="button">{{ t('取消') }}</a-button><a-button class="primary" :disabled="state.busy > 0" type="primary" html-type="submit">{{ t('储存') }}</a-button></div>
     </form>
   </RecordDialog>
   <RecordDialog v-if="mapEdit" :title="mapCopy?'复制对应':'修改对应'" wide @close="mapEdit=null">
     <form @submit.prevent="saveMapping">
-      <label>厂别 <select v-model="mapEdit.masterKey" :disabled="!mapCopy" required><option value="">请选择目标厂别</option><option v-for="r in data.masters" :key="r[meta.master.key]" :value="r[meta.master.key]">{{meta.master.display.map(k=>r[k]).join(' · ')}}</option></select></label>
+      <label>厂别 <a-select v-model:value="mapEdit.masterKey" :disabled="!mapCopy" required><a-select-option value="">请选择目标厂别</a-select-option><a-select-option v-for="r in data.masters" :key="r[meta.master.key]" :value="r[meta.master.key]">{{meta.master.display.map(k=>r[k]).join(' · ')}}</a-select-option></a-select></label>
       <p class="muted">储存将以右侧清单替换所选厂别的对应；取消不保存。</p>
       <div class="mapping-layout">
-        <section class="panel"><h3>未对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>!mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><input type="checkbox" v-model="availableSelected" :value="item[meta.item.key]">{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><button type="button" :disabled="!availableSelected.length" @click="transfer(true)">加入 →</button></section>
-        <section class="panel"><h3>已对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><input type="checkbox" v-model="assignedSelected" :value="item[meta.item.key]">{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><button type="button" :disabled="!assignedSelected.length" @click="transfer(false)">← 移除</button></section>
+        <section class="panel"><h3>未对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>!mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><UiCheckbox  v-model="availableSelected" :value="item[meta.item.key]"/>{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><a-button :disabled="!availableSelected.length" @click="transfer(true)" type="default" html-type="button">加入 →</a-button></section>
+        <section class="panel"><h3>已对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><UiCheckbox  v-model="assignedSelected" :value="item[meta.item.key]"/>{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><a-button :disabled="!assignedSelected.length" @click="transfer(false)" type="default" html-type="button">← 移除</a-button></section>
       </div>
-      <div class="form-actions"><button type="button" @click="mapEdit=null">取消</button><button class="primary" :disabled="!mapEdit.masterKey">储存</button></div>
+      <div class="form-actions"><a-button @click="mapEdit=null" type="default" html-type="button">取消</a-button><a-button class="primary" :disabled="!mapEdit.masterKey" type="primary" html-type="submit">储存</a-button></div>
     </form>
   </RecordDialog>
-  <RecordDialog v-if="confirm" :title="confirm === 'hide' ? '确认隐藏所选资料？' : '确认取消隐藏所选资料？'" @close="confirm = ''"><p>{{ t('确认') }}（{{ selected.length }}）</p><div class="form-actions"><button @click="confirm = ''">{{ t('取消') }}</button><button class="primary" @click="changeActive">{{ t('确定') }}</button></div></RecordDialog>
-  <RecordDialog v-if="importRows" title="汇入验证" wide @close="importRows = null"><p>请勾选通过验证的资料。保存时会再次校验。</p><DataGrid :rows="importRows" :columns="[{field:'rowNo',label:'行号'},{field:'valid',label:'可汇入'},{field:'message',label:'验证信息'},{field:'values',label:'资料'}]" selectable @select="importSelected = $event"/><div class="form-actions"><button class="primary" :disabled="!importSelected.some(r => r.valid)" @click="importSelectedRows">{{ t('汇入') }}</button></div></RecordDialog>
+  <RecordDialog v-if="confirm" :title="confirm === 'hide' ? '确认隐藏所选资料？' : '确认取消隐藏所选资料？'" @close="confirm = ''"><p>{{ t('确认') }}（{{ selected.length }}）</p><div class="form-actions"><a-button @click="confirm = ''" type="default" html-type="button">{{ t('取消') }}</a-button><a-button class="primary" @click="changeActive" type="primary" html-type="button">{{ t('确定') }}</a-button></div></RecordDialog>
+  <RecordDialog v-if="importRows" title="汇入验证" wide @close="importRows = null"><p>请勾选通过验证的资料。保存时会再次校验。</p><DataGrid :rows="importRows" :columns="[{field:'rowNo',label:'行号'},{field:'valid',label:'可汇入'},{field:'message',label:'验证信息'},{field:'values',label:'资料'}]" selectable @select="importSelected = $event"/><div class="form-actions"><a-button class="primary" :disabled="!importSelected.some(r => r.valid)" @click="importSelectedRows" type="primary" html-type="button">{{ t('汇入') }}</a-button></div></RecordDialog>
 </template>

@@ -1,4 +1,6 @@
 <script setup>
+import UiCheckbox from './UiCheckbox.vue'
+import { Button as AButton, Input as AInput, Select as ASelect, SelectOption as ASelectOption } from 'ant-design-vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, openAlarm, state } from '../state'
 import { createSimulation, scenarios } from '../simulator'
@@ -120,16 +122,16 @@ onUnmounted(() => { disposed = true; runner?.stop(); document.removeEventListene
     <form @submit.prevent="start">
       <fieldset :disabled="busy">
         <div class="fields">
-          <label><span>运行模式</span><select v-model="mode"><option value="preview">仅预览（默认，不提交）</option><option value="actual">实际触发（创建告警并发送邮件）</option></select></label>
-          <label><span>温度场景</span><select v-model="scenario"><option v-for="(item,key) in scenarios" :key="key" :value="key">{{ item.label }}</option></select></label>
-          <label><span>超温阈值（°C）</span><input v-model.number="threshold" type="number" min="-100" max="1000" step="0.1" required></label>
-          <label><span>采样间隔（秒，1–60）</span><input v-model.number="interval" type="number" min="1" max="60" required></label>
-          <label><span>运行轮数（1–10）</span><input v-model.number="rounds" type="number" min="1" max="10" required></label>
+          <label><span>运行模式</span><a-select :disabled="busy" v-model:value="mode"><a-select-option value="preview">仅预览（默认，不提交）</a-select-option><a-select-option value="actual">实际触发（创建告警并发送邮件）</a-select-option></a-select></label>
+          <label><span>温度场景</span><a-select :disabled="busy" v-model:value="scenario"><a-select-option v-for="(item,key) in scenarios" :key="key" :value="key">{{ item.label }}</a-select-option></a-select></label>
+          <label><span>超温阈值（°C）</span><a-input :value="threshold" @update:value="threshold = $event === '' ? null : Number($event)" type="number" min="-100" max="1000" step="0.1" required/></label>
+          <label><span>采样间隔（秒，1–60）</span><a-input :value="interval" @update:value="interval = $event === '' ? null : Number($event)" type="number" min="1" max="60" required/></label>
+          <label><span>运行轮数（1–10）</span><a-input :value="rounds" @update:value="rounds = $event === '' ? null : Number($event)" type="number" min="1" max="10" required/></label>
           <div class="description">每轮序列：{{ scenarios[scenario].offsets.map(offset => Number((Number(threshold) + offset).toFixed(1))).join(' → ') }} °C<br>开始后等待一个采样间隔产生首条数据。</div>
         </div>
       </fieldset>
       <div class="level-card">
-        <div class="toolbar"><strong>通知配置预览</strong><button type="button" :disabled="busy || loading" @click="loadConfig">{{ loading ? '读取中…' : '刷新配置' }}</button></div>
+        <div class="toolbar"><strong>通知配置预览</strong><a-button :disabled="busy || loading" @click="loadConfig" type="default" html-type="button">{{ loading ? '读取中…' : '刷新配置' }}</a-button></div>
         <p v-if="!selected" class="muted">请先选择厂别、子系统、机台和警报代码。</p>
         <template v-else-if="ready">
           <p>{{ event.EVENT_ID }} · {{ event.EVENT_NAME }}；重复抑制 {{ setting.IGNORE_PERIOD ?? 900 }} 秒<span v-if="bypass">；BYPASS：仅记录</span></p>
@@ -140,13 +142,13 @@ onUnmounted(() => { disposed = true; runner?.stop(); document.removeEventListene
       </div>
       <div v-if="mode === 'actual'" class="warning">
         <p>实际触发会创建真实告警，按以上各层级通知人员发送邮件。提交成功不等于 SMTP 发送成功。</p>
-        <label><input v-model="confirmed" type="checkbox" :disabled="busy || loading || !ready">我已核对各层收件人，确认本次使用实际触发</label>
+        <label><UiCheckbox v-model="confirmed"  :disabled="busy || loading || !ready"/>我已核对各层收件人，确认本次使用实际触发</label>
       </div>
       <p class="muted">切换页签、离开页面或刷新会停止新采样；浏览器切到后台自动暂停。停止或温度恢复不会撤销已提交的告警，也不会自动 ACK。</p>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <div class="toolbar">
-        <button class="primary" :disabled="busy || loading || !ready || (mode === 'actual' && !confirmed)">{{ mode === 'preview' ? '开始预览' : '开始实际触发' }}</button>
-        <button type="button" :disabled="!running" @click="stop">停止模拟</button>
+        <a-button class="primary" :disabled="busy || loading || !ready || (mode === 'actual' && !confirmed)" type="primary" html-type="submit">{{ mode === 'preview' ? '开始预览' : '开始实际触发' }}</a-button>
+        <a-button :disabled="!running" @click="stop" type="default" html-type="button">停止模拟</a-button>
         <span role="status">{{ status }}{{ pending ? ' · 等待已提交请求返回' : '' }}</span>
       </div>
     </form>
@@ -164,7 +166,7 @@ onUnmounted(() => { disposed = true; runner?.stop(); document.removeEventListene
     </svg>
     <div class="sim-log" aria-label="模拟日志">
       <p v-if="!logs.length" class="muted">开始后在此查看采样、触发与恢复记录。</p>
-      <p v-for="(entry,i) in logs" :key="i"><time>{{ entry.time }}</time> {{ entry.message }} <button v-if="entry.alarm" class="link" @click="openAlarm(entry.alarm)">{{ entry.alarm.ALARM_ID }} · 查看详情</button></p>
+      <p v-for="(entry,i) in logs" :key="i"><time>{{ entry.time }}</time> {{ entry.message }} <a-button v-if="entry.alarm" class="link" @click="openAlarm(entry.alarm)" type="link" html-type="button">{{ entry.alarm.ALARM_ID }} · 查看详情</a-button></p>
     </div>
   </div>
 </template>
