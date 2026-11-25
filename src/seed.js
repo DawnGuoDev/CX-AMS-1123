@@ -28,7 +28,6 @@ function buildSeed() {
   const eventLevelGroups = [];
   const alarmSettings = [];
   const devices = [];
-  const repos = [];
   const alarms = [];
   const alarmLevels = [];
   const alarmNotifications = [];
@@ -413,18 +412,6 @@ function buildSeed() {
     }
   ];
 
-  // ---------------------------------------------------------------- 仓库
-  [
-    ['REPO01', '中央仓库 A', '桃园市龟山区文化一路 10 号'],
-    ['REPO02', '中央仓库 B', '台中市大雅区中清路三段 120 号'],
-    ['REPO03', '台南物流中心', '台南市永康区中正北路 200 号']
-  ].forEach(([id, name, addr], i) => {
-    repos.push({
-      REPO_KEY: K('repos', 'RP', 2), REPO_ID: id, REPO_NAME: name, REPO_ADDR: addr,
-      ACTIVE: 'Y', MTR_DATE: iso(60 * 24 * (6 - i)), MTR_USER_KEY: 'U001', MTR_USER_NAME: '陈柏睿'
-    });
-  });
-
   // ---------------------------------------------------------------- 装置
   const deviceSpecs = [
     ['ServerMain01', 'RTAgent01', 'Email01', 'OK', '邮件装置运作正常', 'Y', 18422, 18390, 32],
@@ -759,8 +746,7 @@ function buildSeed() {
     ['SBRM_EQP_GROUP_EQP', '机台群组与机台对应设定'], ['CVMA012', '机台类型设定'],
     ['MCMS051', '批次状态变更设定'], ['CVMA013', '机台状态清单'],
     ['CVMA011', '特定机台区域特定机况不发警报设定'], ['CBRM_CHAMBER_ALARM_MAPPING', '子机台与警报对应设定'],
-    ['CVMA015', '自动切机况设定'],
-    ['SBRM_REPO', '仓库设定']
+    ['CVMA015', '自动切机况设定']
   ].forEach(([code, name], i) => fn(code, name, basic, 'PAGE', '#/page/' + code, i + 1));
   const alm = fn('ALM', 'ALM', null, 'GROUP', null, 3);
   const almSet = fn('ALM_SET', '警报管理设定', alm, 'GROUP', null, 1);
@@ -803,7 +789,7 @@ function buildSeed() {
     MODIFY_READONLY: field.readOnlyOnEdit ? 'Y' : 'N', IMPORT_CONDITION_COLUMN_NAME: '',
     DEFAULT_VALUE: '', RADIO_SELECTION: '', MIN_VALUE: '', MAX_VALUE: '', VALIDATION: '', VALIDATION_FAIL_CODE: ''
   }));
-  const normalBrmCodes = ['SBRM_USER', 'SBRM_FACTORY', 'SBRM_EQP', 'AVMA003', 'AVMA009', 'SBRM_REPO'];
+  const normalBrmCodes = ['SBRM_USER', 'SBRM_FACTORY', 'SBRM_EQP', 'AVMA003', 'AVMA009'];
   normalBrmCodes.forEach((code, i) => {
     const m = MASTERS[code];
     brmDefs.push({
@@ -947,7 +933,6 @@ function buildSeed() {
     alarm_settings: alarmSettings,
     alarm_conditions: alarmConditions,
     devices,
-    repos,
     alarms,
     alarm_levels: alarmLevels,
     alarm_notifications: alarmNotifications,
