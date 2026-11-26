@@ -1,0 +1,85 @@
+<!doctype html><meta charset="utf-8"><title>diff backend/src/main/java/com/changxin/ams/AlarmEngine.java</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/backend/src/main/java/com/changxin/ams/AlarmEngine.java b/backend/src/main/java/com/changxin/ams/AlarmEngine.java
+index 094831c..153c30d 100644
+--- a/backend/src/main/java/com/changxin/ams/AlarmEngine.java
++++ b/backend/src/main/java/com/changxin/ams/AlarmEngine.java
+@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
+ 
+ @Service
+ public class AlarmEngine {
++    /** Shared comment limit for termination; ACK remains unchanged in this change. */
++    public static final int COMMENT_MAX = 500;
+     private final Store store;
+     private final SmtpDelivery smtp;
+     public AlarmEngine(Store store, SmtpDelivery smtp) { this.store = store; this.smtp = smtp; }
+@@ -34,6 +36,12 @@ public class AlarmEngine {
+             &quot;STATUS_BEFORE&quot;,before,&quot;STATUS_AFTER&quot;,alarm.get(&quot;STATUS&quot;),&quot;USER_KEY&quot;,user == null ? null : user.get(&quot;USER_KEY&quot;),
+             &quot;TRX_DT&quot;,now(),&quot;NOTE&quot;,note,&quot;SNAPSHOT&quot;,snapshot,&quot;DETAIL_SNAPSHOT&quot;,detailSnapshot));
+     }
++    /** Authorization is always read from the current user master; the session copy is not trusted. */
++    private boolean canTerminate(Map&lt;String, Object&gt; user) {
++        if (user == null) return false;
++        var master = store.find(&quot;users&quot;,&quot;USER_KEY&quot;,user.get(&quot;USER_KEY&quot;));
++        return master != null &amp;&amp; active(master) &amp;&amp; eq(master,&quot;CAN_TERMINATE&quot;,&quot;Y&quot;);
++    }
+     public Map&lt;String, Object&gt; enrich(Map&lt;String, Object&gt; alarm, Map&lt;String, Object&gt; user) {
+         var result = copy(alarm);
+         result.putIfAbsent(&quot;CONTENT_TYPE&quot;,&quot;text/plain&quot;);
+@@ -54,6 +62,11 @@ public class AlarmEngine {
+             &quot;LEVEL_START&quot;,run.get(&quot;START_DT&quot;),&quot;LEVEL_REQUIRED&quot;,run.get(&quot;REQUIRED_ACK&quot;),
+             &quot;LEVEL_ACK_COUNT&quot;,run.getOrDefault(&quot;ACK_COUNT&quot;,0),&quot;LEVEL_RESEND_COUNT&quot;,run.getOrDefault(&quot;RESEND_COUNT&quot;,0),
+             &quot;ACK_USERS&quot;,ack,&quot;NOTIFY_COUNT&quot;,related(&quot;alarm_notifications&quot;,alarm.get(&quot;ALARM_KEY&quot;)).size()));
++        String terminatorKey = s(alarm,&quot;TERMINATE_USER_KEY&quot;);
++        var terminator = terminatorKey.isBlank() ? null : store.find(&quot;users&quot;,&quot;USER_KEY&quot;,terminatorKey);
++        result.putAll(m(&quot;CAN_TERMINATE&quot;,user != null &amp;&amp; eq(alarm,&quot;STATUS&quot;,&quot;Process&quot;) &amp;&amp; canTerminate(user),
++            &quot;TERMINATE_USER_ID&quot;,terminator == null ? (terminatorKey.isBlank() ? &quot;&quot; : &quot;SYSTEM&quot;) : terminator.get(&quot;USER_ID&quot;),
++            &quot;TERMINATE_USER_NAME&quot;,terminator == null ? (terminatorKey.isBlank() ? &quot;&quot; : &quot;系统&quot;) : terminator.get(&quot;USER_NAME&quot;)));
+         return result;
+     }
+     public Map&lt;String, Object&gt; detail(String key, Map&lt;String, Object&gt; user) {
+@@ -76,6 +89,7 @@ public class AlarmEngine {
+         require(!snapshot.isEmpty(),&quot;该历史交易未保存资料快照&quot;);
+         result.putAll(enrich(snapshot,null));
+         result.put(&quot;CAN_ACK&quot;,false);
++        result.put(&quot;CAN_TERMINATE&quot;,false);
+         var context=clean(transaction);context.remove(&quot;SNAPSHOT&quot;);context.remove(&quot;DETAIL_SNAPSHOT&quot;);
+         result.put(&quot;HISTORY_CONTEXT&quot;,context);
+         // Related records reflect the event log, with an explicit timestamp bound.
+@@ -184,10 +198,37 @@ public class AlarmEngine {
+         }
+     }
+     private void close(Map&lt;String, Object&gt; alarm, String status, String type, Map&lt;String, Object&gt; user, String note) {
+-        alarm.put(&quot;STATUS&quot;,status); alarm.put(&quot;COMPLETE_DT&quot;,now());
++        close(alarm,status,type,user,note,null);
++    }
++    private void close(Map&lt;String, Object&gt; alarm, String status, String type, Map&lt;String, Object&gt; user, String note, Map&lt;String, Object&gt; extra) {
++        String at=now();
++        alarm.put(&quot;STATUS&quot;,status); alarm.put(&quot;COMPLETE_DT&quot;,at);
++        if (extra != null) alarm.putAll(extra);
+         related(&quot;alarm_levels&quot;,alarm.get(&quot;ALARM_KEY&quot;)).stream().filter(r -&gt; eq(r,&quot;STATUS&quot;,&quot;Active&quot;)).forEach(r -&gt; r.put(&quot;STATUS&quot;,&quot;Closed&quot;));
+         transaction(alarm,type,&quot;Process&quot;,user,note);
+     }
++    /**
++     * Force-terminates a processing alarm. The caller runs inside store.write(), so validation,
++     * state convergence, skipped notifications and the audit transaction commit atomically.
++     */
++    public Map&lt;String, Object&gt; terminate(String key, Map&lt;String, Object&gt; body, Map&lt;String, Object&gt; user) {
++        var alarm = store.table(&quot;alarms&quot;).stream().filter(r -&gt; eq(r,&quot;ALARM_KEY&quot;,key) || eq(r,&quot;ALARM_ID&quot;,key)).findFirst()
++            .orElseThrow(() -&gt; new ApiException(404,&quot;警报不存在&quot;));
++        require(eq(alarm,&quot;STATUS&quot;,&quot;Process&quot;),&quot;该警报已非处理中状态&quot;);
++        require(canTerminate(user),&quot;您没有强制中断权限&quot;);
++        String cmt = s(body,&quot;cmt&quot;).trim();
++        require(!cmt.isEmpty(),&quot;请填写中断原因&quot;);
++        require(cmt.length() &lt;= COMMENT_MAX,&quot;中断原因不可超过 &quot;+COMMENT_MAX+&quot; 个字符&quot;);
++        String at = now();
++        close(alarm,&quot;Terminated&quot;,&quot;AlarmTerminate&quot;,user,cmt,
++            m(&quot;TERMINATE_DT&quot;,at,&quot;TERMINATE_CMT&quot;,cmt,&quot;TERMINATE_USER_KEY&quot;,user.get(&quot;USER_KEY&quot;)));
++        // Only pending deliveries are cancelled; already sent or failed history stays intact.
++        related(&quot;alarm_notifications&quot;,alarm.get(&quot;ALARM_KEY&quot;)).stream().filter(r -&gt; eq(r,&quot;RESULT&quot;,&quot;Pending&quot;)).forEach(r -&gt; {
++            r.put(&quot;RESULT&quot;,&quot;Skipped&quot;); r.put(&quot;MESSAGE&quot;,&quot;警报已中断，取消发送&quot;);
++            if (s(r,&quot;SEND_DT&quot;).isBlank()) r.put(&quot;SEND_DT&quot;,at);
++        });
++        return m(&quot;ok&quot;,true,&quot;alarm&quot;,enrich(alarm,user),&quot;terminated&quot;,true);
++    }
+     public Map&lt;String, Object&gt; action(String key, String action, Map&lt;String, Object&gt; b, Map&lt;String, Object&gt; user) {
+         var alarm = store.mustFind(&quot;alarms&quot;,&quot;ALARM_KEY&quot;,key);
+         require(eq(alarm,&quot;STATUS&quot;,&quot;Process&quot;),&quot;该警报已非处理中状态&quot;);</pre>

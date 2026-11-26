@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>代码实现交付物 · 警报强制中断能力 (SPEC-AMS-ALARM-TERMINATE-001)</title>
+<style>
+:root{--nav:#1f3346;--nav2:#2b4a66;--ink:#1e2a36;--muted:#66788a;--line:#dfe6ee;--bg:#f5f7fa;--ok:#1d7a4b;--warn:#9a6512;--bad:#a8262c;--accent:#1f6fb2}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+nav{position:fixed;left:0;top:0;bottom:0;width:264px;background:var(--nav);color:#dbe9f6;overflow-y:auto;padding:22px 16px}
+nav h1{font-size:15px;margin:0 0 4px;color:#fff;line-height:1.4}
+nav p{font-size:12px;color:#9fb5ca;margin:0 0 18px;line-height:1.6}
+nav a{display:block;color:#c7d9ea;text-decoration:none;padding:7px 10px;border-radius:5px;font-size:13px}
+nav a:hover{background:var(--nav2);color:#fff}
+nav a.sub{padding-left:22px;font-size:12px;color:#a9c0d5}
+main{margin-left:264px;padding:34px 44px 80px;max-width:1180px}
+header.top{background:#fff;border:1px solid var(--line);border-radius:8px;padding:24px 28px;margin-bottom:26px}
+header.top h1{margin:0 0 6px;font-size:23px}
+header.top .meta{color:var(--muted);font-size:13px}
+h2{font-size:19px;margin:42px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--nav);scroll-margin-top:16px}
+h3{font-size:15px;margin:26px 0 10px;color:#22405c}
+h4{font-size:13.5px;margin:18px 0 8px}
+p,li{font-size:13.5px}
+code{background:#eef2f7;border-radius:3px;padding:1px 5px;font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-word}
+pre{background:#fbfcfd;border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow:auto;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre code{background:none;padding:0}
+table{width:100%;border-collapse:collapse;margin:10px 0 18px;background:#fff;font-size:12.8px}
+th,td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}
+th{background:#eef3f8;font-weight:600}
+tr:nth-child(even) td{background:#fcfdfe}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 22px;margin:14px 0}
+.card.blue{border-left:4px solid var(--accent)}
+.card.ok{border-left:4px solid var(--ok);background:#f7fbf8}
+.card.warn{border-left:4px solid var(--warn);background:#fffaf0}
+.card.bad{border-left:4px solid var(--bad);background:#fdf6f6}
+.card h3{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:12px 0 18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.kpi b{display:block;font-size:22px;color:#22405c;line-height:1.3}
+.kpi span{font-size:12px;color:var(--muted)}
+.badge{display:inline-block;border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:600;line-height:1.7;white-space:nowrap}
+.b-ok{background:#e3f4ea;color:var(--ok)}
+.b-warn{background:#fbf0d7;color:var(--warn)}
+.b-bad{background:#fbe5e6;color:var(--bad)}
+.b-info{background:#e6f0f9;color:var(--accent)}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+ul,ol{padding-left:22px}
+li{margin:4px 0}
+.flow{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;overflow:auto}
+.flow pre{border:0;background:none;padding:0;font-size:12px;margin:0}
+.toc-note{font-size:12px;color:var(--muted);margin-top:30px;line-height:1.6}
+.evidence{font:12px ui-monospace,Menlo,Consolas,monospace;background:#1f2933;color:#e6edf3;border-radius:6px;padding:14px 16px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+details{margin:8px 0}
+summary{cursor:pointer;font-weight:600;padding:6px 0;color:#22405c}
+footer{margin-left:264px;padding:0 44px 40px;color:var(--muted);font-size:12px}
+@media (max-width:900px){nav{position:static;width:auto}main,footer{margin-left:0;padding:20px}}
+</style>
+</head>
+<body>
+<nav>
+  <h1>代码实现交付物</h1>
+  <p>警报强制中断能力<br>SPEC-AMS-ALARM-TERMINATE-001<br>提交 <code style="background:#2b4a66;color:#dbe9f6">4b0ca35</code></p>
+  <a href="#summary">0 · 结论与索引</a>
+  <a href="#sec-install">1 · 安装配置手册</a>
+  <a href="#sec-spec">2 · 需求规格说明书</a>
+  <a href="#sec-arch">3 · 代码结构分析 + 架构设计</a>
+  <a href="#sec-code">4 · 生成代码</a>
+  <a href="#sec-diff">5 · 修改代码 + diff 对比</a>
+  <a href="#sec-quality">6 · 规范符合度报告</a>
+  <a href="#sec-accept">7 · 验收与回溯矩阵</a>
+  <a href="#sec-risk">8 · 风险 / 未验证 / 待确认</a>
+  <a class="sub" href="#appendix">附录 · 验证原始证据</a>
+</nav>
+<main>
+
+<header class="top">
+  <h1>代码实现交付物 · 警报强制中断能力</h1>
+  <div class="meta">
+    仓库 <code>DawnGuoDev/CX-AMS-1123</code>（单仓前后端闭环） · 基线 <code>release@0ace5a9</code> ·
+    工作分支 <code>feat/0ae13b26-ka7z</code> · 提交 <code>4b0ca35</code>（已推送，远端 <code>ls-remote</code> 可见）<br>
+    Spec <code>SPEC-AMS-ALARM-TERMINATE-001</code> · 需求打标 <span class="badge b-warn">B 类（AI 辅助编程）</span> · 生成时间 2026-11-26
+  </div>
+</header>
+
+<!-- ===================== 0 ===================== -->
+<h2 id="summary">0 · 结论与索引</h2>
+<div class="card ok">
+  <p><strong>结论：通过（可评审、可运行、已验证）。</strong>本节点按上游 Spec 与已确认技术设计完成代码生成与修改，6 项强制交付物全部具备可验证内容；后端 49 个测试、前端 68 个单元测试、18 个 Playwright E2E 全部通过，前端生产构建与打包成功，真实进程冒烟通过。</p>
+</div>
+<div class="grid">
+  <div class="kpi"><b>49 / 49</b><span>后端测试（含新增 8 个集成用例）</span></div>
+  <div class="kpi"><b>68 / 68</b><span>前端单元测试（新增 8 个详情用例）</span></div>
+  <div class="kpi"><b>18 / 18</b><span>Playwright 前端 E2E</span></div>
+  <div class="kpi"><b>20 文件</b><span>+717 / −35 行（含测试与文档）</span></div>
+</div>
+<table>
+  <tr><th style="width:180px">强制交付物</th><th style="width:70px">状态</th><th>本页入口</th></tr>
+  <tr><td>安装配置手册</td><td><span class="badge b-ok">已交付</span></td><td><a href="#sec-install">§1</a>：依赖版本、环境变量、构建/启动/验证命令、冒烟步骤</td></tr>
+  <tr><td>需求规格说明书</td><td><span class="badge b-ok">已交付</span></td><td><a href="#sec-spec">§2</a>：范围/非目标、REQ-001~007、接口契约、边界与验收标准</td></tr>
+  <tr><td>代码结构分析报告 + 架构设计文档</td><td><span class="badge b-ok">已交付</span></td><td><a href="#sec-arch">§3</a>：模块边界、调用链、数据流、事务边界、变更设计</td></tr>
+  <tr><td>生成代码</td><td><span class="badge b-ok">已交付</span></td><td><a href="#sec-code">§4</a>：新增/修改文件清单与关键实现片段（带行号链接）</td></tr>
+  <tr><td>修改代码 + diff 对比</td><td><span class="badge b-ok">已交付</span></td><td><a href="#sec-diff">§5</a>：完整变更范围、逐文件 diff、影响面分析</td></tr>
+  <tr><td>规范符合度报告</td><td><span class="badge b-ok">已交付</span></td><td><a href="#sec-quality">§6</a>：检查项、检查方式、结果、未满足项</td></tr>
+</table>
+<div class="card blue">
+  <p class="small"><strong>页面打开方式：</strong>本文件已同置于<strong>工作区根目录</strong>（<code>code-implementation-deliverables.html</code>，默认打开位置，代码/日志链接可直接跳转）与<strong>仓库根目录</strong>（<code>repos/DawnGuoDev_CX-AMS-1123/code-implementation-deliverables.html</code>，随 Git 分发；代码链接为仓库内相对路径）。每个 diff 分页 <code>diff-01.html</code>～<code>diff-19.html</code> 与两份副本同目录，均不依赖私有服务；远端对应 <a href="https://github.com/DawnGuoDev/CX-AMS-1123/blob/4b0ca35/">GitHub @4b0ca35</a>。</p>
+</div>
+
+<!-- ===================== 1 ===================== -->
+<h2 id="sec-install">1 · 安装配置手册</h2>
+<p>本功能无新增外部依赖、无新增数据库表/DDL、无新增配置项；沿用仓库既有 Spring Boot + Vue + H2 JSON 快照部署形态。以下为可复现的部署与验证步骤（命令均在本节点实际执行过）。</p>
+
+<h3>1.1 工具版本</h3>
+<table>
+  <tr><th style="width:160px">工具</th><th style="width:190px">本次实测版本</th><th>要求 / 说明</th></tr>
+  <tr><td>JDK</td><td><code>openjdk 21.0.13.1</code>（Temurin）</td><td>21（README 要求）</td></tr>
+  <tr><td>Maven</td><td><code>3.9.9</code></td><td>3.9.x</td></tr>
+  <tr><td>Node.js</td><td><code>v22.21.0</code></td><td>20.19+（建议 22 LTS）</td></tr>
+  <tr><td>npm</td><td><code>10.9.4</code></td><td>随 Node 提供</td></tr>
+  <tr><td>浏览器（E2E）</td><td>Playwright Chromium</td><td><code>npx playwright install chromium</code></td></tr>
+</table>
+<p class="small muted">注：本节点沙箱无系统级 JDK/Maven，已临时安装到 <code>/tmp</code> 仅供构建验证；生产/CI 请使用标准安装路径，并通过 <code>JAVA_HOME</code>、<code>MAVEN_COMMAND</code> 指向。</p>
+<pre><code>export JAVA_HOME=/path/to/jdk-21
+export PATH="$JAVA_HOME/bin:$PATH"
+# 非标准 Maven 安装位置（可选）
+export MAVEN_COMMAND=/path/to/maven/bin/mvn</code></pre>
+
+<h3>1.2 配置项</h3>
+<p>本功能<strong>不新增</strong>配置项。与运行相关的既有配置（来自 <code>.env.example</code>，复制为 <code>.env.local</code> 生效）：</p>
+<table>
+  <tr><th style="width:230px">变量</th><th>作用</th><th>本功能相关性</th></tr>
+  <tr><td><code>AMS_PUBLIC_URL</code></td><td>邮件 ACK 链接站点根地址</td><td>无关（中断不发送邮件、不生成链接）</td></tr>
+  <tr><td><code>AMS_SMTP_HOST/PORT/FROM/…</code></td><td>SMTP 投递</td><td>中断只取消 Pending，不触发 SMTP；SMTP 未配置不影响中断</td></tr>
+  <tr><td><code>ams.scheduling</code></td><td>调度开关（测试/E2E 中关闭）</td><td>关闭时仍可中断；打开后验证“不再升级/重送”</td></tr>
+  <tr><td><code>spring.datasource.url</code></td><td>H2 文件/内存库</td><td>本功能无 schema 变更；老库用户缺 <code>CAN_TERMINATE</code> 按无权限处理</td></tr>
+</table>
+<div class="card warn">
+  <p class="small"><strong>升级须知（老库）：</strong>存量 H2 数据不会自动回填 <code>CAN_TERMINATE</code>。升级后需由管理员在「使用者管理」为授权账号勾选「警报强制中断权限」（或经 Excel 导入）方可中断；未设置即按 <code>N</code> 处理，属安全默认。</p>
+</div>
+
+<h3>1.3 构建</h3>
+<pre><code># 一体化构建（先编译 Vue，再 mvn -Pweb package 并执行测试）
+bash scripts/build-java-vue.sh
+
+# 或分别构建
+cd frontend &amp;&amp; npm ci &amp;&amp; npm run build
+cd ../backend &amp;&amp; mvn -B -Pweb -DskipTests package   # 产物 backend/target/ams-1.0.0.jar</code></pre>
+
+<h3>1.4 启动</h3>
+<pre><code>cp .env.example .env.local      # 按需填写 SMTP / AMS_PUBLIC_URL
+bash scripts/start-java.sh      # 读取 .env.local，使用 backend/data/ams-mvp H2 文件
+# 入口：http://localhost:8180</code></pre>
+<p class="small">启动脚本会把构建产物复制为 <code>backend/.runtime/ams-&lt;SHA256&gt;.jar</code> 再运行；<strong>重新构建后需重启进程</strong>才会启用新版本。</p>
+
+<h3>1.5 验证与首登</h3>
+<table>
+  <tr><th style="width:210px">验证项</th><th>命令 / 操作</th><th>期望</th></tr>
+  <tr><td>健康检查</td><td><code>curl --noproxy '*' -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8180/health</code></td><td><code>200</code></td></tr>
+  <tr><td>后端测试</td><td><code>cd backend &amp;&amp; mvn -B test</code></td><td><code>Tests run: 49 … BUILD SUCCESS</code></td></tr>
+  <tr><td>前端单测</td><td><code>cd frontend &amp;&amp; npm run test:unit</code></td><td><code>10 passed / 68 tests</code></td></tr>
+  <tr><td>前端 E2E</td><td><code>bash scripts/run-frontend-e2e.sh</code></td><td><code>18 passed</code></td></tr>
+  <tr><td>授权中断</td><td>以 <code>E0043258</code>（种子 <code>U001</code>，<code>CAN_TERMINATE=Y</code>，初始密码 <code>123456</code>）登录 → 「警报强制中断作业」→ 打开 Process 警报 → 强制中断</td><td>二次确认 → 填原因 → 状态 <code>Terminated</code>，横幅显示时间/操作人/原因</td></tr>
+  <tr><td>无权限拦截</td><td>以无权限账号（如 <code>E0043260</code>）打开同一处理中警报</td><td>按钮禁用并显示无权限说明；直接调接口返回 400</td></tr>
+</table>
+<pre><code># 接口冒烟（替换 TOKEN / KEY）
+curl --noproxy '*' -s -X POST http://127.0.0.1:8180/api/alarms/$KEY/terminate \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"cmt":"机台已修复"}'
+# =&gt; {"ok":true,"alarm":{... "STATUS":"Terminated" ...},"terminated":true}</code></pre>
+
+<!-- ===================== 2 ===================== -->
+<h2 id="sec-spec">2 · 需求规格说明书</h2>
+<p>来源：共享产物「需求Spec」<code>SPEC-AMS-ALARM-TERMINATE-001</code>（manifest v1，<code>sync_status=synced</code>）。本章为面向实现的规格摘要，编号与上游一致，验收标准已逐条映射到实测（见 <a href="#sec-accept">§7</a>）。</p>
+
+<h3>2.1 范围与非目标</h3>
+<table>
+  <tr><th style="width:120px">类别</th><th>内容</th></tr>
+  <tr><td>目标</td><td>具备中断权限的登录用户，可在警报详情对 <code>STATUS=Process</code> 的警报执行强制中断：必填原因 + 二次确认；中断后状态 <code>Terminated</code>、当前层级关闭、待发通知 <code>Skipped</code>、调度不再升级/失败重送/推进 ACK；写入 <code>TRX_TYPE=AlarmTerminate</code> 交易（操作人/时间/原因）；AVPA007 可查，AVPA013/004 口径可区分。</td></tr>
+  <tr><td>非目标</td><td>不撤销中断；不批量中断；不审批流；不新增通知渠道；不改造既有权限模型（仅用户主档布尔字段）；不改 ACK 语义与升级/重送配置结构；不新增数据库表；历史交易详情保持只读。</td></tr>
+  <tr><td>非功能</td><td>原子性（状态/层级/通知/交易同一事务）、并发仅一次成功、服务端鉴权为唯一边界、无外部调用、失败整体回滚、现有三种状态行为回归不变。</td></tr>
+</table>
+
+<h3>2.2 需求条目</h3>
+<table>
+  <tr><th style="width:80px">编号</th><th style="width:48px">优先级</th><th>需求与输入输出</th><th>边界条件</th></tr>
+  <tr><td>REQ-001</td><td>P0</td><td>用户主档（SBRM_USER）新增「警报强制中断权限」<code>CAN_TERMINATE</code>（<code>Y/N</code>，默认 <code>N</code>），随新增/修改/Excel 导入导出/隐藏恢复保存；服务端以最新主档为唯一授权依据。</td><td>未填写→<code>N</code>；改 <code>N</code> 后下一次请求即拒绝（无需重登）；停用/隐藏/缺字段一律拒绝且零写入。</td></tr>
+  <tr><td>REQ-002</td><td>P0</td><td><code>GET /api/alarms/:key</code> 新增 <code>CAN_TERMINATE</code> 布尔及 <code>TERMINATE_DT/CMT/USER_KEY/USER_ID/USER_NAME</code>。</td><td>仅“有权限且 Process”为 true；Completed/NoNextLevel/Terminated 为 false；<code>?transaction=</code> 历史详情恒 false；操作人缺失显示 <code>SYSTEM</code>/<code>系统</code>。</td></tr>
+  <tr><td>REQ-003</td><td>P0</td><td>新增 <code>POST /api/alarms/:key/terminate</code>，body <code>{cmt}</code>，返回 <code>{ok,alarm,terminated}</code>；按 存在(404)→Process(400)→权限(400)→原因(400) 顺序校验。</td><td>原因 trim 后非空且 ≤500；重复/非 Process 400「该警报已非处理中状态」；并发仅 1 次成功、仅 1 条交易；未登录 401。</td></tr>
+  <tr><td>REQ-004</td><td>P0</td><td>同一事务：①<code>STATUS=Terminated</code>+<code>COMPLETE_DT</code>；②写 <code>TERMINATE_*</code>；③所有 Active 层级→Closed；④该警报 Pending 通知→Skipped（MESSAGE「警报已中断，取消发送」，SEND_DT 空则补当前时刻）；⑤写 <code>AlarmTerminate</code> 交易（BEFORE=Process/AFTER=Terminated/USER_KEY/TRX_DT/NOTE=原因）。</td><td>不改 Success/Fail 历史；不改 <code>alarm_acks</code>；中断后 ≥2 个调度周期无 LevelUpgrade/AlarmFail/AlarmComplete；异常整体回滚。</td></tr>
+  <tr><td>REQ-005</td><td>P0</td><td>详情主资讯工具区「强制中断」（danger）+ 二次确认 Modal（标题、目标识别码/标题、不可逆风险、必填原因 500 字计数、取消/确认中断、错误区）；成功后刷新详情、提示「警报已中断」、通知外层刷新；Terminated 显示中断横幅。</td><td>非 Process 禁用并说明；无权限禁用并说明；历史只读无按钮；提交中 loading 不可重复提交；失败保留弹窗与原因。</td></tr>
+  <tr><td>REQ-006</td><td>P1</td><td>中断信息展示与报表口径：AVPA007 按 <code>TRX_TYPE=AlarmTerminate</code> / <code>STATUS=Terminated</code> 可查；AVPA004 状态支持 Terminated 且 COMPLETE_DT 有值；AVPA013 仅统计 Process；<code>options.alarmStatus</code> 追加 Terminated。</td><td>既有 Process/Completed/NoNextLevel 查询结果不变。</td></tr>
+  <tr><td>REQ-007</td><td>P2</td><td>功能树新增「警报强制中断作业」（<code>ALARM_LIST</code>，<code>FUNC_TYPE=PAGE</code>），列表为 Process 警报（PRIORITY 降序），点开进入详情。</td><td>遵循 ACTIVE/VISIBLE；无权限账号无可用中断操作，服务端仍拒绝越权。</td></tr>
+</table>
+
+<h3>2.3 接口契约</h3>
+<table>
+  <tr><th style="width:290px">契约</th><th>变化</th><th>兼容性</th></tr>
+  <tr><td><code>POST /api/alarms/:key/terminate</code></td><td>新增；body <code>{cmt}</code>；成功 <code>{ok:true, alarm:&lt;详情结构&gt;, terminated:true}</code>；失败 <code>{ok:false, message}</code></td><td>纯新增</td></tr>
+  <tr><td><code>GET /api/alarms/process</code></td><td>新增；返回 <code>{ok, rows:[enrich…]}</code>，仅 Process、PRIORITY 降序</td><td>纯新增（并修正通用详情路由不吞 <code>process</code>）</td></tr>
+  <tr><td><code>GET /api/alarms/:key</code></td><td>新增 <code>CAN_TERMINATE</code> 与 <code>TERMINATE_*</code> 字段</td><td>只增字段</td></tr>
+  <tr><td><code>SBRM_USER</code> 元数据</td><td>新增 <code>CAN_TERMINATE</code> checkbox / grid / filter，defaults=N</td><td>旧数据缺省按 N</td></tr>
+  <tr><td><code>alarm_transactions.TRX_TYPE</code></td><td>新增取值 <code>AlarmTerminate</code></td><td>自由文本，AVPA007 条件查询</td></tr>
+  <tr><td><code>alarm_notifications.RESULT</code></td><td>新增使用 <code>Skipped</code>（既有枚举已在派发中止时使用）</td><td>兼容</td></tr>
+</table>
+<pre><code>错误语义（ApiException → {ok:false,message}）
+401  未登录/会话失效        现有鉴权提示
+404  警报不存在              "警报不存在"
+400  STATUS ≠ Process        "该警报已非处理中状态"
+400  无中断权限              "您没有强制中断权限"
+400  原因为空/全空白         "请填写中断原因"
+400  原因 &gt; 500 字符         "中断原因不可超过 500 个字符"</code></pre>
+
+<!-- ===================== 3 ===================== -->
+<h2 id="sec-arch">3 · 代码结构分析报告 + 架构设计文档</h2>
+
+<h3>3.1 仓库结构与本变更波及模块</h3>
+<table>
+  <tr><th style="width:210px">目录</th><th>职责（现状）</th><th>本变更是否修改</th></tr>
+  <tr><td><code>backend/src/main/java/com/changxin/ams/</code></td><td>单模块 Spring Boot：<code>ApiController</code>（路由+统一鉴权+<code>store.write</code> 包裹非 GET）、<code>AlarmEngine</code>（触发/派发/升级/ACK/关闭状态机）、<code>Store</code>（H2 单行 JSON 快照 + 读写事务）、<code>Masters</code>（元数据驱动主档）、<code>Reports</code>（AVPA004/007/013）、<code>Excel</code>（导入导出）、<code>SmtpDelivery</code></td><td>是（4 个 Java 类）</td></tr>
+  <tr><td><code>backend/src/main/resources/{metadata,seed}.json</code></td><td>页面/主档/字段元数据；种子数据（用户、功能树、告警等）</td><td>是</td></tr>
+  <tr><td><code>frontend/src/</code></td><td>Vue 3 + Ant Design Vue 4（无 Pinia，全局 <code>reactive state</code>）</td><td>是（详情、作业页、菜单、样式、词典）</td></tr>
+  <tr><td><code>backend/src/test/</code> / <code>frontend/src/**/__tests__/</code> / <code>e2e/frontend/</code></td><td>Spring 集成 / Vitest 组件 / Playwright E2E</td><td>是（新增 3 个测试文件）</td></tr>
+  <tr><td><code>scripts/</code></td><td><code>build-java-vue.sh</code>、<code>start-java.sh</code>、<code>run-frontend-e2e.sh</code></td><td>否（复用）</td></tr>
+</table>
+
+<h3>3.2 技术栈适配与设计约束</h3>
+<table>
+  <tr><th style="width:170px">约束（仓库现状）</th><th>本实现如何适配</th></tr>
+  <tr><td>元数据驱动主档</td><td>只补 <code>metadata.json</code> 字段 + <code>seed.json</code> 值；<code>type=checkbox</code> 由 <code>Masters.values()</code>/<code>Excel.verify()</code> 归一为 <code>Y/N</code>，<code>FieldForm</code> 用 <code>UiCheckbox</code>。</td></tr>
+  <tr><td>单一写事务</td><td><code>ApiController</code> 已把非 GET 包进 <code>store.write()</code>；<code>terminate()</code> 内部只做内存写入，失败时 Store 回滚快照，天然满足“全有或全无”。</td></tr>
+  <tr><td>状态机收口</td><td>复用 <code>AlarmEngine.close()</code>（置状态+关 Active 层级+写交易），新增 6 参重载携带 <code>TERMINATE_*</code>；路由层不复制状态机。</td></tr>
+  <tr><td>调度只处理 Process</td><td><code>tick()</code> 无需改动即停止升级/重送；Pending→Skipped 在中断事务内直接收敛，不依赖下一轮 dispatch。</td></tr>
+  <tr><td>权限不得靠前端隐藏</td><td><code>canTerminate()</code> 每次请求从 <code>store.find("users",…)</code> 读最新主档并校验 <code>active</code>；不信任会话副本或前端标记。</td></tr>
+  <tr><td>i18n key 词典</td><td>仅在 <code>legacy-i18n.js</code> 补 11 条英文词条（其余语种回退既有机制），未引入新翻译机制。</td></tr>
+  <tr><td>历史只读</td><td><code>historicalDetail()</code> 在 <code>enrich(snapshot,null)</code> 后显式 <code>CAN_TERMINATE=false</code>；前端对 <code>HISTORY_CONTEXT</code> 不渲染按钮。</td></tr>
+</table>
+
+<h3>3.3 调用链与数据流（中断主流程）</h3>
+<div class="flow"><pre>Browser  AlarmDetail.vue
+  │  1. 点击「强制中断」→ 本地 Modal（草稿 terminateCmt，未填不可确认）
+  │  2. 确认 → api(`/alarms/${ALARM_KEY}/terminate`, { cmt })
+  ▼
+ApiController.api()
+  │  Auth.user(token) → user（会话副本）
+  │  POST 非 GET → store.write(() -&gt; …)      ← 事务边界
+  ▼
+AlarmEngine.terminate(key, body, user)
+  ├─ 查 alarms by ALARM_KEY / ALARM_ID …… 缺失 → 404 警报不存在
+  ├─ require STATUS == Process ……………… 否 → 400 该警报已非处理中状态
+  ├─ require canTerminate(user) ………… 读 users 最新主档 CAN_TERMINATE=Y 且 active
+  ├─ require cmt.trim() 非空 且 length ≤ 500
+  ├─ close(alarm,"Terminated","AlarmTerminate",user,cmt, extra)
+  │    ├─ STATUS=Terminated, COMPLETE_DT=at, putAll(TERMINATE_DT/CMT/USER_KEY)
+  │    ├─ alarm_levels STATUS=Active → Closed
+  │    └─ alarm_transactions += {TRX_TYPE=AlarmTerminate, STATUS_BEFORE=Process,
+  │                               STATUS_AFTER=Terminated, USER_KEY, TRX_DT, NOTE=cmt,
+  │                               SNAPSHOT/DETAIL_SNAPSHOT}
+  ├─ alarm_notifications RESULT=Pending → Skipped + MESSAGE + SEND_DT(空则 at)
+  └─ return {ok:true, alarm:enrich(alarm,user), terminated:true}
+  ▼
+Store.write 成功 → 单行 JSON 快照落库 / 异常 → 回滚内存快照并重抛
+  ▼
+前端：关闭 Modal → notify('警报已中断') → openAlarm(result.alarm) → emit('changed')
+
+旁路（不参与中断）：
+  tick()/dispatch() 仅处理 STATUS=Process；中断后不再进入升级/重送/ACK 推进
+  IdlePoller(作业列表 10s)  GET /api/alarms/process → 仅 Process → 中断后自动消失</pre></div>
+<p class="small muted">并发语义：两个请求同一警报时，后进入 <code>store.write</code> 的事务看到状态已为 <code>Terminated</code>，在“非 Process”校验处被拒绝，因此只有 1 条 <code>AlarmTerminate</code> 交易。</p>
+
+<h3>3.4 变更设计（逐文件职责）</h3>
+<table>
+  <tr><th style="width:300px">文件</th><th style="width:70px">类型</th><th>设计要点</th></tr>
+  <tr><td><code>AlarmEngine.java</code></td><td>改</td><td><code>COMMENT_MAX=500</code>；<code>canTerminate()</code> 读最新主档；<code>terminate()</code> 校验顺序+原子收敛；<code>enrich()</code> 输出 <code>CAN_TERMINATE</code> 与可读操作人；<code>close()</code> 新增 6 参重载保留 5 参签名。</td></tr>
+  <tr><td><code>ApiController.java</code></td><td>改</td><td>新增 POST <code>alarms/:key/terminate</code>（置于 <code>alarms/test</code> 之前）；新增 GET <code>alarms/process</code>；详情分支排除 <code>process</code> 防止被通用 404 吞路由。</td></tr>
+  <tr><td><code>Masters.java</code></td><td>改</td><td><code>alarmStatus</code> 追加 <code>Terminated</code>（只追加）。</td></tr>
+  <tr><td><code>Excel.java</code></td><td>改</td><td>导入时跳过真正 <code>BLANK</code> 单元格：复制模板导入不再把 checkbox 清成 <code>N</code>，同时保留“填写即覆盖”的既有语义。</td></tr>
+  <tr><td><code>metadata.json</code> / <code>seed.json</code></td><td>改</td><td>新字段与默认值、页面标题、12 个用户权限值（U001=Y）、功能树 <code>ALARM_LIST</code>（SORT=12）、<code>meta.seq.functions</code> 递增。</td></tr>
+  <tr><td><code>AlarmDetail.vue</code></td><td>改</td><td>按钮态（权限/状态/历史）、二次确认 Modal（<code>get-container</code> 挂 body 避免被父 Modal 裁切）、失败保草稿、Terminated 横幅。</td></tr>
+  <tr><td><code>OperationsPage.vue</code>/<code>Workspace.vue</code>/<code>AppSidebar.vue</code></td><td>改</td><td><code>ALARM_LIST</code> 分支请求 <code>/alarms/process</code>、10s 刷新、路由分发、菜单分组与图标。</td></tr>
+  <tr><td><code>style.css</code>/<code>legacy-i18n.js</code></td><td>改</td><td>最小样式（复用既有 CSS 变量）；11 条英文词条。</td></tr>
+  <tr><td><code>AlarmTerminateIntegrationTest.java</code></td><td>新</td><td>8 个集成用例覆盖 REQ-001~007 可断言点。</td></tr>
+  <tr><td><code>AlarmDetail.test.js</code></td><td>新</td><td>8 个组件用例覆盖按钮态/确认校验/取消/失败/横幅。</td></tr>
+  <tr><td><code>06-alarm-terminate.spec.ts</code></td><td>新</td><td>2 个 E2E：有权限全链路 + 无权限禁用与接口拒绝。</td></tr>
+</table>
+
+<!-- ===================== 4 ===================== -->
+<h2 id="sec-code">4 · 生成代码</h2>
+<p>以下为关键新增实现的摘录（完整内容见文件链接）。全部文件已随提交 <code>4b0ca35</code> 推送到远端分支。</p>
+
+<h3>4.1 后端：<code>AlarmEngine.canTerminate()</code>（权限判定）</h3>
+<pre><code>/** Authorization is always read from the current user master; the session copy is not trusted. */
+private boolean canTerminate(Map&lt;String, Object&gt; user) {
+    if (user == null) return false;
+    var master = store.find("users","USER_KEY",user.get("USER_KEY"));
+    return master != null &amp;&amp; active(master) &amp;&amp; eq(master,"CAN_TERMINATE","Y");
+}</code></pre>
+<p class="small"><a href="./backend/src/main/java/com/changxin/ams/AlarmEngine.java#L38-L44">AlarmEngine.java:38-44</a> · <a href="./backend/src/test/java/com/changxin/ams/AlarmTerminateIntegrationTest.java#L105-L131">测试：权限实时读取与零副作用</a></p>
+
+<h3>4.2 后端：<code>AlarmEngine.terminate()</code>（原子收敛）</h3>
+<pre><code>public Map&lt;String, Object&gt; terminate(String key, Map&lt;String, Object&gt; body, Map&lt;String, Object&gt; user) {
+    var alarm = store.table("alarms").stream().filter(r -&gt; eq(r,"ALARM_KEY",key) || eq(r,"ALARM_ID",key)).findFirst()
+        .orElseThrow(() -&gt; new ApiException(404,"警报不存在"));
+    require(eq(alarm,"STATUS","Process"),"该警报已非处理中状态");
+    require(canTerminate(user),"您没有强制中断权限");
+    String cmt = s(body,"cmt").trim();
+    require(!cmt.isEmpty(),"请填写中断原因");
+    require(cmt.length() &lt;= COMMENT_MAX,"中断原因不可超过 "+COMMENT_MAX+" 个字符");
+    String at = now();
+    close(alarm,"Terminated","AlarmTerminate",user,cmt,
+        m("TERMINATE_DT",at,"TERMINATE_CMT",cmt,"TERMINATE_USER_KEY",user.get("USER_KEY")));
+    // Only pending deliveries are cancelled; already sent or failed history stays intact.
+    related("alarm_notifications",alarm.get("ALARM_KEY")).stream().filter(r -&gt; eq(r,"RESULT","Pending")).forEach(r -&gt; {
+        r.put("RESULT","Skipped"); r.put("MESSAGE","警报已中断，取消发送");
+        if (s(r,"SEND_DT").isBlank()) r.put("SEND_DT",at);
+    });
+    return m("ok",true,"alarm",enrich(alarm,user),"terminated",true);
+}</code></pre>
+<p class="small"><a href="./backend/src/main/java/com/changxin/ams/AlarmEngine.java#L210-L233">AlarmEngine.java:210-233</a> · <a href="./backend/src/main/java/com/changxin/ams/AlarmEngine.java#L198-L209">close() 重载：198-209</a></p>
+
+<h3>4.3 后端：<code>enrich()</code> 输出可操作性（节选）</h3>
+<pre><code>String terminatorKey = s(alarm,"TERMINATE_USER_KEY");
+var terminator = terminatorKey.isBlank() ? null : store.find("users","USER_KEY",terminatorKey);
+result.putAll(m("CAN_TERMINATE",user != null &amp;&amp; eq(alarm,"STATUS","Process") &amp;&amp; canTerminate(user),
+    "TERMINATE_USER_ID",terminator == null ? (terminatorKey.isBlank() ? "" : "SYSTEM") : terminator.get("USER_ID"),
+    "TERMINATE_USER_NAME",terminator == null ? (terminatorKey.isBlank() ? "" : "系统") : terminator.get("USER_NAME")));
+// historicalDetail(): result.put("CAN_TERMINATE",false);</code></pre>
+<p class="small"><a href="./backend/src/main/java/com/changxin/ams/AlarmEngine.java#L64-L69">AlarmEngine.java:64-69</a> · <a href="./backend/src/main/java/com/changxin/ams/AlarmEngine.java#L89-L93">historicalDetail：89-93</a></p>
+
+<h3>4.4 后端：路由</h3>
+<pre><code>// GET：处理中警报列表（仅 Process，PRIORITY 降序，enrich 后供前端判断 CAN_TERMINATE）
+case "alarms/process" -&gt; m("ok",true,"rows",store.table("alarms").stream().filter(r -&gt; eq(r,"STATUS","Process"))
+    .map(r -&gt; engine.enrich(r,user)).sorted(Comparator.comparingInt((Map&lt;String,Object&gt; r) -&gt; n(r,"PRIORITY")).reversed()).toList());
+// 详情分支必须排除 process，否则被通用 404 吞掉
+if (p.length==2 &amp;&amp; p[0].equals("alarms") &amp;&amp; !p[1].equals("process")) yield …;
+// POST：必须放在 alarms/test 之前
+if (method.equals("POST") &amp;&amp; p.length==3 &amp;&amp; p[0].equals("alarms") &amp;&amp; p[2].equals("terminate")) return engine.terminate(p[1],body,user);</code></pre>
+<p class="small"><a href="./backend/src/main/java/com/changxin/ams/ApiController.java#L57-L63">ApiController.java:57-63</a> · <a href="./backend/src/main/java/com/changxin/ams/ApiController.java#L96-L98">ApiController.java:96-98</a></p>
+
+<h3>4.5 数据：主档字段与功能树</h3>
+<pre><code>"CAN_TERMINATE": { "name":"CAN_TERMINATE", "label":"警报强制中断权限", "type":"checkbox", "grid":true, "filter":true }
+"SBRM_USER.defaults": { "SHIFT_KEY":"A", "GENDER":"M", "CAN_TERMINATE":"N" }
+"pageTitles.ALARM_LIST": "警报强制中断作业"
+seed.users: U001 CAN_TERMINATE="Y"，其余 11 人 "N"
+seed.functions += { FUNCTION_KEY:"ALARM_LIST", PATH:"#/page/ALARM_LIST", SORT:12, FUNC_TYPE:"PAGE", VISIBLE:"Y", ACTIVE:"Y" }
+"meta.seq.functions": 43 → 44</code></pre>
+<p class="small"><a href="./backend/src/main/resources/metadata.json#L104-L123">metadata.json:104-123</a> · <a href="./backend/src/main/resources/seed.json#L1428-L1439">seed.json:1428-1439</a> · <a href="./backend/src/main/java/com/changxin/ams/Masters.java#L233-L237">Masters.java:233-237</a></p>
+
+<h3>4.6 前端：二次确认与提交（节选）</h3>
+<pre><code>const history = computed(()=&gt;Boolean(state.detail?.HISTORY_CONTEXT))
+const canTerminate = computed(()=&gt;state.detail?.CAN_TERMINATE === true &amp;&amp; state.detail?.STATUS === 'Process' &amp;&amp; !history.value)
+// 详情弹窗本身是 Modal：确认框挂到 body，避免被父级裁切
+const terminateContainer = () =&gt; document.body
+async function terminate(){
+  const cmt = terminateCmt.value.trim()
+  if (!cmt || terminating.value) return
+  terminateError.value='';terminating.value=true
+  try {
+    const result = await api(`/alarms/${state.detail.ALARM_KEY}/terminate`, { cmt })
+    terminateOpen.value=false;terminateCmt.value=''
+    notify('警报已中断')
+    await openAlarm(result.alarm || state.detail); emit('changed')
+  } catch (error) { terminateError.value = error.message } finally { terminating.value=false }
+}</code></pre>
+<p class="small"><a href="./frontend/src/components/AlarmDetail.vue#L15-L41">AlarmDetail.vue:15-41</a> · <a href="./frontend/src/components/AlarmDetail.vue#L64-L95">模板：64-95</a></p>
+
+<h3>4.7 前端：作业页分支</h3>
+<pre><code>async function load(){if(props.code==='TEST')await loadOptions();else rows.value=(await api(props.code==='ALARM_LIST'?'/alarms/process':'/alarms/pending')).rows}
+onMounted(()=&gt;{act(load);if(['ACK_LIST','ALARM_LIST'].includes(props.code))timer=setInterval(()=&gt;{if(!document.hidden)act(load)},10000)})</code></pre>
+<p class="small"><a href="./frontend/src/pages/OperationsPage.vue#L19-L27">OperationsPage.vue:19-27</a> · <a href="./frontend/src/pages/Workspace.vue#L16">Workspace.vue:16</a> · <a href="./frontend/src/components/AppSidebar.vue#L21-L27">AppSidebar.vue:21-27</a></p>
+
+<h3>4.8 新增测试（用例清单）</h3>
+<table>
+  <tr><th style="width:330px">文件</th><th>用例</th></tr>
+  <tr><td><a href="./backend/src/test/java/com/changxin/ams/AlarmTerminateIntegrationTest.java">AlarmTerminateIntegrationTest.java</a>（8）</td><td>① 授权中断收敛状态/层级/通知/交易 ② 权限实时读取与拒绝零副作用 ③ 缺警报/非 Process/非法原因 ④ 并发仅一次成功 ⑤ 调度停止升级/重送/投递 ⑥ 详情矩阵与历史只读 ⑦ 报表区分 Terminated ⑧ 主档字段/导航/Excel 往返</td></tr>
+  <tr><td><a href="./frontend/src/components/__tests__/AlarmDetail.test.js">AlarmDetail.test.js</a>（8）</td><td>有权限可用按钮 / 无权限禁用+说明 / 历史无入口 / 空原因不可提交且 trim 后只提交一次 / 取消清空不发请求 / 失败保留原因并显示错误 / 中断横幅时间·操作人·原因 / 非 Process 说明</td></tr>
+  <tr><td><a href="./e2e/frontend/06-alarm-terminate.spec.ts">06-alarm-terminate.spec.ts</a>（2）</td><td>有权限：触发→列表→二次确认→中断→横幅/交易履历→AVPA007→AVPA013 归零；无权限：按钮禁用提示 + 直接调接口 400</td></tr>
+</table>
+
+<!-- ===================== 5 ===================== -->
+<h2 id="sec-diff">5 · 修改代码 + diff 对比</h2>
+<p>基线 <code>0ace5a9</code>（上游技术设计提交）→ 实现提交 <code>4b0ca35</code>。共 <strong>20 个文件，+717 / −35</strong>（含新增测试与文档）。工作区无未提交改动、无 lock/构建产物误入（<code>backend/target</code>、<code>frontend/dist</code>、<code>node_modules</code> 均被忽略）。</p>
+<table>
+  <tr><th>#</th><th style="width:395px">文件（点链接看 diff）</th><th style="width:70px">类型</th><th style="width:90px">+/−</th><th>说明</th></tr>
+  <tr id="row-diff-01"><td>1</td><td><a href="diff-01.html">backend/src/main/java/com/changxin/ams/AlarmEngine.java</a></td><td>改</td><td>+43/−1</td><td>权限判定、terminate、enrich、close 重载</td></tr>
+  <tr id="row-diff-02"><td>2</td><td><a href="diff-02.html">backend/src/main/java/com/changxin/ams/ApiController.java</a></td><td>改</td><td>+4/−1</td><td>POST terminate、GET process、详情路由排除</td></tr>
+  <tr id="row-diff-03"><td>3</td><td><a href="diff-03.html">backend/src/main/java/com/changxin/ams/Excel.java</a></td><td>改</td><td>+6/−1</td><td>导入跳过真正 BLANK 单元格</td></tr>
+  <tr id="row-diff-04"><td>4</td><td><a href="diff-04.html">backend/src/main/java/com/changxin/ams/Masters.java</a></td><td>改</td><td>+1/−1</td><td>alarmStatus 追加 Terminated</td></tr>
+  <tr id="row-diff-05"><td>5</td><td><a href="diff-05.html">backend/src/main/resources/metadata.json</a></td><td>改</td><td>+12/−1</td><td>用户权限字段、默认值、页面标题</td></tr>
+  <tr id="row-diff-06"><td>6</td><td><a href="diff-06.html">backend/src/main/resources/seed.json</a></td><td>改</td><td>+25/−0</td><td>12 用户权限值、ALARM_LIST 功能、序号</td></tr>
+  <tr id="row-diff-07"><td>7</td><td><a href="diff-07.html">docs/design/alarm-terminate/task.md</a></td><td>改</td><td>+18/−18</td><td>任务清单全部勾选</td></tr>
+  <tr id="row-diff-08"><td>8-10</td><td><a href="diff-08.html">docs/e2e/README.md</a> · <a href="diff-09.html">frontend-e2e.md</a> · <a href="diff-10.html">unit-tests.md</a></td><td>改</td><td>+17/−1</td><td>用例 ID、E2E 步骤、单测条目与数量</td></tr>
+  <tr id="row-diff-11"><td>11</td><td><a href="diff-11.html">e2e/frontend/06-alarm-terminate.spec.ts</a></td><td>新</td><td>+108/−0</td><td>2 个端到端用例</td></tr>
+  <tr id="row-diff-12"><td>12</td><td><a href="diff-12.html">e2e/frontend/support/ams.js</a></td><td>改</td><td>+1/−0</td><td>MENU.alarmTerminate</td></tr>
+  <tr id="row-diff-13"><td>13</td><td><a href="diff-13.html">frontend/src/components/AlarmDetail.vue</a></td><td>改</td><td>+55/−4</td><td>按钮/确认框/横幅/错误处理</td></tr>
+  <tr id="row-diff-14"><td>14</td><td><a href="diff-14.html">frontend/src/components/AppSidebar.vue</a></td><td>改</td><td>+3/−3</td><td>菜单分组与图标</td></tr>
+  <tr id="row-diff-15"><td>15</td><td><a href="diff-15.html">frontend/src/components/__tests__/AlarmDetail.test.js</a></td><td>新</td><td>+157/−0</td><td>8 个组件用例</td></tr>
+  <tr id="row-diff-16"><td>16</td><td><a href="diff-16.html">frontend/src/legacy-i18n.js</a></td><td>改</td><td>+11/−0</td><td>11 条英文词条</td></tr>
+  <tr id="row-diff-17"><td>17-19</td><td><a href="diff-17.html">OperationsPage.vue</a> · <a href="diff-18.html">Workspace.vue</a> · <a href="diff-19.html">style.css</a></td><td>改</td><td>+12/−3</td><td>作业页分支、路由分发、样式</td></tr>
+  <tr id="row-diff-20"><td>20</td><td><a href="./backend/src/test/java/com/changxin/ams/AlarmTerminateIntegrationTest.java">backend/src/test/java/com/changxin/ams/AlarmTerminateIntegrationTest.java</a></td><td>新</td><td>+246/−0</td><td>8 个集成用例（新增文件，diff 全文见本地基线对比）</td></tr>
+</table>
+<div class="card blue">
+  <p class="small"><strong>完整 diff：</strong>上方 1~19 号文件链接打开对应 diff 分页（带返回链接）；第 20 个为新增测试文件；原始统一 diff 共 892 行（<code>/tmp/delivery-evidence/full.diff</code>，可用 <code>git diff 0ace5a9 4b0ca35</code> 复现）；下方 <b>5.1</b> 为其中关键片段对照。</p>
+</div>
+
+<h3>5.1 关键片段对照</h3>
+<details open>
+  <summary>AlarmEngine：新增 terminate（+ 仅收敛语义）</summary>
+<pre><code>@@ -184,10 +198,37 @@
+     private void close(Map&lt;String, Object&gt; alarm, String status, String type, Map&lt;String, Object&gt; user, String note) {
+-        alarm.put("STATUS",status); alarm.put("COMPLETE_DT",now());
++        close(alarm,status,type,user,note,null);
++    }
++    private void close(..., Map&lt;String, Object&gt; extra) {
++        String at=now();
++        alarm.put("STATUS",status); alarm.put("COMPLETE_DT",at);
++        if (extra != null) alarm.putAll(extra);
+         related("alarm_levels",alarm.get("ALARM_KEY")).stream().filter(r -&gt; eq(r,"STATUS","Active")).forEach(r -&gt; r.put("STATUS","Closed"));
+         transaction(alarm,type,"Process",user,note);
+     }
++    public Map&lt;String, Object&gt; terminate(String key, Map&lt;String, Object&gt; body, Map&lt;String, Object&gt; user) { … }</code></pre>
+  <p class="small">既有 ACK/NoNextLevel 调用点仍走 5 参签名，行为不变（由 <code>WorkflowIntegrationTest</code> 与全量 49 用例回归证明）。</p>
+</details>
+<details>
+  <summary>ApiController：路由顺序（踩坑修复）</summary>
+<pre><code>+ case "alarms/process" -&gt; m("ok",true,"rows", store.table("alarms").stream().filter(r -&gt; eq(r,"STATUS","Process"))
+    .map(r -&gt; engine.enrich(r,user)).sorted(Comparator.comparingInt(r -&gt; n(r,"PRIORITY")).reversed()).toList());
+- if (p.length==2 &amp;&amp; p[0].equals("alarms")) yield …详情…
++ if (p.length==2 &amp;&amp; p[0].equals("alarms") &amp;&amp; !p[1].equals("process")) yield …详情…
++ if (method.equals("POST") &amp;&amp; p.length==3 &amp;&amp; p[0].equals("alarms") &amp;&amp; p[2].equals("terminate")) return engine.terminate(…);
+  if (method.equals("POST") &amp;&amp; path.equals("alarms/test")) return engine.trigger(body,user);</code></pre>
+  <p class="small">若 terminate 分支放在 <code>alarms/test</code> 之后，会被末尾通用 404 吞掉；已在实现中前置并冒烟验证。</p>
+</details>
+<details>
+  <summary>Excel：仅跳过真正的空白单元格</summary>
+<pre><code>- if (!key.isBlank()) values.put(key,formatter.formatCellValue(source.getCell(j)));
++ if (!key.isBlank()) {
++     var cell=source.getCell(j);
++     // An untouched (blank) cell in a copied template must not clear existing values on import.
++     if (cell!=null &amp;&amp; cell.getCellType()!=CellType.BLANK) values.put(key,formatter.formatCellValue(cell));
++ }</code></pre>
+  <p class="small">语义变化：复制模板后未触碰的单元格不再覆盖库中既有值（此前会被写成空串）。已由 REQ-001 Excel 往返用例覆盖。</p>
+</details>
+
+<h3>5.2 影响面分析</h3>
+<table>
+  <tr><th style="width:180px">影响面</th><th>结论</th></tr>
+  <tr><td>既有 ACK / 自动完成 / NoNextLevel</td><td>不改变逻辑；<code>close()</code> 5 参签名保留并委托，回归全绿。</td></tr>
+  <tr><td>调度（tick/dispatch）</td><td>未修改；依赖既有“仅处理 Process”条件自然停止；Pending→Skipped 由中断事务完成。</td></tr>
+  <tr><td>报表 AVPA004/007/013</td><td>未改查询代码；因数据新增状态与交易类型天然可查，AVPA013 仍只在 Process 上统计。</td></tr>
+  <tr><td>老数据 / 老库</td><td>缺 <code>CAN_TERMINATE</code> 视为 <code>N</code>；需管理员授权后使用（见 §8）。</td></tr>
+  <tr><td>Excel 导入</td><td>“空白单元格不覆盖”为全局语义微调，影响所有主档导入（含既有主档），属预期修正，已在 §6 记录。</td></tr>
+  <tr><td>前端既有页面</td><td>仅新增分支/入口；<code>ACK_LIST</code>/<code>TEST</code> 行为未变，既有 E2E（02~05）全部通过。</td></tr>
+  <tr><td>部署</td><td>无 schema 迁移、无新依赖、无新配置；重新构建并重启即可。</td></tr>
+</table>
+
+<!-- ===================== 6 ===================== -->
+<h2 id="sec-quality">6 · 规范符合度报告</h2>
+<table>
+  <tr><th style="width:190px">检查项</th><th style="width:260px">检查方式</th><th style="width:90px">结果</th><th>证据 / 未满足项</th></tr>
+  <tr><td>编译与类型检查</td><td><code>mvn -B test</code>（编译主/测试代码）</td><td><span class="badge b-ok">PASS</span></td><td>49 tests, 0 failures, BUILD SUCCESS</td></tr>
+  <tr><td>前端生产构建</td><td><code>npm run build</code>（Vite/Rollup）</td><td><span class="badge b-ok">PASS</span></td><td>✓ built in 5.17s；仅既有的 chunk &gt; 500 kB 提示（非本次引入）</td></tr>
+  <tr><td>后端测试</td><td>Spring Boot 集成 + 既有单元</td><td><span class="badge b-ok">PASS</span></td><td>49/49；新增 <code>AlarmTerminateIntegrationTest</code> 8/8</td></tr>
+  <tr><td>前端单元测试</td><td><code>npm run test:unit</code>（Vitest）</td><td><span class="badge b-ok">PASS</span></td><td>10 files / 68 tests；新增 8 个详情用例</td></tr>
+  <tr><td>E2E 回归</td><td><code>bash scripts/run-frontend-e2e.sh</code></td><td><span class="badge b-ok">PASS</span></td><td>18 passed (33.9s)；含既有 02~05 全量回归</td></tr>
+  <tr><td>接口冒烟（真实进程）</td><td>18999 端口起 jar，curl 调 GET/POST</td><td><span class="badge b-ok">PASS</span></td><td>health 200；bootstrap 含 ALARM_LIST、可选 Terminated、U001=Y；中断成功/重复 400/列表移除/AVPA007 命中/AVPA013 归零</td></tr>
+  <tr><td>目录与命名约定</td><td>对照仓库结构：路由在 Controller、状态机在 Engine、前端组件/pages 分层</td><td><span class="badge b-ok">PASS</span></td><td>未新建平行目录；新测试与既有测试同目录同命名风格</td></tr>
+  <tr><td>权限安全边界</td><td>代码评审 + 越权集成用例</td><td><span class="badge b-ok">PASS</span></td><td>服务端读最新主档；401/400 拒绝且零写入</td></tr>
+  <tr><td>事务一致性</td><td>代码评审 + 异常/并发用例</td><td><span class="badge b-ok">PASS</span></td><td>复用 <code>store.write</code>；并发仅 1 条 AlarmTerminate</td></tr>
+  <tr><td>注释与可读性</td><td>评审：仅对非显然逻辑加注释（权限来源、路由顺序、Excel BLANK、get-container）</td><td><span class="badge b-ok">PASS</span></td><td>无冗长注释；与仓库风格一致</td></tr>
+  <tr><td>文档同步</td><td>任务清单、E2E 用例表、单测清单</td><td><span class="badge b-ok">PASS</span></td><td><code>docs/design/alarm-terminate/task.md</code> 全部 <code>[x]</code>；<code>docs/e2e/*</code> 已更新</td></tr>
+  <tr><td>提交规范</td><td><code>git log</code> / <code>ls-remote</code></td><td><span class="badge b-ok">PASS</span></td><td>中文 conventional commit；<code>4b0ca35</code> 远端可见</td></tr>
+  <tr><td>工作区洁净度</td><td><code>git status --short --ignored</code></td><td><span class="badge b-ok">PASS</span></td><td>无未提交改动；lock 文件未变更；target/dist/node_modules 均 ignored</td></tr>
+  <tr><td>静态检查（Lint/Checkstyle）</td><td>查看仓库是否有配置</td><td><span class="badge b-warn">N/A</span></td><td>仓库无 ESLint/Checkstyle/Sonar 配置，未引入新工具；以编译+构建+测试替代</td></tr>
+  <tr><td>三语词条完整性</td><td>对照 <code>legacy-i18n.test.js</code> 与词典</td><td><span class="badge b-warn">部分</span></td><td>本次仅补英文 11 条；繁体沿用既有回退，未逐条人工校对（见 §8）</td></tr>
+  <tr><td>ACK 备注上限一致性</td><td>代码评审</td><td><span class="badge b-warn">未做</span></td><td>仅中断使用 500 上限，ACK 备注保持原无上限（按设计决策，待产品确认）</td></tr>
+  <tr><td>阻断性问题</td><td>—</td><td><span class="badge b-ok">0</span></td><td>无阻断项；未满足项均为已登记的非阻断项</td></tr>
+</table>
+
+<!-- ===================== 7 ===================== -->
+<h2 id="sec-accept">7 · 验收与回溯矩阵</h2>
+<table>
+  <tr><th style="width:75px">需求</th><th style="width:330px">验收点</th><th style="width:250px">覆盖用例</th><th style="width:70px">结论</th></tr>
+  <tr><td>REQ-001</td><td>默认 N、改 N 即刻拒绝、停用/缺字段拒绝、列表可见、履历记录</td><td>集成②⑧；E2E 无权限用例</td><td><span class="badge b-ok">PASS</span></td></tr>
+  <tr><td>REQ-002</td><td>权限×状态矩阵、历史恒 false、操作人展示</td><td>集成⑥；前端单测 1~3、8</td><td><span class="badge b-ok">PASS</span></td></tr>
+  <tr><td>REQ-003</td><td>成功返回、空/空白/超长原因、无权限、非 Process、404、并发、401</td><td>集成②③④；E2E 无权限接口断言</td><td><span class="badge b-ok">PASS</span></td></tr>
+  <tr><td>REQ-004</td><td>状态/层级/通知/交易同事务收敛、≥2 调度周期不再升级重送、ACK 历史保留、失败回滚</td><td>集成①⑤；E2E 主流程</td><td><span class="badge b-ok">PASS</span></td></tr>
+  <tr><td>REQ-005</td><td>按钮态、确认框、必填原因、取消清空、失败保草稿、横幅、历史无入口、前端非安全边界</td><td>前端单测 1~8；E2E 两用例</td><td><span class="badge b-ok">PASS</span></td></tr>
+  <tr><td>REQ-006</td><td>AVPA007 交易/状态可查、AVPA004 状态与完成时间、AVPA013 归零、下拉含 Terminated、既有状态回归</td><td>集成⑦ + 冒烟；E2E 主流程步骤 5</td><td><span class="badge b-ok">PASS</span></td></tr>
+  <tr><td>REQ-007</td><td>菜单可见、列表 Process、点开详情、关闭 ACTIVE/VISIBLE 后隐藏</td><td>集成⑧；E2E 主流程步骤 2</td><td><span class="badge b-ok">PASS</span></td></tr>
+</table>
+
+<!-- ===================== 8 ===================== -->
+<h2 id="sec-risk">8 · 风险 / 未验证 / 待确认</h2>
+<table>
+  <tr><th style="width:60px">级别</th><th style="width:230px">事项</th><th>影响与处置</th></tr>
+  <tr><td><span class="badge b-warn">中</span></td><td>SMTP 发送竞态</td><td>中断与 <code>dispatch()</code> 锁外发信存在极小竞态：已进入 SMTP 发送的邮件无法撤回。<strong>不承诺“零邮件”</strong>，仅保证未开始发送的 Pending 全部转 Skipped、后续不再新增。回写阶段会因非 Process 记 Skipped（幂等）。</td></tr>
+  <tr><td><span class="badge b-warn">中</span></td><td>老库用户无 <code>CAN_TERMINATE</code></td><td>按 <code>N</code> 处理，功能默认不可用；上线需管理员在「使用者管理」或 Excel 导入授权。已写入安装手册 §1.2。</td></tr>
+  <tr><td><span class="badge b-warn">低</span></td><td>权限粒度为全局</td><td>一个布尔字段，无法按厂别/子系统授权；如后续需要，需独立设计（本次为非目标）。</td></tr>
+  <tr><td><span class="badge b-warn">低</span></td><td>ACK 备注无长度上限</td><td>Spec 4.2 说明“按 ACK 备注对齐”；实现仅在中断侧落 500 上限，ACK 保持原行为未扩大改动。待产品确认是否统一。</td></tr>
+  <tr><td><span class="badge b-warn">低</span></td><td>Excel 导入语义微调</td><td>“真正空白单元格不覆盖”对所有主档生效（此前会覆盖为空串）。属修正，但需在发布说明中提示使用者：要清空字段需显式填写空值策略/删除后再导入。</td></tr>
+  <tr><td><span class="badge b-warn">低</span></td><td>繁体词条未逐条校对</td><td>本次新增 11 条仅补英文；繁体依赖既有回退（可能显示简体）。如需严格三语，需补繁体并回归 <code>legacy-i18n.test.js</code>。</td></tr>
+  <tr><td><span class="badge b-info">信息</span></td><td>无静态检查工具链</td><td>仓库未配置 Lint/Checkstyle；本节点以编译、构建、测试作为质量门禁，未擅自引入新工具（避免无关改动）。</td></tr>
+  <tr><td><span class="badge b-info">信息</span></td><td>前端 bundle 体积提示</td><td><code>npm run build</code> 报 chunk &gt; 500 kB，为既有问题（Ant Design Vue 全量引入），非本次引入，未处理。</td></tr>
+  <tr><td><span class="badge b-info">待确认</span></td><td>是否向已收件人反向发送中断通知</td><td>按默认方案<strong>不发</strong>；已收件人只能从详情/报表看到中断结果。</td></tr>
+  <tr><td><span class="badge b-info">待确认</span></td><td>授权账号清单</td><td>种子仅 <code>U001 / E0043258</code> 为 <code>Y</code>；生产授权名单需业务确认后由管理员维护。</td></tr>
+</table>
+<div class="card bad">
+  <p><strong>未验证项（明确列出）：</strong></p>
+  <ul class="small">
+    <li><strong>真实企业 SMTP 投递</strong>：集成/E2E 使用本机 SMTP capture，未对真实邮件服务商发送（与既有测试策略一致）；因此“已进入发送瞬间的竞态”未做端到端实测。</li>
+    <li><strong>存量生产 H2 数据升级</strong>：未在真实存量库副本上演练；仅验证缺字段按 N 的代码路径。</li>
+    <li><strong>多浏览器</strong>：E2E 仅 Chromium；Safari/Firefox 未验证。</li>
+    <li><strong>高并发压力</strong>：仅两请求并发用例，未做压测（NFR 未要求）。</li>
+  </ul>
+</div>
+
+<!-- ===================== 附录 ===================== -->
+<h2 id="appendix">附录 · 验证原始证据</h2>
+<div class="grid">
+  <div class="kpi"><b>后端</b><span><code>cd backend &amp;&amp; mvn -B test</code> · 2026-11-26 · 49/49 · BUILD SUCCESS</span></div>
+  <div class="kpi"><b>前端单测</b><span><code>npm run test:unit</code> · 10 files / 68 tests passed · 6.57s</span></div>
+  <div class="kpi"><b>构建</b><span><code>npm run build</code> · ✓ built in 5.17s</span></div>
+  <div class="kpi"><b>E2E</b><span><code>bash scripts/run-frontend-e2e.sh</code> · 18 passed (33.9s)</span></div>
+</div>
+<h3>A.1 后端测试摘要（原始日志片段）</h3>
+<div class="evidence">[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 -- in com.changxin.ams.AlarmTerminateIntegrationTest
+[INFO] Tests run: 49, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS</div>
+<details>
+  <summary>查看完整后端测试日志（最终一次干净运行）</summary>
+  <p class="small"><a href="log-backend.html">在新页打开原始日志</a>（<code>log-backend.html</code>）</p>
+</details>
+<h3>A.2 前端单测摘要</h3>
+<div class="evidence">✓ src/components/__tests__/AlarmDetail.test.js (8 tests) 645ms
+ Test Files  10 passed (10)
+      Tests  68 passed (68)
+   Duration  6.57s</div>
+<h3>A.3 前端 E2E</h3>
+<div class="evidence">start=2026-11-26T09:37:46Z  ...  18 passed (33.9s)  end=2026-11-26T09:38:24Z</div>
+<h3>A.4 真实进程冒烟（摘录）</h3>
+<div class="evidence">GET  /health                         -&gt; 200
+bootstrap: ALARM_LIST 存在；alarmStatus 含 Terminated；U001 CAN_TERMINATE=Y
+GET  /api/alarms/{processKey}        -&gt; CAN_TERMINATE=true
+POST /api/alarms/{key}/terminate     -&gt; {"ok":true,"terminated":true, STATUS:"Terminated", CMT:"机台已修复"}
+POST 重复提交                         -&gt; 400 该警报已非处理中状态
+GET  /api/alarms/process             -&gt; 不再包含该警报
+AVPA007 (TRX_TYPE=AlarmTerminate)    -&gt; 命中 Terminated / 机台已修复
+AVPA013                              -&gt; 该机台计数归零</div>
+<h3>A.5 提交与远端可见性</h3>
+<div class="evidence">$ git push origin feat/0ae13b26-ka7z
+   0ace5a9..4b0ca35  feat/0ae13b26-ka7z -&gt; feat/0ae13b26-ka7z
+$ git ls-remote origin refs/heads/feat/0ae13b26-ka7z
+4b0ca353c1c04bcd24d0ac4f7aed846aa6b4e421  refs/heads/feat/0ae13b26-ka7z</div>
+
+<p class="toc-note">本页为静态 HTML，所有内容与链接均可离线打开；代码链接指向本地 checkout，远端对应 GitHub 分支 <code>feat/0ae13b26-ka7z@4b0ca35</code>。</p>
+</main>
+<footer>交付节点：代码编写 · workflow-instance-node-yf0c3iqp6oyybsnwl5qq · 仓库 DawnGuoDev/CX-AMS-1123</footer>
+</body>
+</html>

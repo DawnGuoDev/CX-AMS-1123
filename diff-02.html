@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>diff backend/src/main/java/com/changxin/ams/ApiController.java</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/backend/src/main/java/com/changxin/ams/ApiController.java b/backend/src/main/java/com/changxin/ams/ApiController.java
+index b85563b..fcc9bed 100644
+--- a/backend/src/main/java/com/changxin/ams/ApiController.java
++++ b/backend/src/main/java/com/changxin/ams/ApiController.java
+@@ -54,9 +54,11 @@ public class ApiController {
+             case &quot;summary/master&quot; -&gt; m(&quot;ok&quot;,true,&quot;rows&quot;,reports.summary(&quot;&quot;,&quot;&quot;));
+             case &quot;summary/detail&quot; -&gt; m(&quot;ok&quot;,true,&quot;rows&quot;,reports.summary(s(q,&quot;factory&quot;),s(q,&quot;subsys&quot;)));
+             case &quot;alarms/pending&quot; -&gt; m(&quot;ok&quot;,true,&quot;rows&quot;,reports.pending(user));
++            case &quot;alarms/process&quot; -&gt; m(&quot;ok&quot;,true,&quot;rows&quot;,store.table(&quot;alarms&quot;).stream().filter(r -&gt; eq(r,&quot;STATUS&quot;,&quot;Process&quot;))
++                .map(r -&gt; engine.enrich(r,user)).sorted(Comparator.comparingInt((Map&lt;String,Object&gt; r) -&gt; n(r,&quot;PRIORITY&quot;)).reversed()).toList());
+             case &quot;alarms/test/options&quot; -&gt; alarmOptions(q);
+             default -&gt; {
+-                if (p.length==2 &amp;&amp; p[0].equals(&quot;alarms&quot;)) yield m(&quot;ok&quot;,true,&quot;alarm&quot;,s(q,&quot;transaction&quot;).isBlank()
++                if (p.length==2 &amp;&amp; p[0].equals(&quot;alarms&quot;) &amp;&amp; !p[1].equals(&quot;process&quot;)) yield m(&quot;ok&quot;,true,&quot;alarm&quot;,s(q,&quot;transaction&quot;).isBlank()
+                     ? engine.detail(p[1],user) : engine.historicalDetail(p[1],s(q,&quot;transaction&quot;),user));
+                 throw new ApiException(404,&quot;API 不存在&quot;);
+             }
+@@ -92,6 +94,7 @@ public class ApiController {
+             if (p[2].equals(&quot;query&quot;)) return m(&quot;ok&quot;,true,&quot;rows&quot;,data,&quot;columns&quot;,columns,&quot;total&quot;,data.size(),&quot;lastUpdate&quot;,now());
+         }
+         if (method.equals(&quot;POST&quot;) &amp;&amp; p.length==3 &amp;&amp; p[0].equals(&quot;alarms&quot;) &amp;&amp; p[2].equals(&quot;ack&quot;)) return engine.action(p[1],&quot;ack&quot;,body,user);
++        if (method.equals(&quot;POST&quot;) &amp;&amp; p.length==3 &amp;&amp; p[0].equals(&quot;alarms&quot;) &amp;&amp; p[2].equals(&quot;terminate&quot;)) return engine.terminate(p[1],body,user);
+         if (method.equals(&quot;POST&quot;) &amp;&amp; path.equals(&quot;alarms/test&quot;)) return engine.trigger(body,user);
+         throw new ApiException(404,&quot;API 不存在&quot;);
+     }</pre>

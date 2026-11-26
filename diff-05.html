@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>diff backend/src/main/resources/metadata.json</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/backend/src/main/resources/metadata.json b/backend/src/main/resources/metadata.json
+index b58013a..e926cb8 100644
+--- a/backend/src/main/resources/metadata.json
++++ b/backend/src/main/resources/metadata.json
+@@ -101,6 +101,13 @@
+           &quot;optionSet&quot;: &quot;department&quot;,
+           &quot;width&quot;: 150,
+           &quot;filter&quot;: true
++        },
++        {
++          &quot;name&quot;: &quot;CAN_TERMINATE&quot;,
++          &quot;label&quot;: &quot;警报强制中断权限&quot;,
++          &quot;type&quot;: &quot;checkbox&quot;,
++          &quot;grid&quot;: true,
++          &quot;filter&quot;: true
+         }
+       ],
+       &quot;filters&quot;: [
+@@ -111,7 +118,8 @@
+       ],
+       &quot;defaults&quot;: {
+         &quot;SHIFT_KEY&quot;: &quot;A&quot;,
+-        &quot;GENDER&quot;: &quot;M&quot;
++        &quot;GENDER&quot;: &quot;M&quot;,
++        &quot;CAN_TERMINATE&quot;: &quot;N&quot;
+       }
+     },
+     &quot;SBRM_FACTORY&quot;: {
+@@ -517,6 +525,7 @@
+     &quot;AVPA004&quot;: &quot;警报处理查询&quot;,
+     &quot;AVPA007&quot;: &quot;历史记录查询&quot;,
+     &quot;TEST&quot;: &quot;测试告警触发&quot;,
+-    &quot;ACK_LIST&quot;: &quot;待我确认&quot;
++    &quot;ACK_LIST&quot;: &quot;待我确认&quot;,
++    &quot;ALARM_LIST&quot;: &quot;警报强制中断作业&quot;
+   }
+ }</pre>

@@ -1,0 +1,114 @@
+<!doctype html><meta charset="utf-8"><title>diff e2e/frontend/06-alarm-terminate.spec.ts</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/e2e/frontend/06-alarm-terminate.spec.ts b/e2e/frontend/06-alarm-terminate.spec.ts
+new file mode 100644
+index 0000000..2fc98b2
+--- /dev/null
++++ b/e2e/frontend/06-alarm-terminate.spec.ts
+@@ -0,0 +1,108 @@
++import { expect, test } from &#x27;@playwright/test&#x27;
++import { MENU, apiToken, login, openMenu, unique } from &#x27;./support/ams.js&#x27;
++
++const CONDITIONS = { conditions: {} }
++
++/** Total alarm count from the instant summary (AVPA013 counts Process alarms only). */
++/**
++ * Creates an alarm through the console API. Each case uses its own factory/subsystem/equipment
++ * combination (passed in) because separate spec files share one backend and the trigger API
++ * suppresses a repeated alarm for the same settings within its ignore window.
++ */
++async function triggerAlarm(request, token, marker, setting) {
++  const response = await request.post(&#x27;/api/alarms/test&#x27;, {
++    headers: { Authorization: `Bearer ${token}` },
++    data: { ...setting, title: `E2E 中断 ${marker}`, content: &#x27;terminate e2e&#x27; },
++  })
++  expect(response.ok(), `trigger failed: HTTP ${response.status()} ${await response.text()}`).toBeTruthy()
++  return (await response.json()).alarm
++}
++const MAIN_SETTING = { factoryKey: &#x27;F01&#x27;, subsysKey: &#x27;SS01&#x27;, eqpKey: &#x27;EQP08&#x27;, alarmCode: &#x27;CMP_PAD_LIFE&#x27; }
++const NO_PERMISSION_SETTING = { factoryKey: &#x27;F01&#x27;, subsysKey: &#x27;SS01&#x27;, eqpKey: &#x27;EQP04&#x27;, alarmCode: &#x27;EQP_OVERHEAT&#x27; }
++
++async function summaryTotal(request, token) {
++  const response = await request.post(&#x27;/api/reports/AVPA013/query&#x27;, {
++    headers: { Authorization: `Bearer ${token}` }, data: CONDITIONS,
++  })
++  expect(response.ok(), await response.text()).toBeTruthy()
++  return (await response.json()).rows.reduce((sum, row) =&gt; sum + Number(row.ALARM_COUNT || 0), 0)
++}
++
++/**
++ * TC-FE-E2E-006: an authorized user terminates a processing alarm from the detail dialog after
++ * giving a reason; the alarm leaves the processing list and the instant summary. An account
++ * without the new permission sees a disabled entry with an explanation.
++ */
++test.describe(&#x27;TC-FE-E2E-006 警报强制中断&#x27;, () =&gt; {
++  test(&#x27;terminates a processing alarm with a reason and stops counting it as processing&#x27;, async ({ page, request }) =&gt; {
++    const marker = unique(&#x27;E2E-TERMINATE&#x27;)
++    const token = await apiToken(request)
++    const totalBefore = await summaryTotal(request, token)
++    const alarm = await triggerAlarm(request, token, marker, MAIN_SETTING)
++
++    await login(page)
++    await openMenu(page, MENU.alarmTerminate)
++    const list = page.locator(&#x27;.grid&#x27;)
++    await expect(list).toContainText(marker)
++    await list.locator(&#x27;tbody tr&#x27;, { hasText: marker }).getByRole(&#x27;button&#x27;, { name: &#x27;查看&#x27;, exact: true }).click()
++
++    const detail = page.getByRole(&#x27;dialog&#x27;, { name: &#x27;警报详情&#x27; })
++    await expect(detail).toBeVisible()
++    await expect(detail.locator(&#x27;.detail-meta .tag&#x27;)).toHaveText(&#x27;Process&#x27;)
++    await detail.getByRole(&#x27;button&#x27;, { name: &#x27;强制中断&#x27; }).click()
++
++    const confirm = page.locator(&#x27;.terminate-modal&#x27;)
++    await expect(confirm).toBeVisible()
++    await expect(confirm).toContainText(&#x27;确认强制中断警报？&#x27;)
++    await expect(confirm).toContainText(&#x27;中断后警报将结束且无法恢复&#x27;)
++    await expect(confirm.getByRole(&#x27;button&#x27;, { name: &#x27;确认中断&#x27; })).toBeDisabled()
++    await confirm.getByLabel(&#x27;中断原因&#x27;).fill(&#x27;机台已修复，确认误报&#x27;)
++    await confirm.getByRole(&#x27;button&#x27;, { name: &#x27;确认中断&#x27; }).click()
++
++    await expect(confirm).toHaveCount(0)
++    await expect(detail.locator(&#x27;.detail-meta .tag&#x27;)).toHaveText(&#x27;Terminated&#x27;)
++    const banner = detail.locator(&#x27;[data-test=&quot;terminated-banner&quot;]&#x27;)
++    await expect(banner).toContainText(&#x27;警报已中断&#x27;)
++    await expect(banner).toContainText(&#x27;机台已修复，确认误报&#x27;)
++    await expect(banner).toContainText(&#x27;陈柏睿&#x27;)
++    // A terminated alarm no longer renders the terminate action at all.
++    await expect(detail.getByRole(&#x27;button&#x27;, { name: &#x27;强制中断&#x27; })).toHaveCount(0)
++
++    await detail.getByRole(&#x27;button&#x27;, { name: &#x27;交易履历&#x27; }).click()
++    await expect(detail.locator(&#x27;tbody&#x27;)).toContainText(&#x27;AlarmTerminate&#x27;)
++    await expect(detail.locator(&#x27;tbody&#x27;)).toContainText(&#x27;机台已修复，确认误报&#x27;)
++
++    // Detail view of the termination transaction is read-only: no terminate entry.
++    await detail.getByRole(&#x27;button&#x27;, { name: /close|关闭/i }).click()
++    await expect(list).not.toContainText(marker)
++
++    const history = await request.post(&#x27;/api/reports/AVPA007/query&#x27;, {
++      headers: { Authorization: `Bearer ${await apiToken(request)}` },
++      data: { conditions: { TRX_TYPE: { enabled: true, operator: &#x27;eq&#x27;, value: &#x27;AlarmTerminate&#x27; } } },
++    })
++    expect(history.ok(), await history.text()).toBeTruthy()
++    expect((await history.json()).rows.some(row =&gt; row.ALARM_KEY === alarm.ALARM_KEY &amp;&amp; row.NOTE === &#x27;机台已修复，确认误报&#x27;)).toBe(true)
++    expect(await summaryTotal(request, await apiToken(request))).toBe(totalBefore)
++  })
++
++  test(&#x27;disables termination for an account without the permission&#x27;, async ({ page, request }) =&gt; {
++    const marker = unique(&#x27;E2E-NOPERM&#x27;)
++    const created = await triggerAlarm(request, await apiToken(request), marker, NO_PERMISSION_SETTING)
++    await login(page, { userId: &#x27;E0043260&#x27;, name: &#x27;林彦廷&#x27;, password: &#x27;123456&#x27; })
++    await openMenu(page, MENU.alarmTerminate)
++    const list = page.locator(&#x27;.grid&#x27;)
++    await expect(list).toContainText(marker)
++    await list.locator(&#x27;tbody tr&#x27;, { hasText: marker }).getByRole(&#x27;button&#x27;, { name: &#x27;查看&#x27;, exact: true }).click()
++    const detail = page.getByRole(&#x27;dialog&#x27;, { name: &#x27;警报详情&#x27; })
++    await expect(detail).toBeVisible()
++    await expect(detail.getByRole(&#x27;button&#x27;, { name: &#x27;强制中断&#x27; })).toBeDisabled()
++    await expect(detail).toContainText(&#x27;您没有强制中断权限，请联系具权限人员处理。&#x27;)
++    // The button state is not a security boundary: the server rejects a direct call too.
++    const token = await apiToken(request, { userId: &#x27;E0043260&#x27;, password: &#x27;123456&#x27; })
++    const denied = await request.post(`/api/alarms/${created.ALARM_KEY}/terminate`, {
++      headers: { Authorization: `Bearer ${token}` }, data: { cmt: &#x27;越权尝试&#x27; },
++    })
++    expect(denied.status()).toBe(400)
++    expect((await denied.json()).message).toBe(&#x27;您没有强制中断权限&#x27;)
++  })
++})</pre>

@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>diff docs/e2e/README.md</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/docs/e2e/README.md b/docs/e2e/README.md
+index 28b5c2b..034dc91 100644
+--- a/docs/e2e/README.md
++++ b/docs/e2e/README.md
+@@ -55,5 +55,6 @@ cd e2e &amp;&amp; npm ci &amp;&amp; npx playwright install chromium &amp;&amp; npm test   # 前端 E2E
+ | TC-FE-E2E-003 | 前端 | 厂别主档：新增、列表可见、停用后隐藏 | `frontend/03-master-data.spec.ts` |
+ | TC-FE-E2E-004 | 前端 | 测试告警触发 → 告警详情 → 邮件 ACK 确认页 | `frontend/04-alarm-workflow.spec.ts` |
+ | TC-FE-E2E-005 | 前端 | 待我确认列表为空（SMTP 未配置）与即时汇总计数联动 | `frontend/05-alarm-list.spec.ts` |
++| TC-FE-E2E-006 | 前端 | 有权限强制中断（原因/二次确认/报表口径）与无权限禁用 | `frontend/06-alarm-terminate.spec.ts` |
+ 
+ 状态判定：PASS = 执行且断言通过；FAIL = 已执行但断言不符；BLOCKED = 环境前置不满足（浏览器缺失、端口/构建产物缺失）。</pre>

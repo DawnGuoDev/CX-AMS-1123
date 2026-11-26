@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/components/AppSidebar.vue</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/components/AppSidebar.vue b/frontend/src/components/AppSidebar.vue
+index 96fcf21..6d82411 100644
+--- a/frontend/src/components/AppSidebar.vue
++++ b/frontend/src/components/AppSidebar.vue
+@@ -6,7 +6,7 @@ import {
+   ApartmentOutlined, BellOutlined, DashboardOutlined, DatabaseOutlined, ExperimentOutlined,
+   FileSearchOutlined, HistoryOutlined, InboxOutlined, LinkOutlined, MenuFoldOutlined,
+   MenuUnfoldOutlined, SearchOutlined, SettingOutlined, TeamOutlined, ThunderboltOutlined,
+-  ToolOutlined, HomeOutlined,
++  ToolOutlined, HomeOutlined, WarningOutlined,
+ } from &#x27;@ant-design/icons-vue&#x27;
+ import { state, t } from &#x27;../state&#x27;
+ 
+@@ -18,14 +18,14 @@ function savedPreference() {
+ const collapsed = ref(savedPreference()), search = ref(&#x27;&#x27;), searchInput = ref(null)
+ const openKeys = ref([&#x27;operations&#x27;, &#x27;basics&#x27;])
+ const groups = [
+-  { key: &#x27;operations&#x27;, label: &#x27;警报作业&#x27;, icon: ThunderboltOutlined, codes: [&#x27;AVPA013&#x27;, &#x27;ACK_LIST&#x27;, &#x27;TEST&#x27;] },
++  { key: &#x27;operations&#x27;, label: &#x27;警报作业&#x27;, icon: ThunderboltOutlined, codes: [&#x27;AVPA013&#x27;, &#x27;ALARM_LIST&#x27;, &#x27;ACK_LIST&#x27;, &#x27;TEST&#x27;] },
+   { key: &#x27;basics&#x27;, label: &#x27;基础资料&#x27;, icon: DatabaseOutlined, codes: [&#x27;SBRM_USER&#x27;, &#x27;SBRM_FACTORY&#x27;, &#x27;SBRM_EQP&#x27;, &#x27;AVMA003&#x27;, &#x27;AVMA004&#x27;] },
+   { key: &#x27;notifications&#x27;, label: &#x27;通知配置&#x27;, icon: BellOutlined, codes: [&#x27;AVMA007&#x27;, &#x27;AVMA009&#x27;] },
+   { key: &#x27;reports&#x27;, label: &#x27;查询报表&#x27;, icon: FileSearchOutlined, codes: [&#x27;AVPA004&#x27;, &#x27;AVPA007&#x27;] },
+   { key: &#x27;other&#x27;, label: &#x27;其他功能&#x27;, icon: SettingOutlined, codes: [] },
+ ]
+ const icons = {
+-  AVPA013: DashboardOutlined, ACK_LIST: InboxOutlined, TEST: ExperimentOutlined,
++  AVPA013: DashboardOutlined, ACK_LIST: InboxOutlined, ALARM_LIST: WarningOutlined, TEST: ExperimentOutlined,
+   SBRM_USER: TeamOutlined, SBRM_FACTORY: HomeOutlined, SBRM_EQP: ToolOutlined,
+   AVMA003: ApartmentOutlined, AVMA004: LinkOutlined, AVMA007: ApartmentOutlined,
+   AVMA009: BellOutlined, AVPA004: FileSearchOutlined, AVPA007: HistoryOutlined,</pre>

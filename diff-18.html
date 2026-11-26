@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/pages/Workspace.vue</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/pages/Workspace.vue b/frontend/src/pages/Workspace.vue
+index defaed0..d59eecc 100644
+--- a/frontend/src/pages/Workspace.vue
++++ b/frontend/src/pages/Workspace.vue
+@@ -13,7 +13,7 @@ onMounted(()=&gt;{if(props.code===&#x27;ACK&#x27;)openAlarm(props.alarmKey)})
+ &lt;template&gt;
+   &lt;div class=&quot;page-heading&quot;&gt;&lt;h1&gt;{{ t(title) }}&lt;/h1&gt;&lt;/div&gt;
+   &lt;MasterPage v-if=&quot;master&quot; :code=&quot;code&quot;/&gt;
+-  &lt;OperationsPage v-else-if=&quot;[&#x27;TEST&#x27;,&#x27;ACK_LIST&#x27;].includes(code)&quot; :code=&quot;code&quot;/&gt;
++  &lt;OperationsPage v-else-if=&quot;[&#x27;TEST&#x27;,&#x27;ACK_LIST&#x27;,&#x27;ALARM_LIST&#x27;].includes(code)&quot; :code=&quot;code&quot;/&gt;
+   &lt;ReportPage v-else-if=&quot;[&#x27;HOME&#x27;,&#x27;AVPA013&#x27;,&#x27;AVPA004&#x27;,&#x27;AVPA007&#x27;].includes(code)&quot; :code=&quot;code===&#x27;HOME&#x27;?&#x27;AVPA013&#x27;:code&quot;/&gt;
+   &lt;template v-else-if=&quot;code===&#x27;ACK&#x27;&quot;&gt;&lt;p&gt;请查看告警详情，以本层级通知人员账号确认。打开邮件链接不会自动 ACK。&lt;/p&gt;&lt;a-button class=&quot;primary&quot; @click=&quot;openAlarm(alarmKey)&quot; type=&quot;primary&quot; html-type=&quot;button&quot;&gt;打开确认页&lt;/a-button&gt;&lt;/template&gt;
+ &lt;/template&gt;</pre>

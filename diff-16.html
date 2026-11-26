@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/legacy-i18n.js</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/legacy-i18n.js b/frontend/src/legacy-i18n.js
+index 467c3a7..18a79d6 100644
+--- a/frontend/src/legacy-i18n.js
++++ b/frontend/src/legacy-i18n.js
+@@ -501,6 +501,17 @@ const EN = {
+   &#x27;警报发送成功&#x27;: &#x27;Alarm sent&#x27;,
+   &#x27;警报已确认&#x27;: &#x27;Alarm acknowledged&#x27;,
+   &#x27;警报已中断&#x27;: &#x27;Alarm terminated&#x27;,
++  &#x27;强制中断&#x27;: &#x27;Force terminate&#x27;,
++  &#x27;确认强制中断警报？&#x27;: &#x27;Force-terminate this alarm?&#x27;,
++  &#x27;中断原因&#x27;: &#x27;Termination reason&#x27;,
++  &#x27;确认中断&#x27;: &#x27;Confirm termination&#x27;,
++  &#x27;警报已中断，流程已结束&#x27;: &#x27;The alarm was terminated; the workflow has ended.&#x27;,
++  &#x27;仅处理中（Process）的警报可中断&#x27;: &#x27;Only processing (Process) alarms can be terminated.&#x27;,
++  &#x27;您没有强制中断权限，请联系具权限人员处理。&#x27;: &#x27;You do not have permission to force-terminate alarms. Please contact someone with permission.&#x27;,
++  &#x27;中断时间&#x27;: &#x27;Terminated at&#x27;,
++  &#x27;中断操作人&#x27;: &#x27;Terminated by&#x27;,
++  &#x27;中断后警报将结束且无法恢复 当前层级将关闭 不再发送通知 升级或失败重送&#x27;: &#x27;The alarm will end permanently. The current level closes; no further notifications, escalations or retries are sent.&#x27;,
++  &#x27;请填写中断原因（例如：机台已修复、误报、事件配置错误）&#x27;: &#x27;Enter the termination reason (e.g. equipment repaired, false alarm, misconfigured event)&#x27;,
+   &#x27;请填写必填栏位&#x27;: &#x27;Please fill in required fields&#x27;,
+   &#x27;此警报已由其他人处理&#x27;: &#x27;This alarm has been handled by someone else&#x27;,
+   &#x27;我的通知&#x27;: &#x27;My notifications&#x27;,</pre>

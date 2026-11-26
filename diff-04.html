@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>diff backend/src/main/java/com/changxin/ams/Masters.java</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/backend/src/main/java/com/changxin/ams/Masters.java b/backend/src/main/java/com/changxin/ams/Masters.java
+index 45616f9..cfb828d 100644
+--- a/backend/src/main/java/com/changxin/ams/Masters.java
++++ b/backend/src/main/java/com/changxin/ams/Masters.java
+@@ -233,7 +233,7 @@ public class Masters {
+         out.put(&quot;department&quot;, store.table(&quot;users&quot;).stream().map(r -&gt; s(r,&quot;ORGAN_KEY&quot;)).distinct().map(v -&gt; m(&quot;value&quot;,v,&quot;label&quot;,v)).toList());
+         Map&lt;String, String&gt; enums = Map.ofEntries(
+             Map.entry(&quot;shift&quot;,&quot;A,B,C,D&quot;),Map.entry(&quot;gender&quot;,&quot;M,F&quot;),Map.entry(&quot;yesno&quot;,&quot;Y,N&quot;),
+-            Map.entry(&quot;alarmStatus&quot;,&quot;Process,Completed,NoNextLevel&quot;),Map.entry(&quot;activeStatus&quot;,&quot;Y,N&quot;));
++            Map.entry(&quot;alarmStatus&quot;,&quot;Process,Completed,NoNextLevel,Terminated&quot;),Map.entry(&quot;activeStatus&quot;,&quot;Y,N&quot;));
+         enums.forEach((k,v) -&gt; out.put(k, Arrays.stream(v.split(&quot;,&quot;)).map(x -&gt; m(&quot;value&quot;,x,&quot;label&quot;,x)).toList()));
+         return out;
+     }</pre>

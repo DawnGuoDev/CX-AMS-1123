@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/style.css</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/style.css b/frontend/src/style.css
+index 13669ec..1ea6f88 100644
+--- a/frontend/src/style.css
++++ b/frontend/src/style.css
+@@ -49,3 +49,12 @@
+ .sidebar .sidebar-toggle, .sidebar .sidebar-search-trigger {color:#9fb5ca;width:36px;height:34px;font-size:17px;display:flex;align-items:center;justify-content:center}
+ .sidebar .sidebar-toggle:hover, .sidebar .sidebar-search-trigger:hover {color:#e5f3ff;background:#253e54}
+ .sidebar-collapsed .sidebar-bottom {justify-content:center;margin-inline:10px}
++.terminated-banner{display:flex;flex-direction:column;gap:8px;padding:16px;margin-bottom:18px;border:1px solid var(--border);border-left:4px solid #788491;background:#f4f6f8;border-radius:5px;color:#53657a}
++.terminated-banner&gt;span{color:var(--muted);line-height:1.6}
++.terminated-banner dl{display:grid;grid-template-columns:100px 1fr;gap:6px 14px;margin:4px 0 0}
++.terminated-banner dt{color:#8595a5}
++.terminated-banner dd{margin:0;word-break:break-word}
++.terminate-body .terminate-scope{color:#8595a5}
++.terminate-body .terminate-risk{padding:12px 14px;background:#fff7e4;color:#8b6821;border-radius:5px;line-height:1.7}
++.terminate-body .comment{margin-bottom:8px}
++.terminate-body .comment&gt;span{display:flex;justify-content:space-between;gap:12px}</pre>

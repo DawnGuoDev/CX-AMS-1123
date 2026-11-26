@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><title>diff docs/e2e/unit-tests.md</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/docs/e2e/unit-tests.md b/docs/e2e/unit-tests.md
+index 5edb6da..4d25e51 100644
+--- a/docs/e2e/unit-tests.md
++++ b/docs/e2e/unit-tests.md
+@@ -11,11 +11,12 @@
+ | `unit/ReportConditionsTest` | 单元（Mockito） | 报表查询：至少一个条件；contains/notContains/starts/ends/eq/neq 大小写不敏感；日期 between/eq/neq/lt/lte/gt/gte（按秒）；空日期不匹配；非法查询字段被拒绝 |
+ | `WorkflowIntegrationTest`（既有） | Spring 集成 | 认证单会话、真实 SMTP 与 ACK 闭环、重复告警抑制、失败重送、层级升级、Excel 汇入导出、页面 API 契约 |
+ | `ManualAlignmentIntegrationTest`（既有） | Spring 集成 | 使用者字段与审计、事件层级校验、报表时间运算、可见快照汇出、基础主档唯一性等 |
++| `AlarmTerminateIntegrationTest`（新增） | Spring 集成 | 强制中断全链路：权限（含撤销/停用/缺字段）、状态与原因边界、404、并发仅一次、层级与 Pending→Skipped 收敛、中断后 ≥2 调度周期不再升级/重送、`CAN_TERMINATE` 矩阵、历史只读、AVPA004/007/013 口径、`ALARM_LIST` 菜单、主档权限字段与 Excel 归一 |
+ 
+ 执行：
+ 
+ ```bash
+-cd backend &amp;&amp; mvn test            # 40 个：单元 + 集成（不含 HTTP E2E）
++cd backend &amp;&amp; mvn test            # 49 个：单元 + 集成（不含 HTTP E2E）
+ bash ../scripts/run-java-e2e.sh   # 额外跑 4 个后端接口 E2E（真实进程）
+ ```
+ 
+@@ -34,6 +35,7 @@ bash ../scripts/run-java-e2e.sh   # 额外跑 4 个后端接口 E2E（真实进
+ | `components/__tests__/UiCheckbox.test.js` | Ant 复选框的 `Y/N` 双向映射；人员数组增删且不修改输入数组 |
+ | `components/__tests__/FieldForm.test.js` | 跳过 readOnly 字段；必填星号；各类型输入；`readOnlyOnEdit` 仅编辑态禁用；子系统随厂别变化、切厂清空依赖；事件按厂别/子系统过滤 |
+ | `pages/__tests__/MasterPage.test.js` | 列表加载参数（`showHidden=0/1`）；新增走 POST、修改走 PUT；复制去掉主键与 ID；隐藏前确认（标题为问句）；层级草稿未确认时阻止保存并提示 |
++| `components/__tests__/AlarmDetail.test.js`（新增） | 详情强制中断：有权限可点击、无权限禁用并说明、历史无入口、非 Process 说明、空原因不可提交、原因 trim 后提交、取消清空草稿、失败保留原因并展示错误、中断横幅展示时间/操作人/原因 |
+ 
+ 执行：
+ </pre>

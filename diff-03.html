@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>diff backend/src/main/java/com/changxin/ams/Excel.java</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/backend/src/main/java/com/changxin/ams/Excel.java b/backend/src/main/java/com/changxin/ams/Excel.java
+index 543b8ac..8ba315e 100644
+--- a/backend/src/main/java/com/changxin/ams/Excel.java
++++ b/backend/src/main/java/com/changxin/ams/Excel.java
+@@ -68,7 +68,12 @@ public class Excel {
+                     String headerName=formatter.formatCellValue(header.getCell(j));
+                     String key=kind.equals(&quot;masters&quot;) ? rows(meta.get(&quot;fields&quot;)).stream().filter(f -&gt; eq(f,&quot;label&quot;,headerName))
+                         .map(f -&gt; s(f,&quot;name&quot;)).findFirst().orElse(headerName) : headerName;
+-                    if (!key.isBlank()) values.put(key,formatter.formatCellValue(source.getCell(j)));
++                    if (!key.isBlank()) {
++                        var cell=source.getCell(j);
++                        // An untouched (blank) cell in a copied template must not clear existing values on import.
++                        if (cell!=null &amp;&amp; cell.getCellType()!=org.apache.poi.ss.usermodel.CellType.BLANK)
++                            values.put(key,formatter.formatCellValue(cell));
++                    }
+                 }
+                 if (values.values().stream().allMatch(v -&gt; str(v).isBlank())) continue;
+                 var result=m(&quot;rowNo&quot;,i+1,&quot;values&quot;,values,&quot;valid&quot;,true,&quot;message&quot;,&quot;可汇入&quot;);</pre>

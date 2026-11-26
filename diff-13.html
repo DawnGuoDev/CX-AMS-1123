@@ -1,0 +1,83 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/components/AlarmDetail.vue</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/components/AlarmDetail.vue b/frontend/src/components/AlarmDetail.vue
+index 724b76c..e1ef8e5 100644
+--- a/frontend/src/components/AlarmDetail.vue
++++ b/frontend/src/components/AlarmDetail.vue
+@@ -1,14 +1,41 @@
+ &lt;script setup&gt;
+-import { Button as AButton, Textarea as ATextarea } from &#x27;ant-design-vue&#x27;
+-import { ref,watch } from &#x27;vue&#x27;
++import { Button as AButton, Modal as AModal, Textarea as ATextarea } from &#x27;ant-design-vue&#x27;
++import { computed, ref,watch } from &#x27;vue&#x27;
+ import { state, api, act, notify, t, openAlarm } from &#x27;../state&#x27;
+ import RecordDialog from &#x27;./RecordDialog.vue&#x27;
+ import DataGrid from &#x27;./DataGrid.vue&#x27;
+ const emit = defineEmits([&#x27;changed&#x27;])
+ const comment = ref(&#x27;&#x27;), tab = ref(&#x27;MAIN&#x27;), recordTab=ref(&#x27;NOTIFICATIONS&#x27;)
++const terminateOpen = ref(false), terminateCmt = ref(&#x27;&#x27;), terminateError = ref(&#x27;&#x27;), terminating = ref(false)
++const TERMINATE_COMMENT_MAX = 500
+ watch([()=&gt;state.detail?.ALARM_KEY,()=&gt;state.detail?.HISTORY_CONTEXT?.TRX_KEY],()=&gt;{
+   comment.value=&#x27;&#x27;;tab.value=&#x27;MAIN&#x27;;recordTab.value=&#x27;NOTIFICATIONS&#x27;
++  terminateOpen.value=false;terminateCmt.value=&#x27;&#x27;;terminateError.value=&#x27;&#x27;;terminating.value=false
+ })
++const history = computed(()=&gt;Boolean(state.detail?.HISTORY_CONTEXT))
++const canTerminate = computed(()=&gt;state.detail?.CAN_TERMINATE === true &amp;&amp; state.detail?.STATUS === &#x27;Process&#x27; &amp;&amp; !history.value)
++const terminateHint = computed(()=&gt;{
++  if (!state.detail || history.value) return &#x27;&#x27;
++  if (state.detail.STATUS === &#x27;Terminated&#x27;) return &#x27;警报已中断，流程已结束&#x27;
++  if (state.detail.STATUS !== &#x27;Process&#x27;) return &#x27;仅处理中（Process）的警报可中断&#x27;
++  if (state.detail.CAN_TERMINATE !== true) return &#x27;您没有强制中断权限，请联系具权限人员处理。&#x27;
++  return &#x27;&#x27;
++})
++// The detail dialog is itself a modal; render the confirmation in &lt;body&gt; so it is not clipped.
++const terminateContainer = () =&gt; document.body
++function openTerminate(){terminateCmt.value=&#x27;&#x27;;terminateError.value=&#x27;&#x27;;terminateOpen.value=true}
++function closeTerminate(){terminateOpen.value=false;terminateCmt.value=&#x27;&#x27;;terminateError.value=&#x27;&#x27;}
++async function terminate(){
++  const cmt = terminateCmt.value.trim()
++  if (!cmt || terminating.value) return
++  terminateError.value=&#x27;&#x27;;terminating.value=true
++  try {
++    const result = await api(`/alarms/${state.detail.ALARM_KEY}/terminate`, { cmt })
++    terminateOpen.value=false;terminateCmt.value=&#x27;&#x27;
++    notify(&#x27;警报已中断&#x27;)
++    await openAlarm(result.alarm || state.detail); emit(&#x27;changed&#x27;)
++  } catch (error) { terminateError.value = error.message } finally { terminating.value=false }
++}
+ async function perform(action) {
+   await act(async () =&gt; {
+     await api(`/alarms/${state.detail.ALARM_KEY}/${action}`, { cmt: comment.value })
+@@ -34,7 +61,33 @@ function value(key){const v=state.detail?.[key];return key.endsWith(&#x27;_DT&#x27;)&amp;&amp;v?ne
+     &lt;p v-if=&quot;tab===&#x27;CONTENT&#x27;&quot; class=&quot;alarm-content&quot;&gt;{{ state.detail.CONTENT }}&lt;/p&gt;
+     &lt;div class=&quot;toolbar&quot;&gt;&lt;span&gt;LEVEL-{{ state.detail.CURRENT_LEVEL }} · {{ state.detail.LEVEL_ACK_COUNT }} / {{ state.detail.LEVEL_REQUIRED ?? &#x27;—&#x27; }} {{ t(&#x27;已回应人数&#x27;) }}&lt;/span&gt;&lt;a-button v-if=&quot;!state.detail.HISTORY_CONTEXT&quot; @click=&quot;openAlarm(state.detail)&quot; type=&quot;default&quot; html-type=&quot;button&quot;&gt;刷新发送与确认状态&lt;/a-button&gt;&lt;/div&gt;
+     &lt;label v-if=&quot;tab===&#x27;COMMENT&#x27;&quot; class=&quot;comment&quot;&gt;&lt;span&gt;{{ t(&#x27;回应备注&#x27;) }}&lt;/span&gt;&lt;a-textarea v-if=&quot;state.detail.CAN_ACK&quot; v-model:value=&quot;comment&quot; rows=&quot;2&quot;/&gt;&lt;p v-else&gt;{{state.detail.ACK_CMT||&#x27;暂无回应备注&#x27;}}&lt;/p&gt;&lt;/label&gt;
+-    &lt;div v-if=&quot;!state.detail.HISTORY_CONTEXT&quot; class=&quot;toolbar&quot;&gt;&lt;a-button v-if=&quot;state.detail.CAN_ACK&quot; class=&quot;primary&quot; :disabled=&quot;state.busy &gt; 0&quot; @click=&quot;perform(&#x27;ack&#x27;)&quot; type=&quot;primary&quot; html-type=&quot;button&quot;&gt;{{ t(&#x27;警报确认&#x27;) }}&lt;/a-button&gt;&lt;span v-else class=&quot;muted&quot;&gt;当前账号暂无待确认操作（邮件待发送、非本层级人员、已确认或告警已结束）。&lt;/span&gt;&lt;/div&gt;
++    &lt;div v-if=&quot;!state.detail.HISTORY_CONTEXT&quot; class=&quot;toolbar&quot;&gt;&lt;a-button v-if=&quot;state.detail.CAN_ACK&quot; class=&quot;primary&quot; :disabled=&quot;state.busy &gt; 0&quot; @click=&quot;perform(&#x27;ack&#x27;)&quot; type=&quot;primary&quot; html-type=&quot;button&quot;&gt;{{ t(&#x27;警报确认&#x27;) }}&lt;/a-button&gt;&lt;span v-else class=&quot;muted&quot;&gt;当前账号暂无待确认操作（邮件待发送、非本层级人员、已确认或告警已结束）。&lt;/span&gt;&lt;span class=&quot;spacer&quot;/&gt;&lt;a-button v-if=&quot;state.detail.STATUS !== &#x27;Terminated&#x27; || !state.detail.TERMINATE_DT&quot; danger :disabled=&quot;!canTerminate&quot; @click=&quot;openTerminate&quot; html-type=&quot;button&quot;&gt;{{ t(&#x27;强制中断&#x27;) }}&lt;/a-button&gt;&lt;span v-if=&quot;terminateHint&quot; class=&quot;muted&quot;&gt;{{ t(terminateHint) }}&lt;/span&gt;&lt;/div&gt;
++    &lt;div v-if=&quot;!state.detail.HISTORY_CONTEXT &amp;&amp; state.detail.STATUS === &#x27;Terminated&#x27;&quot; class=&quot;terminated-banner&quot; data-test=&quot;terminated-banner&quot;&gt;
++      &lt;strong&gt;{{ t(&#x27;警报已中断&#x27;) }} · Terminated&lt;/strong&gt;
++      &lt;span&gt;{{ t(&#x27;中断后警报将结束且无法恢复 当前层级将关闭 不再发送通知 升级或失败重送&#x27;) }}&lt;/span&gt;
++      &lt;dl&gt;
++        &lt;dt&gt;{{ t(&#x27;中断时间&#x27;) }}&lt;/dt&gt;&lt;dd&gt;{{ value(&#x27;TERMINATE_DT&#x27;) }}&lt;/dd&gt;
++        &lt;dt&gt;{{ t(&#x27;中断操作人&#x27;) }}&lt;/dt&gt;&lt;dd&gt;{{ state.detail.TERMINATE_USER_NAME || &#x27;系统&#x27; }}{{ state.detail.TERMINATE_USER_ID ? ` (${state.detail.TERMINATE_USER_ID})` : &#x27;&#x27; }}&lt;/dd&gt;
++        &lt;dt&gt;{{ t(&#x27;中断原因&#x27;) }}&lt;/dt&gt;&lt;dd&gt;{{ state.detail.TERMINATE_CMT || &#x27;—&#x27; }}&lt;/dd&gt;
++      &lt;/dl&gt;
++    &lt;/div&gt;
++    &lt;a-modal :open=&quot;terminateOpen&quot; :title=&quot;t(&#x27;确认强制中断警报？&#x27;)&quot; :width=&quot;640&quot; :mask-closable=&quot;false&quot; :get-container=&quot;terminateContainer&quot;
++      wrap-class-name=&quot;terminate-modal&quot; destroy-on-close @cancel=&quot;closeTerminate&quot;&gt;
++      &lt;div class=&quot;terminate-body&quot;&gt;
++        &lt;p&gt;&lt;strong&gt;{{ state.detail.ALARM_ID }}&lt;/strong&gt; · {{ state.detail.TITLE }}&lt;/p&gt;
++        &lt;p class=&quot;terminate-scope&quot;&gt;{{ state.detail.FACTORY_ID }} / {{ state.detail.SUB_SYS_ID }} / {{ state.detail.EQP_ID }} · LEVEL-{{ state.detail.CURRENT_LEVEL }}&lt;/p&gt;
++        &lt;p class=&quot;terminate-risk&quot;&gt;{{ t(&#x27;中断后警报将结束且无法恢复 当前层级将关闭 不再发送通知 升级或失败重送&#x27;) }}&lt;/p&gt;
++        &lt;label class=&quot;comment&quot;&gt;&lt;span&gt;{{ t(&#x27;中断原因&#x27;) }} * &lt;small&gt;{{ terminateCmt.length }} / {{ TERMINATE_COMMENT_MAX }}&lt;/small&gt;&lt;/span&gt;
++          &lt;a-textarea v-model:value=&quot;terminateCmt&quot; :maxlength=&quot;TERMINATE_COMMENT_MAX&quot; show-count rows=&quot;4&quot;
++            :placeholder=&quot;t(&#x27;请填写中断原因（例如：机台已修复、误报、事件配置错误）&#x27;)&quot; aria-label=&quot;中断原因&quot;/&gt;
++        &lt;/label&gt;
++        &lt;p v-if=&quot;terminateError&quot; class=&quot;error&quot; role=&quot;alert&quot;&gt;{{ terminateError }}&lt;/p&gt;
++      &lt;/div&gt;
++      &lt;template #footer&gt;
++        &lt;a-button :disabled=&quot;terminating&quot; @click=&quot;closeTerminate&quot; html-type=&quot;button&quot;&gt;{{ t(&#x27;取消&#x27;) }}&lt;/a-button&gt;
++        &lt;a-button danger type=&quot;primary&quot; :loading=&quot;terminating&quot; :disabled=&quot;!terminateCmt.trim()&quot; @click=&quot;terminate&quot; html-type=&quot;button&quot;&gt;{{ t(&#x27;确认中断&#x27;) }}&lt;/a-button&gt;
++      &lt;/template&gt;
++    &lt;/a-modal&gt;
+     &lt;div class=&quot;tabs&quot;&gt;&lt;a-button v-for=&quot;(label,key) in { NOTIFICATIONS:&#x27;通知发送记录&#x27;, TRANSACTIONS:&#x27;交易履历&#x27;, LEVELS:&#x27;事件层级&#x27;, ACKS:&#x27;回应记录&#x27; }&quot; :key=&quot;key&quot; :class=&quot;{ active: recordTab === key }&quot; @click=&quot;recordTab = key&quot; type=&quot;default&quot; html-type=&quot;button&quot;&gt;{{ t(label) }}&lt;/a-button&gt;&lt;/div&gt;
+     &lt;DataGrid :rows=&quot;state.detail[recordTab] || []&quot; :columns=&quot;columns[recordTab].map(([field,label]) =&gt; ({field,label}))&quot;/&gt;
+   &lt;/RecordDialog&gt;</pre>

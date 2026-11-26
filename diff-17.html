@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/pages/OperationsPage.vue</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/pages/OperationsPage.vue b/frontend/src/pages/OperationsPage.vue
+index d394462..9695cce 100644
+--- a/frontend/src/pages/OperationsPage.vue
++++ b/frontend/src/pages/OperationsPage.vue
+@@ -16,7 +16,7 @@ async function loadOptions(){
+ }
+ watch(()=&gt;form.value.factoryKey,()=&gt;{form.value.subsysKey=&#x27;&#x27;;form.value.alarmCode=&#x27;&#x27;;act(loadOptions)})
+ watch(()=&gt;[form.value.subsysKey,form.value.eqpKey],()=&gt;{form.value.alarmCode=&#x27;&#x27;;act(loadOptions)})
+-async function load(){if(props.code===&#x27;TEST&#x27;)await loadOptions();else rows.value=(await api(&#x27;/alarms/pending&#x27;)).rows}
++async function load(){if(props.code===&#x27;TEST&#x27;)await loadOptions();else rows.value=(await api(props.code===&#x27;ALARM_LIST&#x27;?&#x27;/alarms/process&#x27;:&#x27;/alarms/pending&#x27;)).rows}
+ async function submit(){
+   await act(async()=&gt;{
+     const result=await api(&#x27;/alarms/test&#x27;,form.value)
+@@ -24,7 +24,7 @@ async function submit(){
+     await openAlarm(result.alarm)
+   })
+ }
+-onMounted(()=&gt;{act(load);if(props.code===&#x27;ACK_LIST&#x27;)timer=setInterval(()=&gt;{if(!document.hidden)act(load)},10000)})
++onMounted(()=&gt;{act(load);if([&#x27;ACK_LIST&#x27;,&#x27;ALARM_LIST&#x27;].includes(props.code))timer=setInterval(()=&gt;{if(!document.hidden)act(load)},10000)})
+ onUnmounted(()=&gt;clearInterval(timer))
+ &lt;/script&gt;
+ &lt;template&gt;</pre>

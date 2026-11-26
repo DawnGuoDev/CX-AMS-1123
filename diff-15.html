@@ -1,0 +1,163 @@
+<!doctype html><meta charset="utf-8"><title>diff frontend/src/components/__tests__/AlarmDetail.test.js</title><style>body{margin:0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fbfcfd}pre{margin:0;padding:16px 18px;white-space:pre;overflow:auto}a{position:sticky;top:0;display:block;padding:10px 18px;background:#1f3346;color:#dbe9f6;text-decoration:none;font-family:system-ui,sans-serif}a:hover{background:#2b4a66}</style><a href="code-implementation-deliverables.html#sec-diff">← 返回交付物总览 / Back to deliverables</a><pre>diff --git a/frontend/src/components/__tests__/AlarmDetail.test.js b/frontend/src/components/__tests__/AlarmDetail.test.js
+new file mode 100644
+index 0000000..c230116
+--- /dev/null
++++ b/frontend/src/components/__tests__/AlarmDetail.test.js
+@@ -0,0 +1,157 @@
++import { flushPromises, mount } from &#x27;@vue/test-utils&#x27;
++import { beforeEach, describe, expect, it, vi } from &#x27;vitest&#x27;
++import { state } from &#x27;../../state&#x27;
++import AlarmDetail from &#x27;../AlarmDetail.vue&#x27;
++
++const api = vi.fn()
++const notify = vi.fn()
++
++vi.mock(&#x27;../../state&#x27;, async (importOriginal) =&gt; {
++  const actual = await importOriginal()
++  return {
++    ...actual,
++    state: actual.state,
++    api: (...args) =&gt; api(...args),
++    notify: (...args) =&gt; notify(...args),
++    openAlarm: vi.fn(async () =&gt; {}),
++  }
++})
++
++vi.mock(&#x27;../RecordDialog.vue&#x27;, () =&gt; ({
++  default: {
++    name: &#x27;RecordDialog&#x27;,
++    props: [&#x27;title&#x27;, &#x27;wide&#x27;],
++    emits: [&#x27;close&#x27;],
++    template: &#x27;&lt;section role=&quot;dialog&quot; :aria-label=&quot;title&quot;&gt;&lt;slot/&gt;&lt;/section&gt;&#x27;,
++  },
++}))
++vi.mock(&#x27;../DataGrid.vue&#x27;, () =&gt; ({
++  default: { name: &#x27;DataGrid&#x27;, props: [&#x27;rows&#x27;, &#x27;columns&#x27;], template: &#x27;&lt;div class=&quot;grid-stub&quot;/&gt;&#x27; },
++}))
++
++const base = {
++  ALARM_KEY: &#x27;alarms-000001&#x27;, ALARM_ID: &#x27;A0001&#x27;, TITLE: &#x27;机台高温&#x27;, STATUS: &#x27;Process&#x27;, CURRENT_LEVEL: 1,
++  LEVEL_ACK_COUNT: 0, LEVEL_REQUIRED: 2, FACTORY_ID: &#x27;F01&#x27;, SUB_SYS_ID: &#x27;SS03&#x27;, EQP_ID: &#x27;EQP01&#x27;,
++  NOTIFICATIONS: [], TRANSACTIONS: [], LEVELS: [], ACKS: [],
++}
++
++function mountDetail(overrides = {}) {
++  state.detail = { ...base, ...overrides }
++  state.user = { USER_ID: &#x27;E0043258&#x27;, USER_NAME: &#x27;陈柏睿&#x27; }
++  state.busy = 0
++  return mount(AlarmDetail, { attachTo: document.body })
++}
++/** The confirmation dialog is portaled to &lt;body&gt; so it is not clipped by the detail dialog. */
++const dialogText = () =&gt; document.body.textContent
++function dialogButton(label) {
++  // Ant Design inserts a space between two CJK characters (&quot;取 消&quot;).
++  return Array.from(document.body.querySelectorAll(&#x27;button&#x27;)).find(button =&gt; button.textContent.replace(/\s/g, &#x27;&#x27;) === label.replace(/\s/g, &#x27;&#x27;))
++}
++function reasonInput() {
++  return document.body.querySelector(&#x27;textarea&#x27;)
++}
++function terminateButton(wrapper) {
++  const button = wrapper.findAll(&#x27;button&#x27;).find(b =&gt; b.text() === &#x27;强制中断&#x27;)
++  if (!button) throw new Error(&#x27;terminate button not rendered&#x27;)
++  return button
++}
++
++beforeEach(() =&gt; {
++  api.mockReset()
++  notify.mockReset()
++  state.error = &#x27;&#x27;
++})
++
++describe(&#x27;AlarmDetail forced termination&#x27;, () =&gt; {
++  it(&#x27;offers an enabled button to an authorized user on a processing alarm&#x27;, async () =&gt; {
++    const wrapper = mountDetail({ CAN_TERMINATE: true })
++    expect(terminateButton(wrapper).attributes(&#x27;disabled&#x27;)).toBeUndefined()
++    await terminateButton(wrapper).trigger(&#x27;click&#x27;)
++    await flushPromises()
++    expect(dialogText()).toContain(&#x27;确认强制中断警报？&#x27;)
++    expect(dialogText()).toContain(&#x27;机台高温&#x27;)
++  })
++
++  it(&#x27;disables the button with a permission hint for users without permission&#x27;, () =&gt; {
++    const wrapper = mountDetail({ CAN_TERMINATE: false })
++    expect(terminateButton(wrapper).attributes(&#x27;disabled&#x27;)).toBeDefined()
++    expect(wrapper.text()).toContain(&#x27;您没有强制中断权限，请联系具权限人员处理。&#x27;)
++  })
++
++  it(&#x27;does not render a terminate entry inside historical transaction views&#x27;, () =&gt; {
++    const wrapper = mountDetail({ CAN_TERMINATE: true, STATUS: &#x27;Terminated&#x27;, TERMINATE_DT: &#x27;2026-11-26T08:00:00Z&#x27;,
++      HISTORY_CONTEXT: { TRX_KEY: &#x27;alarm_transactions-000002&#x27;, SEQ: 2, TRX_DT: &#x27;2026-11-26T08:00:00Z&#x27;, STATUS_AFTER: &#x27;Terminated&#x27; } })
++    expect(wrapper.findAll(&#x27;button&#x27;).some(b =&gt; b.text() === &#x27;强制中断&#x27;)).toBe(false)
++  })
++
++  it(&#x27;keeps confirm disabled until a reason is entered and sends the trimmed comment once&#x27;, async () =&gt; {
++    api.mockResolvedValue({ ok: true, terminated: true, alarm: { ...base, STATUS: &#x27;Terminated&#x27; } })
++    const wrapper = mountDetail({ CAN_TERMINATE: true })
++    await terminateButton(wrapper).trigger(&#x27;click&#x27;)
++    await flushPromises()
++    expect(dialogButton(&#x27;确认中断&#x27;).disabled).toBe(true)
++
++    const reason = reasonInput()
++    reason.value = &#x27;  机台已修复  &#x27;
++    reason.dispatchEvent(new Event(&#x27;input&#x27;))
++    await flushPromises()
++    expect(dialogButton(&#x27;确认中断&#x27;).disabled).toBe(false)
++    dialogButton(&#x27;确认中断&#x27;).click()
++    await flushPromises()
++    expect(api).toHaveBeenCalledTimes(1)
++    expect(api).toHaveBeenCalledWith(&#x27;/alarms/alarms-000001/terminate&#x27;, { cmt: &#x27;机台已修复&#x27; })
++    expect(notify).toHaveBeenCalledWith(&#x27;警报已中断&#x27;)
++    expect(dialogText()).not.toContain(&#x27;确认强制中断警报？&#x27;)
++  })
++
++  it(&#x27;clears the draft on cancel without calling the API&#x27;, async () =&gt; {
++    const wrapper = mountDetail({ CAN_TERMINATE: true })
++    await terminateButton(wrapper).trigger(&#x27;click&#x27;)
++    await flushPromises()
++    // A fresh dialog (destroy-on-close) can render asynchronously; wait for the footer.
++    expect(dialogButton(&#x27;取消&#x27;)).toBeDefined()
++    const reason = reasonInput()
++    reason.value = &#x27;待取消&#x27;
++    reason.dispatchEvent(new Event(&#x27;input&#x27;))
++    await flushPromises()
++    dialogButton(&#x27;取消&#x27;).click()
++    await flushPromises()
++    expect(api).not.toHaveBeenCalled()
++    expect(dialogText()).not.toContain(&#x27;确认强制中断警报？&#x27;)
++    await terminateButton(wrapper).trigger(&#x27;click&#x27;)
++    await flushPromises()
++    expect(reasonInput()).not.toBe(reason)
++    expect(reasonInput().value).toBe(&#x27;&#x27;)
++  })
++
++  it(&#x27;keeps the dialog open with the reason and surfaces the server error&#x27;, async () =&gt; {
++    api.mockRejectedValue(Object.assign(new Error(&#x27;该警报已非处理中状态&#x27;), { status: 400 }))
++    const wrapper = mountDetail({ CAN_TERMINATE: true })
++    await terminateButton(wrapper).trigger(&#x27;click&#x27;)
++    await flushPromises()
++    reasonInput().value = &#x27;原因保留&#x27;
++    reasonInput().dispatchEvent(new Event(&#x27;input&#x27;))
++    await flushPromises()
++    dialogButton(&#x27;确认中断&#x27;).click()
++    await flushPromises()
++    expect(dialogText()).toContain(&#x27;确认强制中断警报？&#x27;)
++    expect(reasonInput().value).toBe(&#x27;原因保留&#x27;)
++    expect(document.body.querySelector(&#x27;[role=&quot;alert&quot;]&#x27;).textContent).toBe(&#x27;该警报已非处理中状态&#x27;)
++    expect(notify).not.toHaveBeenCalled()
++  })
++
++  it(&#x27;shows the termination banner with time, operator and reason after termination&#x27;, () =&gt; {
++    const wrapper = mountDetail({ CAN_TERMINATE: false, STATUS: &#x27;Terminated&#x27;, TERMINATE_DT: &#x27;2026-11-26T08:00:00Z&#x27;,
++      TERMINATE_CMT: &#x27;误报&#x27;, TERMINATE_USER_ID: &#x27;E0043258&#x27;, TERMINATE_USER_NAME: &#x27;陈柏睿&#x27; })
++    const banner = wrapper.get(&#x27;[data-test=&quot;terminated-banner&quot;]&#x27;)
++    expect(banner.text()).toContain(&#x27;警报已中断&#x27;)
++    expect(banner.text()).toContain(&#x27;陈柏睿 (E0043258)&#x27;)
++    expect(banner.text()).toContain(&#x27;误报&#x27;)
++  })
++
++  it(&#x27;explains that only Process alarms can be terminated&#x27;, () =&gt; {
++    const wrapper = mountDetail({ CAN_TERMINATE: false, STATUS: &#x27;Completed&#x27; })
++    expect(wrapper.text()).toContain(&#x27;仅处理中（Process）的警报可中断&#x27;)
++    expect(terminateButton(wrapper).attributes(&#x27;disabled&#x27;)).toBeDefined()
++  })
++})</pre>
