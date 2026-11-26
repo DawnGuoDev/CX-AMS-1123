@@ -13,11 +13,61 @@ COPY backend/src ./src
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
 RUN mvn -B -Pweb package
 
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-RUN groupadd --system ams && useradd --system --gid ams ams && mkdir /app/data && chown ams:ams /app/data
+# ---------------------------------------------------------------------------
+# veFaaS native/v1 runtime
+#
+# veFaaS always launches a function with `/opt/application/run.sh` and does not
+# inject a shell or libc. A distro base (ubuntu/debian/alpine) therefore cannot be
+# used: it ships its own libc and /bin/sh, so the bundled Java would resolve against
+# the wrong loader and the platform's shell invocation would break. The layout that
+# is verified in production is a scratch rootfs containing exactly:
+#   glibc loader + libs, Temurin JRE 21 under /opt/java, static busybox (/bin/sh),
+#   /app/ams.jar and /opt/application/run.sh.
+# All runtime files are copied from build stages or committed under docker/vefaas,
+# so the build needs no network access at image-assembly time.
+# ---------------------------------------------------------------------------
+FROM eclipse-temurin:21-jre AS jre
+
+# Stage that owns /bin, /tmp, /etc and run.sh; scratch itself cannot run commands.
+FROM alpine:3.20 AS applets
+COPY docker/vefaas/busybox /bin/busybox
+COPY docker/vefaas/run.sh /opt/application/run.sh
+RUN chmod 755 /bin/busybox /opt/application/run.sh && \
+    for a in sh ls echo cat head tail wc pwd env which test grep find du df ps netstat ip \
+             ifconfig ss sleep stat mkdir touch rm cp mv chmod awk sed xargs sort uniq \
+             basename dirname md5sum hostname uname date id whoami; do ln -sf /bin/busybox /bin/$a; done && \
+    mkdir -p /tmp /run /var/tmp /etc && chmod 1777 /tmp && \
+    printf '127.0.0.1 localhost\n' > /etc/hosts && \
+    printf 'localhost\n' > /etc/hostname && \
+    printf 'nameserver 127.0.0.53\n' > /etc/resolv.conf && \
+    /bin/busybox | head -1
+
+FROM scratch
+# glibc dynamic linker and the libraries Temurin 21 links against.
+COPY --from=jre /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+COPY --from=jre /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+COPY --from=jre /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so.6
+COPY --from=jre /lib/x86_64-linux-gnu/libdl.so.2 /lib/x86_64-linux-gnu/libdl.so.2
+COPY --from=jre /lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
+COPY --from=jre /lib/x86_64-linux-gnu/libpthread.so.0 /lib/x86_64-linux-gnu/libpthread.so.0
+COPY --from=jre /lib/x86_64-linux-gnu/librt.so.1 /lib/x86_64-linux-gnu/librt.so.1
+
+# JRE under /opt/java keeps run.sh, JAVA_HOME and PATH stable.
+COPY --from=jre /opt/java/openjdk /opt/java
+
+# /bin (busybox + applet links), /tmp, /etc, /opt/application/run.sh.
+COPY --from=applets /bin /bin
+COPY --from=applets /tmp /tmp
+COPY --from=applets /run /run
+COPY --from=applets /var/tmp /var/tmp
+COPY --from=applets /etc /etc
+COPY --from=applets /opt/application /opt/application
+
 COPY --from=backend /app/backend/target/ams-1.0.0.jar /app/ams.jar
-USER ams
-ENV HOST=0.0.0.0 PORT=8080
+
+ENV HOST=0.0.0.0 \
+    PORT=8080 \
+    JAVA_HOME=/opt/java \
+    PATH=/opt/java/bin:/bin:/usr/bin:/sbin \
+    LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/opt/java/lib
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/ams.jar"]
