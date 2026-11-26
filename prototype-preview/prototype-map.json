@@ -1,0 +1,75 @@
+{
+  "$comment": "Points at the preview project that this repository's long-lived prototype branch maintains. Keep it in sync with docs/prototype-engine.md on the business baseline branch.",
+  "schemaVersion": 1,
+  "repository": {
+    "name": "DawnGuoDev/CX-AMS-1123",
+    "remote": "https://github.com/DawnGuoDev/CX-AMS-1123.git"
+  },
+  "businessBaseline": {
+    "branch": "release",
+    "commit": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+    "checkedAt": "2026-11-26"
+  },
+  "prototype": {
+    "branch": "codex/prototype-preview",
+    "projectPath": "prototype-preview",
+    "verifiedCommit": null,
+    "publishName": "CX-AMS-1123原型工程演示",
+    "deterministicRoutes": ["#/home", "#/page/AVPA013", "#/page/ACK_LIST", "#/page/TEST", "#/page/SBRM_USER", "#/page/SBRM_FACTORY", "#/page/SBRM_EQP"]
+  },
+  "commands": {
+    "install": "cd prototype-preview && npm install",
+    "dev": "cd prototype-preview && npm run dev",
+    "build": "cd prototype-preview && npm run build",
+    "serveBuilt": "cd prototype-preview/dist && python3 -m http.server 4173"
+  },
+  "hostAdapter": {
+    "entry": "prototype-preview/src/mock/api.js",
+    "stateAdapter": "prototype-preview/src/state.js",
+    "overlayCss": "prototype-preview/src/style.js"
+  },
+  "sources": [
+    {
+      "source": "frontend/src/style.css",
+      "target": "prototype-preview/src/style.css",
+      "revision": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+      "adaptation": "verbatim copy; scoped Ant [hidden] rule re-declared in src/style.js"
+    },
+    {
+      "source": "frontend/src/components/{DataGrid,FieldForm,RecordDialog,UiCheckbox,AppSidebar}.vue",
+      "target": "prototype-preview/src/components/",
+      "revision": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+      "adaptation": "real sources; state import points at the mock host adapter; DataGrid header text is now a real link click target"
+    },
+    {
+      "source": "frontend/src/{state.js,filters.js,legacy-i18n.js}",
+      "target": "prototype-preview/src/{state.js,filters.js,legacy-i18n.js}",
+      "revision": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+      "adaptation": "state api()/bootstrap() route to createMockApi(); legacy-i18n loads the OpenCC UMD asset on demand"
+    },
+    {
+      "source": "frontend/src/components/AlarmDetail.vue",
+      "target": "prototype-preview/src/components/AlarmDetail.vue",
+      "revision": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+      "adaptation": "history-dialog branch and record data removed (mock has none); ACK calls the mock"
+    },
+    {
+      "source": "frontend/src/pages/{Workspace,MasterPage,OperationsPage}.vue",
+      "target": "prototype-preview/src/pages/",
+      "revision": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+      "adaptation": "MasterPage persistence uses the preview master store; OperationsPage drops DeviceSimulator; ReportPage not migrated"
+    },
+    {
+      "source": "frontend/src/App.vue, frontend/src/pages/ReportPage.vue (KPI + DataGrid pattern only)",
+      "target": "prototype-preview/src/App.vue, prototype-preview/src/pages/HomePage.vue",
+      "revision": "13c84348c339d0acea9062954b043b1ec7e56e5d",
+      "adaptation": "login replaced by auto-bootstrap; home is a preview-only composition of the real shell and DataGrid"
+    }
+  ],
+  "notMigrated": [
+    "ReportPage (AVPA013/AVPA004/AVPA007) query/export flow",
+    "DeviceSimulator inside OperationsPage",
+    "MasterPage extra master types (AVMA003/AVMA004/AVMA007/AVMA009)",
+    "Real auth/session, SMTP, Java API, scheduler"
+  ]
+}
