@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { MENU, apiToken, login, openMenu, unique } from './support/ams.js'
 
 /**
@@ -50,8 +50,21 @@ async function queryInvalidAlarms(request: APIRequestContext, token: string, con
   return { response, body: await response.json() }
 }
 
+/**
+ * D1 regression guard: ReportPage.vue:12 used an undeclared `code` (props.code), which threw
+ * "ReferenceError: code is not defined" while mounting and left the report body blank with a 200
+ * page shell. Functional selectors alone did not fail fast enough in the deployed build, so every
+ * page-level test records uncaught page errors and asserts none happened on the query path.
+ */
+function trackPageErrors(page: Page) {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  return errors
+}
+
 test.describe('TC-FE-E2E-006 无效警报查询', () => {
   test('opens AVPA008 from the report group and requires a query before showing rows', async ({ page, request }) => {
+    const pageErrors = trackPageErrors(page)
     const token = await apiToken(request)
     const title = `E2E 无效警报 ${unique('UI')}`
     await triggerInvalid(request, token, title)
@@ -82,6 +95,8 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
     await expect(grid).toContainText('失效类型')
     await expect(grid).toContainText('失效原因')
     await expect(grid).toContainText(title)
+    // No uncaught ReferenceError/TypeError while mounting and querying the report.
+    expect(pageErrors, pageErrors.join('\n')).toHaveLength(0)
   })
 
   test('rejects a query without a time range and returns only the requested window', async ({ request }) => {
@@ -156,6 +171,17 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
     expect(onlyTo.response.status(), JSON.stringify(onlyTo.body)).toBe(200)
     expect(onlyTo.body.rows).toHaveLength(0)
 
+    // D2 observation: "触发人员" is offered as a condition by GET /api/report-defs/AVPA008, while
+    // Reports.query builds its field whitelist from COLUMNS. Both sides must agree: filtering by the
+    // operator who fired the request has to hit the record instead of returning 400 查询字段无效.
+    const bySourceUser = await queryInvalidAlarms(request, token, {
+      ...withTimeRange(),
+      TITLE: { enabled: true, operator: 'eq', value: title },
+      SOURCE_USER_ID: { enabled: true, type: 'text', operator: 'eq', value: 'E0043258' },
+    })
+    expect(bySourceUser.response.status(), JSON.stringify(bySourceUser.body)).toBe(200)
+    expect(bySourceUser.body.rows).toHaveLength(1)
+
     // Unknown field names are still rejected by the shared report contract.
     const badField = await queryInvalidAlarms(request, token, {
       ...withTimeRange(),
@@ -166,6 +192,7 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
   })
 
   test('exports the filtered invalid alarms as a downloadable workbook', async ({ page, request }) => {
+    const pageErrors = trackPageErrors(page)
     const token = await apiToken(request)
     const title = `E2E 无效警报 ${unique('XLS')}`
     await triggerInvalid(request, token, title)
@@ -189,5 +216,6 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
     expect(download.suggestedFilename()).toMatch(/\.xlsx$/)
     const path = await download.path()
     expect(path).toBeTruthy()
+    expect(pageErrors, pageErrors.join('\n')).toHaveLength(0)
   })
 })
