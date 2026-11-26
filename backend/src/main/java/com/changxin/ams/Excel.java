@@ -36,6 +36,8 @@ public class Excel {
         var meta=masters.meta(kind,code);
         if (kind.equals("mappings")) {
             var master=obj(meta.get("master")); var item=obj(meta.get("item"));
+            String masterHeader=s(master,"excelHeader","MASTER_CODE"),itemHeader=s(item,"excelHeader","ITEM_CODE");
+            String masterExcelHeader=s(meta,"masterExcelHeader",masterHeader);
             var data=template ? List.<Map<String,Object>>of() : store.table(s(meta,"mapTable")).stream().filter(r -> {
                 var a=store.find(s(master,"table"),s(master,"key"),r.get(s(meta,"mapMasterFk")));
                 var b=store.find(s(item,"table"),s(item,"key"),r.get(s(meta,"mapItemFk")));
@@ -43,10 +45,11 @@ public class Excel {
             }).map(r -> {
                 var a=store.find(s(master,"table"),s(master,"key"),r.get(s(meta,"mapMasterFk")));
                 var b=store.find(s(item,"table"),s(item,"key"),r.get(s(meta,"mapItemFk")));
-                return m("MASTER_CODE",a == null ? "" : a.get(str(list(master.get("display")).getFirst())),
+                return m(masterExcelHeader,a == null ? "" : a.get(str(list(master.get("display")).getFirst())),
                     "ITEM_CODE",b == null ? "" : b.get(str(list(item.get("display")).getFirst())));
             }).toList();
-            return workbook(code+(template?"_template":"_data"),List.of(m("field","MASTER_CODE","label","MASTER_CODE"),m("field","ITEM_CODE","label","ITEM_CODE")),data);
+            return workbook(code+(template?"_template":"_data"),List.of(
+                m("field",masterExcelHeader,"label",masterHeader),m("field","ITEM_CODE","label",itemHeader)),data);
         }
         var columns=rows(meta.get("fields")).stream().filter(f -> !eq(f,"type","password") && !Boolean.TRUE.equals(f.get("readOnly")))
             .map(f -> m("field",f.get("name"),"label",f.get("name"))).toList();
@@ -95,8 +98,10 @@ public class Excel {
     }
     private Map<String,Object> mappingKeys(Map<String,Object> meta,Map<String,Object> values) {
         var a=obj(meta.get("master")); var b=obj(meta.get("item"));
-        var master=store.mustFind(s(a,"table"),str(list(a.get("display")).getFirst()),values.get("MASTER_CODE"));
-        var item=store.mustFind(s(b,"table"),str(list(b.get("display")).getFirst()),values.get("ITEM_CODE"));
+        String masterHeader=s(a,"excelHeader","MASTER_CODE"),itemHeader=s(b,"excelHeader","ITEM_CODE");
+        String masterCode=s(meta,"masterExcelHeader",masterHeader),itemCode=s(meta,"itemExcelHeader",itemHeader);
+        var master=store.mustFind(s(a,"table"),str(list(a.get("display")).getFirst()),str(values,masterCode));
+        var item=store.mustFind(s(b,"table"),str(list(b.get("display")).getFirst()),str(values,itemCode));
         require(active(master) && active(item),"对应资料已隐藏");
         return m("masterKey",master.get(s(a,"key")),"itemKey",item.get(s(b,"key")));
     }

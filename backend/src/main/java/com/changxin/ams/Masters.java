@@ -85,6 +85,7 @@ public class Masters {
         for (Object key : list(meta.get("uniqueFields"))) unique.add(List.of(key));
         for (Object group : list(meta.get("uniqueComposite"))) unique.add(list(group));
         for (Object group : list(meta.get("masterUnique"))) unique.add(list(group));
+        Set<String> ignoreCase = list(meta.get("uniqueIgnoreCase")).stream().map(Object::toString).collect(java.util.stream.Collectors.toSet());
         for (var fields : unique) {
             // The row being edited is identified by keyField, so it is excluded (an unchanged save
             // stays valid). Any other row — including the first active one — is a conflict: the
@@ -92,7 +93,9 @@ public class Masters {
             // duplicate through because its ID differed from the empty/new ID. On create the new
             // row has no key yet, so every stored row is a candidate.
             boolean duplicate = store.table(table).stream().anyMatch(r -> !eq(r, keyField, row.get(keyField))
-                && fields.stream().allMatch(f -> eq(r, str(f), row.get(str(f)))));
+                && fields.stream().allMatch(f -> ignoreCase.contains(str(f))
+                    ? s(r, str(f)).toUpperCase(Locale.ROOT).equals(s(row, str(f)).toUpperCase(Locale.ROOT))
+                    : eq(r, str(f), row.get(str(f)))));
             require(!duplicate, "唯一键组合已存在：" + fields);
         }
         var options = options();

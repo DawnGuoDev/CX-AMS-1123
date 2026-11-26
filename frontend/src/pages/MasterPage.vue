@@ -28,6 +28,9 @@ const levelColumns=computed(()=>[...(meta.value.detail?.fields||[]).map(f=>({...
 const withRecipients=levels=>levels.map(r=>({...r,RECIPIENTS:(r.USER_KEYS||[]).map(k=>state.options.user?.find(u=>u.value===k)?.label||k).join('；')}))
 const selectedDetails=computed(()=>withRecipients((data.value.details||[]).filter(r=>r.EVENT_KEY===selected.value[0]?.EVENT_KEY)))
 const assigned=computed(()=>(data.value.items||[]).filter(r=>itemKeys.value.includes(r[meta.value.item?.key])))
+const mappingColumns=computed(()=>(meta.value.item?.display||[]).map(field=>({field,label:field})))
+const masterLabel=computed(()=>meta.value.master?.label || '')
+const itemLabel=computed(()=>meta.value.item?.label || '')
 const route = computed(() => `/${kind.value}/${props.code}`)
 async function load() {
   data.value = await api(`${route.value}?showHidden=${showHidden.value ? 1 : 0}`)
@@ -146,8 +149,8 @@ defineExpose({ load, start, save, changeActive, edit, editing, selected, confirm
     <section class="panel"><h3>{{ t(meta.master.label) }}</h3><a-input v-model:value="itemSearch" :placeholder="t('过滤')"/>
       <a-button v-for="row in data.masters.filter(r => meta.master.display.some(k => String(r[k] || '').includes(itemSearch)))" :key="row[meta.master.key]" class="master-choice" :class="{active:masterKey === row[meta.master.key]}" @click="chooseMaster(row)" type="default" html-type="button">{{ meta.master.display.slice(0,2).map(k => row[k]).join(' · ') }}</a-button>
     </section>
-    <section class="panel"><h3>已对应子系统 · {{ itemKeys.length }}</h3>
-      <DataGrid :rows="assigned" :columns="[{field:'SUB_SYS_ID',label:'子系统代码'},{field:'SUB_SYS_NAME',label:'子系统名称'}]"/>
+    <section class="panel"><h3>已对应{{ itemLabel }} · {{ itemKeys.length }}</h3>
+      <DataGrid :rows="assigned" :columns="mappingColumns"/>
     </section>
   </div>
   <template v-else>
@@ -176,11 +179,11 @@ defineExpose({ load, start, save, changeActive, edit, editing, selected, confirm
   </RecordDialog>
   <RecordDialog v-if="mapEdit" :title="mapCopy?'复制对应':'修改对应'" wide @close="mapEdit=null">
     <form @submit.prevent="saveMapping">
-      <label>厂别 <a-select v-model:value="mapEdit.masterKey" :disabled="!mapCopy" required><a-select-option value="">请选择目标厂别</a-select-option><a-select-option v-for="r in data.masters" :key="r[meta.master.key]" :value="r[meta.master.key]">{{meta.master.display.map(k=>r[k]).join(' · ')}}</a-select-option></a-select></label>
-      <p class="muted">储存将以右侧清单替换所选厂别的对应；取消不保存。</p>
+      <label>{{ masterLabel }} <a-select v-model:value="mapEdit.masterKey" :disabled="!mapCopy" required><a-select-option value="">请选择目标{{ masterLabel }}</a-select-option><a-select-option v-for="r in data.masters" :key="r[meta.master.key]" :value="r[meta.master.key]">{{meta.master.display.map(k=>r[k]).join(' · ')}}</a-select-option></a-select></label>
+      <p class="muted">储存将以右侧清单替换所选{{ masterLabel }}的对应；取消不保存。</p>
       <div class="mapping-layout">
-        <section class="panel"><h3>未对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>!mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><UiCheckbox  v-model="availableSelected" :value="item[meta.item.key]"/>{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><a-button :disabled="!availableSelected.length" @click="transfer(true)" type="default" html-type="button">加入 →</a-button></section>
-        <section class="panel"><h3>已对应子系统</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><UiCheckbox  v-model="assignedSelected" :value="item[meta.item.key]"/>{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><a-button :disabled="!assignedSelected.length" @click="transfer(false)" type="default" html-type="button">← 移除</a-button></section>
+        <section class="panel"><h3>未对应{{ itemLabel }}</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>!mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><UiCheckbox  v-model="availableSelected" :value="item[meta.item.key]"/>{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><a-button :disabled="!availableSelected.length" @click="transfer(true)" type="default" html-type="button">加入 →</a-button></section>
+        <section class="panel"><h3>已对应{{ itemLabel }}</h3><div class="transfer-list"><label v-for="item in data.items.filter(r=>mapEdit.itemKeys.includes(r[meta.item.key]))" :key="item[meta.item.key]" class="check"><UiCheckbox  v-model="assignedSelected" :value="item[meta.item.key]"/>{{meta.item.display.map(k=>item[k]).join(' · ')}}</label></div><a-button :disabled="!assignedSelected.length" @click="transfer(false)" type="default" html-type="button">← 移除</a-button></section>
       </div>
       <div class="form-actions"><a-button @click="mapEdit=null" type="default" html-type="button">取消</a-button><a-button class="primary" :disabled="!mapEdit.masterKey" type="primary" html-type="submit">储存</a-button></div>
     </form>

@@ -27,6 +27,10 @@ public final class Json {
         return v instanceof List ? (List<Object>) v : new ArrayList<>();
     }
     public static String s(Map<String, Object> r, String k) { return str(r.get(k)); }
+    public static String s(Map<String, Object> r, String k, String fallback) {
+        String value = s(r, k); return value.isBlank() ? fallback : value;
+    }
+    public static String str(Map<String, Object> r, String k) { return str(r.get(k)); }
     public static String str(Object v) { return v == null ? "" : String.valueOf(v); }
     public static int n(Map<String, Object> r, String k) { return num(r.get(k)); }
     public static int num(Object v) {

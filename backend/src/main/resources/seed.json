@@ -18,9 +18,11 @@
       "alarm_notifications": 409,
       "alarm_acks": 33,
       "report_defs": 5,
-      "functions": 43,
+      "functions": 45,
       "history": 10,
-      "alarmId": 1042
+      "alarmId": 1042,
+      "user_groups": 0,
+      "user_group_users": 0
     },
     "seededAt": "2026-11-23T15:14:56.670Z",
     "schema": "checked-mvp-1"
@@ -1340,7 +1342,7 @@
       "FUNCTION_NAME": "警报通知设定",
       "PARENT_KEY": null,
       "PATH": "#/page/AVMA009",
-      "SORT": 4,
+      "SORT": 7,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1351,7 +1353,7 @@
       "FUNCTION_NAME": "厂别子系统对应设定",
       "PARENT_KEY": null,
       "PATH": "#/page/AVMA004",
-      "SORT": 5,
+      "SORT": 8,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1362,7 +1364,7 @@
       "FUNCTION_NAME": "事件通知设定",
       "PARENT_KEY": null,
       "PATH": "#/page/AVMA007",
-      "SORT": 6,
+      "SORT": 9,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1373,7 +1375,7 @@
       "FUNCTION_NAME": "即时警报汇总",
       "PARENT_KEY": null,
       "PATH": "#/page/AVPA013",
-      "SORT": 7,
+      "SORT": 10,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1384,7 +1386,7 @@
       "FUNCTION_NAME": "警报处理查询",
       "PARENT_KEY": null,
       "PATH": "#/page/AVPA004",
-      "SORT": 8,
+      "SORT": 11,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1395,7 +1397,7 @@
       "FUNCTION_NAME": "历史记录查询",
       "PARENT_KEY": null,
       "PATH": "#/page/AVPA007",
-      "SORT": 9,
+      "SORT": 12,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1406,7 +1408,7 @@
       "FUNCTION_NAME": "测试告警触发",
       "PARENT_KEY": null,
       "PATH": "#/page/TEST",
-      "SORT": 10,
+      "SORT": 13,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1417,11 +1419,35 @@
       "FUNCTION_NAME": "待我确认",
       "PARENT_KEY": null,
       "PATH": "#/page/ACK_LIST",
-      "SORT": 11,
+      "SORT": 14,
+      "FUNC_TYPE": "PAGE",
+      "VISIBLE": "Y",
+      "ACTIVE": "Y"
+    },
+    {
+      "FUNCTION_KEY": "SBRM_USERGROUP",
+      "FUNCTION_ID": "SBRM_USERGROUP",
+      "FUNCTION_NAME": "使用者群组管理",
+      "PARENT_KEY": null,
+      "PATH": "#/page/SBRM_USERGROUP",
+      "SORT": 4,
+      "FUNC_TYPE": "PAGE",
+      "VISIBLE": "Y",
+      "ACTIVE": "Y"
+    },
+    {
+      "FUNCTION_KEY": "SBRM_USERGROUP_MAP",
+      "FUNCTION_ID": "SBRM_USERGROUP_MAP",
+      "FUNCTION_NAME": "群组使用者对应管理",
+      "PARENT_KEY": null,
+      "PATH": "#/page/SBRM_USERGROUP_MAP",
+      "SORT": 5,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
     }
   ],
-  "history": []
+  "history": [],
+  "user_groups": [],
+  "user_group_users": []
 }

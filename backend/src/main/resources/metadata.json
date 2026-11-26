@@ -40,13 +40,41 @@
           "type": "text",
           "grid": true
         },
-        {"name":"MIDDLE_NAME","label":"中间名","type":"text"},
-        {"name":"IPPHONE_IM","label":"IPPhone(IM)","type":"text"},
-        {"name":"IPPHONE_EXT","label":"IPPhone(分机)","type":"text"},
-        {"name":"ALARM_SMS_PHONE","label":"警报短信电话","type":"text"},
-        {"name":"ALARM_PHONE","label":"警报电话","type":"text"},
-        {"name":"HIRE_DATE","label":"到职日","type":"date"},
-        {"name":"IS_EMPLOYEE","label":"是否公司员工","type":"checkbox"},
+        {
+          "name": "MIDDLE_NAME",
+          "label": "中间名",
+          "type": "text"
+        },
+        {
+          "name": "IPPHONE_IM",
+          "label": "IPPhone(IM)",
+          "type": "text"
+        },
+        {
+          "name": "IPPHONE_EXT",
+          "label": "IPPhone(分机)",
+          "type": "text"
+        },
+        {
+          "name": "ALARM_SMS_PHONE",
+          "label": "警报短信电话",
+          "type": "text"
+        },
+        {
+          "name": "ALARM_PHONE",
+          "label": "警报电话",
+          "type": "text"
+        },
+        {
+          "name": "HIRE_DATE",
+          "label": "到职日",
+          "type": "date"
+        },
+        {
+          "name": "IS_EMPLOYEE",
+          "label": "是否公司员工",
+          "type": "checkbox"
+        },
         {
           "name": "GENDER",
           "label": "性别",
@@ -342,6 +370,49 @@
         "EVENT_PTY_ID": 5,
         "EQP_KEY": "*"
       }
+    },
+    "SBRM_USERGROUP": {
+      "code": "SBRM_USERGROUP",
+      "title": "使用者群组管理",
+      "table": "user_groups",
+      "keyField": "GROUP_KEY",
+      "idField": "GROUP_ID",
+      "uniqueFields": [
+        "GROUP_ID"
+      ],
+      "uniqueIgnoreCase": [
+        "GROUP_ID"
+      ],
+      "desc": "维护使用者群组基本资料；本期群组仅作为基础资料，不参与登录鉴权或功能权限。",
+      "fields": [
+        {
+          "name": "GROUP_ID",
+          "label": "GROUP_ID",
+          "type": "text",
+          "required": true,
+          "readOnlyOnEdit": true,
+          "width": 170,
+          "filter": true
+        },
+        {
+          "name": "GROUP_NAME",
+          "label": "GROUP_NAME",
+          "type": "text",
+          "required": true,
+          "width": 190,
+          "filter": true
+        },
+        {
+          "name": "GROUP_DESC",
+          "label": "GROUP_DESC",
+          "type": "text",
+          "width": 260
+        }
+      ],
+      "filters": [
+        "GROUP_ID",
+        "GROUP_NAME"
+      ]
     }
   },
   "mappings": {
@@ -380,6 +451,44 @@
         "SUB_SYS_NAME",
         "BYPASS"
       ]
+    },
+    "SBRM_USERGROUP_MAP": {
+      "code": "SBRM_USERGROUP_MAP",
+      "title": "群组使用者对应管理",
+      "desc": "左侧选择群组，右侧维护群组成员；保存以本次清单整组替换，不参与权限或通知派报。",
+      "master": {
+        "table": "user_groups",
+        "key": "GROUP_KEY",
+        "label": "使用者群组",
+        "display": [
+          "GROUP_ID",
+          "GROUP_NAME",
+          "GROUP_DESC"
+        ],
+        "excelHeader": "GROUP_ID"
+      },
+      "item": {
+        "table": "users",
+        "key": "USER_KEY",
+        "label": "使用者",
+        "display": [
+          "USER_ID",
+          "USER_NAME"
+        ],
+        "excelHeader": "USER_ID"
+      },
+      "mapTable": "user_group_users",
+      "mapMasterFk": "GROUP_KEY",
+      "mapItemFk": "USER_KEY",
+      "masterColumns": [
+        "GROUP_ID",
+        "GROUP_NAME",
+        "GROUP_DESC"
+      ],
+      "itemColumns": [
+        "USER_ID",
+        "USER_NAME"
+      ]
     }
   },
   "masterDetails": {
@@ -390,7 +499,9 @@
       "masterTable": "events",
       "masterKey": "EVENT_KEY",
       "masterId": "EVENT_ID",
-      "defaults": {"EVENT_PRIORITY_ID": 5},
+      "defaults": {
+        "EVENT_PRIORITY_ID": 5
+      },
       "masterUnique": [
         [
           "EVENT_ID"

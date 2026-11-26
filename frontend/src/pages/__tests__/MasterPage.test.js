@@ -144,3 +144,50 @@ describe('MasterPage factory list', () => {
     expect(state.error).toBe('请先确认或取消正在编辑的层级')
   })
 })
+
+describe('MasterPage user group mapping', () => {
+  const groupMeta = {
+    code: 'SBRM_USERGROUP_MAP',
+    title: '群组使用者对应管理',
+    master: { table: 'user_groups', key: 'GROUP_KEY', label: '使用者群组', display: ['GROUP_ID', 'GROUP_NAME'] },
+    item: { table: 'users', key: 'USER_KEY', label: '使用者', display: ['USER_ID', 'USER_NAME'] },
+    mapTable: 'user_group_users', mapMasterFk: 'GROUP_KEY', mapItemFk: 'USER_KEY',
+  }
+  const groups = [{ GROUP_KEY: 'user_groups-000001', GROUP_ID: 'QA', GROUP_NAME: '品質', ACTIVE: 'Y' }]
+  const users = [
+    { USER_KEY: 'U001', USER_ID: 'E001', USER_NAME: '甲', ACTIVE: 'Y' },
+    { USER_KEY: 'U002', USER_ID: 'E002', USER_NAME: '乙', ACTIVE: 'Y' },
+  ]
+  beforeEach(() => {
+    api.mockReset(); state.busy = 0; state.error = ''
+    state.meta = { masters: {}, mappings: { SBRM_USERGROUP_MAP: groupMeta } }
+    api.mockImplementation(async path => {
+      if (path.startsWith('/mapping/SBRM_USERGROUP_MAP')) return { ok: true, meta: groupMeta, masters: groups, items: users, mapRows: [], history: [] }
+      return { ok: true }
+    })
+  })
+
+  async function mountMapping() {
+    const wrapper = mount(MasterPage, { props: { code: 'SBRM_USERGROUP_MAP' } })
+    await flushPromises()
+    return wrapper
+  }
+
+  it('renders metadata-driven group and user labels', async () => {
+    const wrapper = await mountMapping()
+    expect(wrapper.text()).toContain('使用者群组')
+    expect(wrapper.text()).toContain('已对应使用者 · 0')
+    expect(wrapper.text()).not.toContain('子系统')
+  })
+
+  it('transfers deduplicated members and saves the whole group', async () => {
+    const wrapper = await mountMapping()
+    wrapper.vm.startMapping()
+    wrapper.vm.mapEdit.itemKeys = ['U001']
+    wrapper.vm.availableSelected = ['U001', 'U001', 'U002']
+    wrapper.vm.transfer(true)
+    expect(wrapper.vm.mapEdit.itemKeys).toEqual(['U001', 'U002'])
+    await wrapper.vm.saveMapping()
+    expect(api).toHaveBeenCalledWith('/mapping/SBRM_USERGROUP_MAP/user_groups-000001', { itemKeys: ['U001', 'U002'] })
+  })
+})

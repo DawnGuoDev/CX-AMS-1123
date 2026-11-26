@@ -676,6 +676,8 @@ const EN = {
 // Keep persisted menu names compatible while using consistent user-facing names.
 const pageLabels = {
   '使用者设定': '使用者管理',
+  '使用者群组设定': '使用者群组管理',
+  '群组使用者对应设定': '群组使用者对应管理',
   '厂别设定': '厂别管理',
   '机台设定': '机台管理',
   '子系统设定': '子系统管理',
@@ -685,6 +687,16 @@ const pageLabels = {
 };
 Object.assign(EN, {
   '使用者管理': 'User Management',
+  '使用者群组管理': 'User Group Management',
+  '群组使用者对应管理': 'Group User Mapping',
+  '使用者群组': 'User Group',
+  '使用者群组代码': 'Group ID',
+  '使用者群组名称': 'Group Name',
+  '使用者群组说明': 'Group Description',
+  '已对应使用者': 'Assigned users',
+  '未对应使用者': 'Available users',
+  '请选择目标使用者群组': 'Select a target user group',
+  '储存将以右侧清单替换所选使用者群组的对应；取消不保存。': 'Saving replaces the selected user group with the right-hand list; cancel discards changes.',
   '厂别管理': 'Factory Management',
   '机台管理': 'Equipment Management',
   '子系统管理': 'Subsystem Management',
