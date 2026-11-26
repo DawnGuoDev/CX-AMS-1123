@@ -21,3 +21,10 @@
 - 未迁入报表查询、设备模拟、其余主档、导入导出、真实登录/SMTP/Java 后端。
 - 主档仅使用者/厂别/机台三类；数据只存在页面内存。
 - `package-lock.json` 的 `resolved` 已指向公共 npm registry，依赖版本保持不变。
+
+## 平台演示制品
+
+- 名称：`CX-AMS-1123原型工程演示`（prototype，入口 `index.html`）
+- 制品 ID：`workflow-node-artifact-yf0c4mb11c5718wxjicx`（版本 1）
+- 对应源码：`codex/prototype-preview @ 283c0930c025782863c7ffd14624f3f548412809`
+- 回读：10 个文件与发布包字节一致；平台在线预览入口未实测

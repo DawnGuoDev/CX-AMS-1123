@@ -53,3 +53,11 @@ cd dist && python3 -m http.server 4173
 | 资源加载 | 无失败请求 | 通过；唯一控制台 404 为 `favicon.ico`（仓库本身无 favicon） |
 
 截图使用 Playwright `animations: 'disabled'` + 固定 clip 采集，截图瞬间的 Ant 浮层过渡不参与判断。
+
+## 平台发布与回读（2026-11-26）
+
+- 制品 ID：`workflow-node-artifact-yf0c4mb11c5718wxjicx`，名称 `CX-AMS-1123原型工程演示`，类型 `prototype`，入口 `index.html`，版本 1
+- 源码 revision：`codex/prototype-preview @ 283c0930c025782863c7ffd14624f3f548412809`
+- 包内容：10 个文件（`index.html`、JS、CSS、`vendor/opencc.js`、`design-notes.md`、5 张验收截图），2,657,755 字节，`sha256:8ec780293a838d54c04b30b1e82662826d827d97d562c95007e1bb5668977f33`
+- 回读：`agentnative artifacts pull prototype` 还原 10 个文件，与发布包 `diff -r` 完全一致；以静态 HTTP 托管回读副本后，入口/JS/CSS/OpenCC 均 200，浏览器打开首页与警报详情弹窗正常、无失败请求
+- 在线平台预览入口：本次沙箱不支持端口暴露，CLI 未返回公开预览 URL，**未在平台在线预览页实测**；平台内由制品 ID 打开
