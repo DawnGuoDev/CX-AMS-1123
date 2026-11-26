@@ -24,9 +24,9 @@ public class ApiController {
         String header=req.getHeader("Authorization"), token=header != null && header.startsWith("Bearer ") ? header.substring(7) : "";
         Supplier<Object> work=() -> {
             if (path.equals("login") && method.equals("POST")) return auth.login(body);
+            if (path.equals("logout") && method.equals("POST")) { auth.logout(token); return m("ok",true); }
             var user=copy(auth.user(token));
             user.put("_REQUEST_IP",req.getRemoteAddr());
-            if (path.equals("logout") && method.equals("POST")) { auth.logout(token); return m("ok",true); }
             if (path.equals("bootstrap") && method.equals("GET")) return m("ok",true,"user",user,"loginAt",auth.loginAt(token),
                 "nav",masters.nav(),"options",masters.options(),"meta",store.metadata,"smtpConfigured",smtp.configured(),"serverTime",now());
             if (method.equals("GET")) return get(path,q,user);

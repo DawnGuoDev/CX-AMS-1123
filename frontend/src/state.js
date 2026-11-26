@@ -3,7 +3,7 @@ import { t as translate, setLang, getLang } from './legacy-i18n.js'
 export const language = ref(getLang())
 export const t = (key) => { language.value; return translate(key) }
 export const changeLanguage = value => { language.value = value; setLang(value) }
-export const state = reactive({ user: null, nav: [], meta: {}, options: {}, settings: {}, loginAt: '', busy: 0, toast: '', error: '', detail: null })
+export const state = reactive({ user: null, nav: [], meta: {}, options: {}, settings: {}, loginAt: '', busy: 0, toast: '', error: '', detail: null, sessionNotice: '' })
 let messageTimer
 export function notify(message) {
   state.toast = message
@@ -18,7 +18,12 @@ export async function api(path, body, method = 'POST') {
   })
   const data = await response.json()
   if (!response.ok || data.ok === false) {
-    if (response.status === 401 && path !== '/login') { sessionStorage.removeItem('ams_java_token'); state.user = null }
+    if (response.status === 401 && path !== '/login') {
+    sessionStorage.removeItem('ams_java_token')
+    state.user = null
+    state.detail = null
+    state.sessionNotice = data.message || '登入已逾时，请重新登入'
+  }
     const error = new Error(data.message || `HTTP ${response.status}`)
     error.status = response.status
     error.data = data

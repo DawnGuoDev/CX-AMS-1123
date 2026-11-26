@@ -1,6 +1,6 @@
 <script setup>
 import { ConfigProvider as AConfigProvider, Alert as AAlert, Button as AButton, Input as AInput, Select as ASelect, SelectOption as ASelectOption } from 'ant-design-vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { state, api, act, bootstrap, t, language, changeLanguage } from './state'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
@@ -9,15 +9,22 @@ import enUS from 'ant-design-vue/es/locale/en_US'
 import AlarmDetail from './components/AlarmDetail.vue'
 import AppSidebar from './components/AppSidebar.vue'
 const route = useRoute(), router = useRouter()
+watch(() => state.sessionNotice, async (notice) => {
+  if (notice && !state.user) {
+    state.error = ''
+    if (route.path !== '/home') await router.push('/home')
+  }
+})
 const credentials = ref({ userId: 'E0043258', password: '' }), ready = ref(false)
 async function login() {
   await act(async () => {
     const result = await api('/login', credentials.value); sessionStorage.setItem('ams_java_token', result.token)
     credentials.value.password = ''
+    state.sessionNotice = ''
     await bootstrap()
   })
 }
-async function logout() { await act(async () => { await api('/logout', {}); sessionStorage.removeItem('ams_java_token'); state.user = null; state.detail = null; await router.push('/home') }) }
+async function logout() { await act(async () => { await api('/logout', {}); sessionStorage.removeItem('ams_java_token'); state.user = null; state.detail = null; state.sessionNotice = ''; state.error = ''; await router.push('/home') }) }
 onMounted(async () => {
   if (sessionStorage.getItem('ams_java_token')) await act(bootstrap)
   ready.value = true
@@ -31,6 +38,7 @@ onMounted(async () => {
     <form class="login-card" @submit.prevent="login"><small>CHANGXIN · AMS</small><h2>{{ t('登入') }}</h2><p class="muted">Java + Vue · 本地演示环境</p>
       <label>{{ t('使用者代码') }}<a-input v-model:value="credentials.userId" autocomplete="username" required/></label>
       <label>{{ t('密码') }}<a-input v-model:value="credentials.password" type="password" autocomplete="current-password" required/></label>
+      <a-alert v-if="state.sessionNotice" :message="state.sessionNotice" type="error" show-icon role="alert"/>
       <a-alert v-if="state.error" :message="state.error" type="error" show-icon role="alert"/>
       <a-button class="primary" :disabled="state.busy > 0" type="primary" html-type="submit">{{ state.busy ? t('载入中') : t('登入') }}</a-button>
       <div class="demo-users"><span>{{ t('演示账号') }}</span><a-button v-for="(name,id) in { E0043258:'系统管理员',E0043288:'值班主管',E0043271:'制程工程师' }" :key="id" @click="credentials = { userId:id,password:'' }" type="default" html-type="button">{{ t(name) }}</a-button></div>

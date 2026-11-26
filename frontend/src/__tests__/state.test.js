@@ -66,6 +66,20 @@ describe('state.api', () => {
     })
     expect(sessionStorage.getItem('ams_java_token')).toBeNull()
     expect(state.user).toBeNull()
+    expect(state.detail).toBeNull()
+    expect(state.sessionNotice).toBe('登入已逾时，请重新登入')
+  })
+
+  it('uses the fallback session notice when 401 has no message', async () => {
+    sessionStorage.setItem('ams_java_token', 'expired')
+    fetch.mockResolvedValue(jsonResponse(401, { ok: false }))
+    const { api, state } = await importState()
+    state.detail = { ALARM_KEY: 'A1' }
+
+    await expect(api('/bootstrap')).rejects.toThrow('HTTP 401')
+    expect(sessionStorage.getItem('ams_java_token')).toBeNull()
+    expect(state.detail).toBeNull()
+    expect(state.sessionNotice).toBe('登入已逾时，请重新登入')
   })
 
   it('keeps the session when the login itself fails', async () => {
@@ -77,6 +91,7 @@ describe('state.api', () => {
     await expect(api('/login', { userId: 'x', password: 'y' })).rejects.toThrow('账号或密码错误')
     expect(sessionStorage.getItem('ams_java_token')).toBe('kept')
     expect(state.user).not.toBeNull()
+    expect(state.sessionNotice).toBe('')
   })
 
   it('falls back to an HTTP status message when the body has none', async () => {
