@@ -47,9 +47,39 @@ class WorkflowIntegrationTest {
     Map<String,Object> alarm() { return obj(send().get("alarm")); }
     void tick() { store.write(()->{engine.tick();return null;}); }
     String login() throws Exception {
+        return login("E0043258");
+    }
+    String login(String userId) throws Exception {
         return s(obj(parse(http.perform(post("/api/login").contentType(MediaType.APPLICATION_JSON)
-            .content(encode(m("userId","E0043258","password","123456")))).andExpect(status().isOk())
+            .content(encode(m("userId",userId,"password","123456")))).andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString())),"token");
+    }
+    @Test void differentUsersKeepIndependentSessionsDuringConcurrentAccessAndLogout() throws Exception {
+        var ids=List.of("E0043258","E0043271","E0043288");
+        var tokens=new ArrayList<String>();
+        try(var pool=Executors.newFixedThreadPool(3)) {
+            var logins=new ArrayList<Callable<String>>();
+            for(String id:ids) logins.add(()->login(id));
+            for(var result:pool.invokeAll(logins)) tokens.add(result.get());
+            assertThat(new HashSet<>(tokens)).hasSize(ids.size());
+            var requests=new ArrayList<Callable<Void>>();
+            for(int i=0;i<18;i++) {
+                int index=i%ids.size();
+                requests.add(()->{
+                    http.perform(get("/api/bootstrap").header("Authorization","Bearer "+tokens.get(index)))
+                        .andExpect(status().isOk()).andExpect(jsonPath("$.user.USER_ID").value(ids.get(index)));
+                    return null;
+                });
+            }
+            for(var result:pool.invokeAll(requests)) result.get();
+        }
+        http.perform(post("/api/logout").header("Authorization","Bearer "+tokens.getFirst())
+            .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isOk());
+        http.perform(get("/api/bootstrap").header("Authorization","Bearer "+tokens.getFirst())).andExpect(status().isUnauthorized());
+        for(int i=1;i<ids.size();i++) {
+            http.perform(get("/api/bootstrap").header("Authorization","Bearer "+tokens.get(i)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.USER_ID").value(ids.get(i)));
+        }
     }
     @Test void authenticationSingleSessionAndNoPasswordDisclosure() throws Exception {
         http.perform(get("/api/bootstrap")).andExpect(status().isUnauthorized());

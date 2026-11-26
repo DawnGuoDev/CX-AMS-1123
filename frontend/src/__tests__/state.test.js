@@ -79,6 +79,40 @@ describe('state.api', () => {
     expect(state.user).not.toBeNull()
   })
 
+  it.each([401, 200])('discards an old session response with status %s after switching accounts', async (status) => {
+    sessionStorage.setItem('ams_java_token', 'old-token')
+    let respond
+    fetch.mockImplementation(() => new Promise(resolve => { respond = resolve }))
+    const { bootstrap, act, state } = await importState()
+    const pending = act(bootstrap)
+    sessionStorage.setItem('ams_java_token', 'new-token')
+    state.user = { USER_ID: 'new-user' }
+    state.loginAt = 'new-login'
+    respond(jsonResponse(status, status === 401
+      ? { ok: false, message: '登入已逾时，请重新登入' }
+      : { ok: true, user: { USER_ID: 'old-user' }, loginAt: 'old-login' }))
+    await pending
+    expect(sessionStorage.getItem('ams_java_token')).toBe('new-token')
+    expect(state.user.USER_ID).toBe('new-user')
+    expect(state.loginAt).toBe('new-login')
+    expect(state.error).toBe('')
+    expect(state.busy).toBe(0)
+  })
+
+  it('does not restore the user when bootstrap completes after logout', async () => {
+    sessionStorage.setItem('ams_java_token', 'old-token')
+    let respond
+    fetch.mockImplementation(() => new Promise(resolve => { respond = resolve }))
+    const { bootstrap, act, state } = await importState()
+    const pending = act(bootstrap)
+    sessionStorage.removeItem('ams_java_token')
+    state.user = null
+    respond(jsonResponse(200, { ok: true, user: { USER_ID: 'old-user' } }))
+    await pending
+    expect(state.user).toBeNull()
+    expect(state.error).toBe('')
+  })
+
   it('falls back to an HTTP status message when the body has none', async () => {
     fetch.mockResolvedValue(jsonResponse(500, { ok: false }))
     const { api } = await importState()

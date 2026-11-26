@@ -11,12 +11,19 @@ export function notify(message) {
   messageTimer = setTimeout(() => { state.toast = '' }, 5000)
 }
 export async function api(path, body, method = 'POST') {
+  const token = sessionStorage.getItem('ams_java_token') || ''
   const response = await fetch('/api' + path, {
     method: body === undefined ? 'GET' : method,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('ams_java_token') || ''}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = await response.json()
+  // A response belongs to the session that sent it, even after logout or account switching.
+  if (path !== '/login' && token !== (sessionStorage.getItem('ams_java_token') || '')) {
+    const error = new Error('登录状态已变更')
+    error.code = 'SESSION_CHANGED'
+    throw error
+  }
   if (!response.ok || data.ok === false) {
     if (response.status === 401 && path !== '/login') { sessionStorage.removeItem('ams_java_token'); state.user = null }
     const error = new Error(data.message || `HTTP ${response.status}`)
@@ -28,7 +35,10 @@ export async function api(path, body, method = 'POST') {
 }
 export async function act(work) {
   state.busy++; state.error = ''
-  try { return await work() } catch (error) { state.error = error.message; return null }
+  try { return await work() } catch (error) {
+    if (error.code !== 'SESSION_CHANGED') state.error = error.message
+    return null
+  }
   finally { state.busy-- }
 }
 export async function bootstrap() { Object.assign(state, await api('/bootstrap')) }
