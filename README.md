@@ -42,6 +42,19 @@ bash scripts/start-java.sh
 
 启动时将构建产物复制为 `backend/.runtime/ams-<SHA256>.jar`，进程使用固定版本，避免后续打包覆盖运行中的 JAR。重新构建后需重启应用才会启用新版本。
 
+## 设计系统预览
+
+`frontend/design-system/` 是从当前实现提取的独立设计系统，采用「Ant Design Vue 4.2.6 + AMS 产品规范 + 业务组合」，包含真实主题、布局、状态颜色、表格密度，以及 `DataGrid`、`FieldForm`、`UiCheckbox`、`RecordDialog`、`AppSidebar` 五件套和主档编辑、条件查询与结果表格、告警详情三类组合。
+
+```bash
+cd frontend/design-system
+npm ci
+npm run dev      # 本地预览（Vite 输出地址）
+npm run build    # 静态产物 dist/
+```
+
+预览使用 `mock/fixtures.json` 本地数据，不启动 Java、不登录、不访问 `/api`。规范见 `frontend/design-system/docs/DESIGN.md`；`npm run test:unit` 与 `npm run verify:offline` 用于校验组件契约与离线约束。
+
 ## 前端 UI
 
 UI 使用固定版本 `ant-design-vue@4.2.6`（4.x），按组件导入，入口引入 `reset.css`。
