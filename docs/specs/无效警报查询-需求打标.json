@@ -1,0 +1,53 @@
+{
+  "requirementId": "AMS-DA-invalid-alarm-query-v2",
+  "title": "AMS DA｜无效警报查询 V2",
+  "source": "AMS系统澄清.xlsx 序号28；复刻自 task-yf09n597nk5nlztfzf6l（内容一致）",
+  "module": "报表查询",
+  "priority": "P2",
+  "evaluatedAt": "2026-11-26T06:20:00Z",
+  "repo": "DawnGuoDev/CX-AMS-1123",
+  "baseline": "release@42080ff",
+  "classification": "A",
+  "dimensions": {
+    "scope": {
+      "status": "PASS",
+      "reason": "变更集中且可定位：AlarmEngine 失效分支新增落库、Reports/ApiController 接纳一个新报表 code、seed.json 增加 report_defs+functions、前端仅在 Workspace 白名单与 AppSidebar 分组登记新 code（ReportPage 复用零改动或极少改动）。约 5-8 个文件，集中在后端引擎/报表与种子配置、前端路由登记，不超过 3 个架构层。"
+    },
+    "interface": {
+      "status": "PASS",
+      "reason": "全部扩展现有契约：POST /api/alarms/test 失败分支仅新增写库副作用，响应体与 422 不变；新报表复用 GET /api/report-defs/{code}、POST /api/reports/{code}/query|export 既有 {ok,rows,columns,total} 与 {enabled,operator,value,from,to} 条件结构。报表 code、默认列、是否强制时间区间均为参数级配置（Q1-Q3），不产生互斥技术路径。"
+    },
+    "pattern": {
+      "status": "PASS",
+      "reason": "存在多个同层先例：报表侧 AVPA004/AVPA007/AVPA013 的 report_defs 种子+Reports.definition/query+ReportPage.vue+侧栏分组；落库侧 alarm_transactions/history 等均为 store.table(name).add + store.key(name) 的统一快照写法；失效原因已在 AlarmEngine.invalid 各分支集中存在，只需在同一处记录。"
+    },
+    "testability": {
+      "status": "PASS",
+      "reason": "可客观验证：逐类失效原因（8 种）触发后断言写且仅写 1 条、原因文案与字段正确，成功/BYPASS 不写；时间区间含端点、多条件交集、倒序、空态可仿 ReportConditionsTest 纯单测；接口层未登录 401、查询与汇出可经现有 E2E（JUnit + Playwright）断言。无主观像素判定。"
+    },
+    "dependency": {
+      "status": "PASS",
+      "reason": "纯仓内逻辑，复用现有 H2 快照 Store、Spring 端点与 Ant Design Vue 组件；不接入新第三方、不需要新凭证/Key/中间件，SMTP 是否配置与本需求无关。"
+    },
+    "safety": {
+      "status": "PASS",
+      "reason": "新增只读查询与仅追加（append-only）的失效记录，不涉及支付、密码、权限模型、数据删除或不可逆迁移；不改旧表、不回填历史；触发语义保持失败仍 422，风险低、易回滚（删除新增报表与写库点）。"
+    },
+    "closure": {
+      "status": "PASS",
+      "reason": "前后端同仓同源（DawnGuoDev/CX-AMS-1123），单仓库内即可闭环，无跨仓接口对齐与发版协调。"
+    }
+  },
+  "warnSelfCheck": [],
+  "summary": "在现有元数据驱动报表范式上恢复一个只读“无效警报查询”，并让既有失败触发分支追加落库；接口均为扩展、模式有多重先例、可单测/E2E 客观验证、单仓无外部依赖、风险低，七维全 PASS，判定 A 类可全自动编程后人工 Review。",
+  "missingInfo": [],
+  "actionPlan": {
+    "ifA": "1) 后端：在 AlarmEngine.invalid 路径（含 8 类原因，BYPASS 除外）于同一写事务内追加一条无效警报记录，沿用 store.table/store.key，字段含时间、四要素入参原值、标题/内容、原因、RECEIVE_TYPE/SOURCE_TYPE；保持返回 422 与原 message 不变。2) 在 Reports.definition 白名单与 query 分发、ApiController 报表路由中接纳新 code（建议 AVPA014），新增只读集合来源与厂别/子系统/机台名称 enrich（主档缺失名称留空、代码保留入参）。3) seed.json：新增 report_defs（列与条件，CREATE_DT 时间区间+四要素+原因）与 functions 菜单项；meta.seq 增补新集合序列。4) 前端：Workspace 报表白名单与 AppSidebar“查询报表”分组/图标登记新 code，复用 ReportPage/DataGrid/汇出。5) 测试：后端单测覆盖 8 类原因落库与成功/BYPASS 不写、报表条件运算；接口/Playwright 覆盖菜单可见、区间查询、未登录拦截、汇出列。6) 运行 backend mvn 测试与 frontend vitest/build，必要时跑 run-frontend-e2e。",
+    "blockers": [],
+    "suggestions": [
+      "Q1（不阻塞）：默认对齐 AVPA004 允许无条件全量+分页；若业务要求强制时间区间，仅将报表 ATLEAST_ONE_CONDITION 置 Y，技术路径不变。",
+      "Q2（不阻塞）：报表 code/名称建议 AVPA014「无效警报查询」，技术设计按导航编码惯例最终确认。",
+      "Q3（不阻塞）：默认记录标题/内容/取得方式，不留 IP；审计字段可参数级增减。"
+    ]
+  }
+}
