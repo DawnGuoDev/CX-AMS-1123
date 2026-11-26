@@ -155,6 +155,23 @@ class InvalidAlarmReportIntegrationTest {
             assertThat(s(titles,code)).as("pageTitles.%s",code).isNotBlank().isNotEqualTo("页面不存在");
     }
 
+    @Test void avpa008ConditionWhitelistMatchesDeclaredColumnsAndFiltersSourceUser() throws Exception {
+        // Observation D2: query filtering uses COLUMNS as its whitelist; every declared condition
+        // (including SOURCE_USER_ID) must therefore also exist in COLUMNS.
+        reset();
+        invalid(m("factoryKey","BAD","subsysKey","SS03","eqpKey","EQP01","alarmCode","PRT_NODYE"));
+        var definition=store.read(()->reports.definition("AVPA008"));
+        var columns=rows(definition.get("COLUMNS")).stream().map(c -> s(c,"field")).toList();
+        var conditionFields=rows(definition.get("CONDITIONS")).stream().map(c -> s(c,"field")).toList();
+        assertThat(conditionFields).isSubsetOf(columns).contains("SOURCE_USER_ID");
+
+        var conditions=time();
+        conditions.put("SOURCE_USER_ID",m("enabled",true,"operator","eq","value","E0043258"));
+        var filtered=store.read(()->reports.query("AVPA008",conditions));
+        assertThat(filtered).hasSize(1);
+        assertThat(filtered.getFirst()).containsEntry("SOURCE_USER_ID","E0043258");
+    }
+
     @Test void oldSnapshotMigratesInvalidAlarmReportIdempotently() throws Exception {
         reset();
         store.write(()->{

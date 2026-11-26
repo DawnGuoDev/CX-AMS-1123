@@ -9,7 +9,7 @@ import RecordDialog from '../components/RecordDialog.vue'
 const props=defineProps({code:String})
 const data=ref({rows:[],columns:[]}),definition=ref({CONDITIONS:[]}),conditions=ref({}),draft=ref(null),drill=ref(null)
 const queried=ref(false),grid=ref(null),countdown=ref(10)
-const defaultTimeRange=code==='AVPA008'
+const defaultTimeRange=props.code==='AVPA008'
 const isSummary=computed(()=>props.code==='AVPA013')
 let timer,loading=false
 async function load(next=conditions.value){
