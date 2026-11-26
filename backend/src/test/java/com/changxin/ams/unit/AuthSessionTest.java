@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.changxin.ams.ApiException;
+import com.changxin.ams.Json.ApiException;
 import com.changxin.ams.Auth;
 import com.changxin.ams.Store;
 import java.util.ArrayList;
