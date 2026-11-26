@@ -50,6 +50,8 @@ cd e2e && npm ci && npx playwright install chromium && npm test   # 前端 E2E
 | TC-API-E2E-002 | 后端接口 | 厂别主档 新增/修改/停用/历史/恢复 | `e2e/MasterDataE2ETest` |
 | TC-API-E2E-003 | 后端接口 | 测试告警触发 → 详情/通知记录 → 未送达时 ACK 拒绝且不计数 | `e2e/AlarmWorkflowE2ETest` |
 | TC-API-E2E-004 | 后端接口 | 汇出范本/导入校验/校验失败不落库/404 契约 | `e2e/MasterImportExportE2ETest` |
+| TC-API-E2E-005 | 后端接口 | 强制中断：HTTP 契约/状态与通知收敛/报表口径/拒绝分支/主档权限即时生效/作业页与状态选项 | `e2e/AlarmTerminateE2ETest` |
+| TC-FE-E2E-000 | 前端 | 入口装配：index.html 模块图挂载登录壳、路由兜底、繁中词典可用（不依赖构建产物） | `frontend/00-app-entry.spec.ts` |
 | TC-FE-E2E-001 | 前端 | 登录页加载 → 账号密码登入 → 进入即时汇总 | `frontend/01-login.spec.ts` |
 | TC-FE-E2E-002 | 前端 | 侧栏导航与菜单搜索、语言切换（无残留翻译）、报表查询入口 | `frontend/02-navigation.spec.ts` |
 | TC-FE-E2E-003 | 前端 | 厂别主档：新增、列表可见、停用后隐藏 | `frontend/03-master-data.spec.ts` |

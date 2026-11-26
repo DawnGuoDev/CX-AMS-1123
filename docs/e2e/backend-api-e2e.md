@@ -93,3 +93,23 @@
 | 7 | `POST .../export {mode:'unknown'}` | 非 5xx |
 
 清理：停用导入的测试行。
+
+---
+
+## TC-API-E2E-005 警报强制中断接口契约
+
+**优先级**：P0　**类型**：接口契约 / 权限 / 状态收敛 / 报表口径　**代码**：`AlarmTerminateE2ETest`
+**依据**：SPEC-AMS-ALARM-TERMINATE-001 REQ-001~004、REQ-006、REQ-007
+
+公共前置：真实进程 + 临时库（SMTP 未配置、`ams.scheduling=false`），因此新告警停在 `Process` 且无人可 ACK，
+正是「有权限者强制中断」的现场。每个用例使用不同的种子机台/警报代码规避触发接口的忽略期间去重。
+
+| # | 用例方法 | 步骤 | 预期 |
+| - | -------- | ---- | ---- |
+| 1 | `shouldTerminateOverHttpAndConvergeNotificationsAndReports` | `POST /api/alarms/{key}/terminate {cmt}` | 200 `ok=true`、`terminated=true`、`alarm.STATUS=Terminated`；`TERMINATE_CMT/USER_ID/USER_NAME/DT` 写入且 `COMPLETE_DT=TERMINATE_DT`；通知全部 `Skipped`+`MESSAGE=警报已中断，取消发送`+`SEND_DT`；层级全部 `Closed`；交易含 `AlarmTerminate` Process→Terminated、`NOTE`=原因 |
+| 2 | 同上 | 详情 / 作业列表 / 待确认 / AVPA007 / AVPA004 / AVPA013 | 详情 `CAN_TERMINATE=false`；`/api/alarms/process` 与 `/api/alarms/pending` 不再出现该 key；AVPA007 按 `TRX_TYPE=AlarmTerminate` 命中且状态 `Terminated`、`NOTE`=原因；AVPA004 按 `STATUS=Terminated` 命中且 `COMPLETE_DT` 非空；AVPA013 同厂别/子系统计数减 1 |
+| 3 | `shouldRejectUnauthorizedStatusAndInvalidReasonWithoutSideEffects` | 无权限账号（`E0043260`）调中断；`cmt` 为全空格/缺失/501 字；随后 500 字 | 前四者均 400（`您没有强制中断权限`/`请填写中断原因`/`中断原因不可超过 500 个字符`），状态、`TERMINATE_DT`、`CAN_TERMINATE=true` 不变；500 字成功且 `TERMINATE_CMT` 恰 500 字符 |
+| 4 | 同上 | 对已 `Terminated` 再中断 | 400 `该警报已非处理中状态`；AVPA007 中该 key 的 `AlarmTerminate` 恰 1 笔 |
+| 5 | `shouldReturnNotFoundForUnknownAlarm` | 不存在的 key | 404 `ok=false`、`message=警报不存在` |
+| 6 | `shouldExposeTheTerminateWorkPageAndTheAlarmStatusOption` | `GET /api/alarms/process`、`GET /api/bootstrap`、中断后再查 | 作业列表只含 `Process` 且 `CAN_TERMINATE=true`；bootstrap `nav` 含 `ALARM_LIST`；`options.alarmStatus = Process, Completed, NoNextLevel, Terminated`（顺序追加）；中断后列表不再含该 key |
+| 7 | `shouldReadThePermissionFromTheLiveMasterRecord` | `GET /api/master/SBRM_USER` 取管理员整行 → `PUT` 改 `CAN_TERMINATE=N` → 查详情与中断 → 改回 `Y` | 撤销后下一次请求即 `CAN_TERMINATE=false` 且中断 400（无需重新登录）；恢复后 `CAN_TERMINATE=true` 且中断成功；用例结束复原为 `Y` |

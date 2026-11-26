@@ -35,6 +35,7 @@ bash ../scripts/run-java-e2e.sh   # 额外跑 4 个后端接口 E2E（真实进�
 | `components/__tests__/UiCheckbox.test.js` | Ant 复选框的 `Y/N` 双向映射；人员数组增删且不修改输入数组 |
 | `components/__tests__/FieldForm.test.js` | 跳过 readOnly 字段；必填星号；各类型输入；`readOnlyOnEdit` 仅编辑态禁用；子系统随厂别变化、切厂清空依赖；事件按厂别/子系统过滤 |
 | `pages/__tests__/MasterPage.test.js` | 列表加载参数（`showHidden=0/1`）；新增走 POST、修改走 PUT；复制去掉主键与 ID；隐藏前确认（标题为问句）；层级草稿未确认时阻止保存并提示 |
+| `pages/__tests__/OperationsPage.test.js`（新增） | 「警报强制中断作业」：`ALARM_LIST` 走 `/alarms/process` 而 `ACK_LIST` 仍走 `/alarms/pending`；行内查看复用 `openAlarm` 打开详情；10 秒定时刷新沿用待确认节奏；`TEST` 页仍加载触发选项而不加载告警列表 |
 | `components/__tests__/AlarmDetail.test.js`（新增） | 详情强制中断：有权限可点击、无权限禁用并说明、历史无入口、非 Process 说明、空原因不可提交、原因 trim 后提交、取消清空草稿、失败保留原因并展示错误、中断横幅展示时间/操作人/原因 |
 
 执行：
