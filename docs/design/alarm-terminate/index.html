@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMS · 警报强制中断能力 · 产品原型</title>
+<style>
+:root{--accent:#167d92;--navy:#122337;--content:#f3f6fa;--border:#dde5ed;--ink:#23364a;--muted:#7a8998;--radius:6px;--warn-bg:#fff5dc;--warn-ink:#a0710b;--ok-bg:#e4f5ef;--ok-ink:#178779;--fail-bg:#fcecec;--fail-ink:#c14848;--term-bg:#eceff3;--term-ink:#788491}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--content);font-size:13px;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:20px;margin:0;font-weight:650}
+button{font-family:inherit}
+.proto-header{height:52px;background:#0f2b3d;color:#cfe3ea;display:flex;align-items:center;gap:14px;padding:0 20px;font-size:12px}
+.proto-header .brand{font-weight:700;letter-spacing:1px;color:#fff;font-size:14px}
+.proto-header .brand span{color:#78c8d0;font-weight:300}
+.proto-header .pill{background:#1c5063;border-radius:999px;padding:3px 10px;color:#bfe6ec;font-size:11px}
+.proto-header .spacer{flex:1}
+.proto-header .note{color:#8fb5c4;font-size:11px}
+.shell{display:flex;min-height:calc(100vh - 52px)}
+.sidebar{width:248px;background:var(--navy);color:#c6d6e2;flex:0 0 248px;padding:14px 0 20px}
+.sidebar .side-search{padding:0 14px 12px}
+.sidebar .side-search input{width:100%;height:30px;border-radius:5px;border:1px solid #2a4258;background:#0e2134;color:#dbe8f0;padding:0 9px;font-size:12px;outline:none}
+.sidebar .side-search input::placeholder{color:#71889a}
+.sidebar h4{margin:14px 18px 6px;font-size:10.5px;letter-spacing:1.2px;color:#7f97a8;font-weight:600}
+.sidebar a{display:flex;align-items:center;gap:9px;padding:9px 18px;color:#c3d3df;font-size:12.5px;text-decoration:none;border-left:3px solid transparent;cursor:pointer}
+.sidebar a:hover{background:#172f45;color:#fff}
+.sidebar a.active{background:#1c5063;color:#fff;border-left-color:#52b9c6}
+.sidebar a .ic{width:15px;height:15px;flex:0 0 15px;opacity:.9}
+.sidebar a .badge{margin-left:auto;font-size:10px;background:#c14848;color:#fff;border-radius:9px;padding:1px 6px}
+.sidebar a .new{margin-left:auto;font-size:9.5px;color:#163047;background:#7fd3dd;border-radius:3px;padding:1px 5px;font-weight:600}
+.sidebar a.muted-group{color:#8fa3b3;cursor:default}
+.sidebar a.muted-group:hover{background:transparent;color:#8fa3b3}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:60px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;gap:16px}
+.topbar .crumbs{display:flex;align-items:center;gap:8px;color:#8a9cab;font-size:12px}
+.topbar .crumbs b{color:#3f566a;font-weight:600}
+.topbar .actions{display:flex;align-items:center;gap:12px}
+.avatar{width:28px;height:28px;border-radius:50%;background:#e8f2f3;color:#267c88;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.user-chip{display:flex;align-items:center;gap:8px;font-size:12px;color:#445a6d}
+.user-chip .perm{font-size:10px;border-radius:10px;padding:2px 7px;background:var(--ok-bg);color:var(--ok-ink);font-weight:600}
+.user-chip .perm.no{background:#eef1f4;color:#7c8b98}
+.demo-switch{display:flex;align-items:center;gap:6px;background:#f1f5f8;border:1px solid var(--border);border-radius:999px;padding:3px;font-size:11px;color:#6b7e8e}
+.demo-switch label{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;cursor:pointer;user-select:none}
+.demo-switch input{accent-color:var(--accent);margin:0}
+main{padding:22px 26px 34px;flex:1}
+.page-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:16px}
+.eyebrow{font-size:10px;letter-spacing:1.8px;color:#8897a5;margin-bottom:5px;text-transform:uppercase}
+.description{color:#708396;font-size:12px;margin:6px 0 0;line-height:1.7}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid #d5dfe8;background:#fff;color:#37485a;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s;white-space:nowrap}
+.btn:hover{border-color:#a8bccd;background:#f7fafc}
+.btn:focus-visible{outline:2px solid #9fd6de;outline-offset:1px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover{background:#146f81;border-color:#146f81}
+.btn.danger{background:#c14848;border-color:#c14848;color:#fff;font-weight:600}
+.btn.danger:hover{background:#a93c3c;border-color:#a93c3c}
+.btn.danger-outline{color:#c14848;border-color:#e7bfbf;background:#fff}
+.btn.danger-outline:hover{background:#fdf3f3;border-color:#d99c9c}
+.btn.ghost{background:transparent;border-color:transparent;color:#5d7284;padding:0 8px}
+.btn.ghost:hover{background:#eef3f7}
+.btn[disabled],.btn.is-disabled{cursor:not-allowed;opacity:.45;background:#f6f8fa;border-color:#dfe6ec;color:#8695a3}
+.btn.danger[disabled]{opacity:.4}
+.btn.sm{height:28px;padding:0 11px;font-size:12px}
+.panel{background:#fff;border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:16px}
+.panel.flat{padding:0;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid #edf1f5}
+.panel-head h3{margin:0;font-size:14px;font-weight:600}
+.panel-head .sub{color:#8b9aa8;font-size:11px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:8px;padding:15px 16px}
+.kpi small{display:block;color:#8b9baa;font-size:11px;margin-bottom:7px}
+.kpi strong{font-size:26px;line-height:1;font-weight:600;color:#1f3a50}
+.kpi.term strong{color:#7c8b98}
+.kpi .delta{font-size:10.5px;color:#8b9baa;margin-top:7px}
+table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+table.grid th{background:#f7f9fb;color:#6d8092;font-weight:600;font-size:11px;text-align:left;padding:9px 12px;border-bottom:1px solid #eaeff4;white-space:nowrap}
+table.grid td{padding:10px 12px;border-bottom:1px solid #eff3f6;color:#374b5e;vertical-align:middle;white-space:nowrap}
+table.grid td.wrap{white-space:normal;word-break:break-word}
+table.grid tbody tr{cursor:pointer}
+table.grid tbody tr:hover{background:#f6fbfc}
+table.grid tbody tr.selected{background:#eaf6f8}
+table.grid .mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:11.5px;color:#3f5a6f}
+.tag{display:inline-block;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap}
+.tag.Process{color:var(--warn-ink);background:var(--warn-bg)}
+.tag.Completed{color:var(--ok-ink);background:var(--ok-bg)}
+.tag.NoNextLevel{color:var(--fail-ink);background:var(--fail-bg)}
+.tag.Terminated{color:var(--term-ink);background:var(--term-bg)}
+.tag.Skipped{color:#788491;background:#eceff3}
+.tag.Success{color:#178779;background:#e4f5ef}
+.tag.Fail{color:#c14848;background:#fcecec}
+.tag.Pending{color:#a0710b;background:#fff5dc}
+.tag.soft{background:#eef4f7;color:#4c6578}
+.muted{color:var(--muted)}
+.small{font-size:11px}
+.hint{display:flex;gap:8px;align-items:flex-start;background:#eef7f9;border:1px solid #d3e8ec;color:#3b6470;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:16px}
+.hint .ico{width:15px;height:15px;flex:0 0 15px;margin-top:1px;color:#167d92}
+.hint.warn{background:#fff8e8;border-color:#f1dfb6;color:#7f6222}
+.hint.warn .ico{color:#b07a12}
+.overlay{position:fixed;inset:0;background:rgba(18,35,55,.48);display:flex;align-items:flex-start;justify-content:center;padding:16px 20px;z-index:80;overflow:auto}
+.overlay[hidden]{display:none}
+.modal{background:#fff;border-radius:10px;box-shadow:0 18px 60px rgba(9,26,42,.3);width:100%;max-width:1040px;overflow:hidden;max-height:calc(100vh - 84px);display:flex;flex-direction:column}
+.modal-body{overflow:auto;min-height:0}
+.modal-body>[hidden]{display:none}
+.modal.confirm .modal-body{display:block}
+.modal.confirm .modal-foot{margin-top:0}
+#detailOverlay .modal{max-height:calc(100vh - 32px)}
+#detailOverlay .modal-body{max-height:none}
+#detailOverlay .modal-body{overflow:auto;flex:1 0 auto;min-height:0}
+.record-section{display:block}
+#detailOverlay .modal-head{flex:0 0 auto}
+#detailOverlay .modal-foot{flex:0 0 auto}
+
+
+#detailOverlay .modal-foot{margin-top:auto}
+.modal.confirm .modal-body{overflow:visible}
+.modal.confirm{max-width:548px}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #edf1f5}
+.modal-head h2{margin:0;font-size:16px;font-weight:650}
+.modal-head .x{border:0;background:transparent;color:#94a3b1;font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:4px}
+.modal-head .x:hover{background:#f1f5f8;color:#4a6072}
+.modal-body{padding:18px 22px}
+.modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid #edf1f5;background:#fbfcfd}
+.detail-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.detail-title-row h3{margin:0 0 4px;font-size:17px;font-weight:650}
+.detail-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#8a9cab;font-size:11.5px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:16px 0 14px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:9px 14px;color:#758697;font-size:12.5px;cursor:pointer;border-bottom:2px solid transparent}
+.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 18px}
+.fields label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fields label span{font-size:10.5px;color:#8a9aa9;letter-spacing:.3px}
+.fields label strong{font-size:12.5px;font-weight:500;color:#2f4457;word-break:break-all}
+.tool-zone{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:16px;padding:12px 14px;border:1px solid #e8eef3;border-radius:7px;background:#fbfcfd}
+.tool-zone .level{font-size:12px;color:#5b7183}
+.tool-zone .level b{color:#2f4456}
+.tool-zone .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tool-note{font-size:11.5px;color:#8a9aa9;display:flex;align-items:center;gap:6px}
+.tool-note.locked{color:#9a7a44}
+.terminate-banner{display:flex;gap:12px;align-items:flex-start;border:1px solid #dde1e7;background:#f4f6f8;border-radius:8px;padding:13px 15px;margin:16px 0 4px}
+.terminate-banner .badge{width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:#e3e7ec;color:#6f7f8c;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.terminate-banner h4{margin:0 0 4px;font-size:13px;color:#3c4f60}
+.terminate-banner p{margin:0;font-size:11.5px;color:#71818f;line-height:1.65}
+.terminate-banner dl{display:grid;grid-template-columns:82px minmax(0,1fr);gap:5px 10px;margin:10px 0 0;font-size:11.5px}
+.terminate-banner dt{color:#8a9aa9}
+.terminate-banner dd{margin:0;color:#3f5466;word-break:break-all}
+.record-table{border:1px solid #eaeff4;border-radius:6px;overflow:auto;min-height:0;margin-bottom:12px}
+#recordWrap>table{width:100%}
+.record-table.compact{max-height:none;overflow:visible;margin-bottom:12px}
+.record-table.compact>table{display:table}
+.confirm-lead{margin:0 0 14px;color:#41586b;font-size:12.5px;line-height:1.7}
+.confirm-target{border:1px solid #eaeff4;border-radius:6px;background:#fafcfd;padding:10px 12px;margin-bottom:14px;font-size:12px}
+.confirm-target div{display:flex;gap:8px;padding:2px 0}
+.confirm-target span{color:#8a9aa9;width:72px;flex:0 0 72px}
+.confirm-target b{font-weight:500;color:#334a5d;word-break:break-all}
+.risk{display:flex;gap:9px;background:#fdf4f4;border:1px solid #f1d7d7;color:#8f4444;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.65;margin-bottom:14px}
+.risk .ico{width:15px;height:15px;flex:0 0 15px;margin-top:1px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field .lbl{font-size:12px;color:#3e5466;font-weight:600}
+.field .lbl em{color:#c14848;font-style:normal;margin-left:2px}
+.field textarea{width:100%;min-height:92px;resize:vertical;border:1px solid #d5dfe8;border-radius:6px;padding:9px 11px;font-size:12.5px;font-family:inherit;line-height:1.6;color:#2f4456;outline:none}
+.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(22,125,146,.12)}
+.field textarea.invalid{border-color:#d98c8c;box-shadow:0 0 0 3px rgba(193,72,72,.1)}
+.field .foot{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#8b9baa}
+.field .err{color:#c14848;display:none}
+.field .err.show{display:block}
+.toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:#1f3a50;color:#fff;border-radius:6px;padding:10px 16px;font-size:12.5px;box-shadow:0 8px 26px rgba(9,26,42,.25);z-index:120;display:none;align-items:center;gap:8px}
+.toast.show{display:flex}
+.toast .dot{width:7px;height:7px;border-radius:50%;background:#52d0a8}
+.toast.err .dot{background:#ff8a80}
+.summary-note{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#7c8d9c;margin-top:10px}
+.summary-note .swatch{width:8px;height:8px;border-radius:2px;background:#d8dee5}
+.split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px}
+.side-panel h3{margin:0 0 10px;font-size:13.5px}
+.side-list{margin:0;padding:0;list-style:none}
+.side-list li{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed #edf1f5;font-size:12px;line-height:1.6}
+.side-list li:last-child{border-bottom:0}
+.side-list .n{width:20px;height:20px;flex:0 0 20px;border-radius:50%;background:#eaf4f6;color:#237d8e;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.compare td{font-size:11.5px}
+.proto-foot{color:#93a3b1;font-size:10.5px;display:flex;justify-content:space-between;gap:12px;padding:14px 26px 22px;flex-wrap:wrap}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:11px;border:1px solid #e2e9ef;background:#fff;color:#5c7284;border-radius:999px;padding:3px 10px}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.fields{grid-template-columns:repeat(2,minmax(0,1fr))}.split{grid-template-columns:1fr}}
+@media (max-width:900px){.sidebar{width:72px;flex-basis:72px}.sidebar a span.label,.sidebar h4,.sidebar .side-search,.sidebar a .badge,.sidebar a .new{display:none}.sidebar a{justify-content:center;padding:11px 0}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="proto-header">
+  <div class="brand">AMS<span>·</span>产品原型</div>
+  <div class="pill">SPEC-AMS-ALARM-TERMINATE-001</div>
+  <div class="pill" style="background:#2b4a60">警报强制中断能力</div>
+  <div class="spacer"></div>
+  <div class="note">本地示例数据 · 无登录 / 无后端 / 无 SMTP · 交互均在浏览器内</div>
+</div>
+<div class="shell">
+  <aside class="sidebar" aria-label="AMS 导航（示意）">
+    <div class="side-search"><input type="search" placeholder="搜寻功能" aria-label="搜寻功能"></div>
+    <h4>警报作业</h4>
+    <a data-nav="AVPA013"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h6l2 5 3-11 2 6h5"/></svg><span class="label">即时警报汇总</span></a>
+    <a data-nav="ACK_LIST"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg><span class="label">待我确认</span></a>
+    <a data-nav="TEST"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 19h16L15 9V3z"/><path d="M9 3h6"/></svg><span class="label">测试告警</span></a>
+    <a class="active" data-nav="TERMINATE_WORK"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 8h8v8H8z"/></svg><span class="label">警报强制中断作业</span><span class="new">NEW</span></a>
+    <h4>基础资料</h4>
+    <a data-nav="SBRM_USER"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/></svg><span class="label">使用者设定</span></a>
+    <a data-nav="SBRM_FACTORY"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V9l6 4V9l6 4V5h6v16z"/></svg><span class="label">厂别设定</span></a>
+    <a data-nav="SBRM_EQP"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 6a3 3 0 1 0-4 0"/><path d="m3 21 9-9"/><path d="M12 3h.01"/></svg><span class="label">机台设定</span></a>
+    <a data-nav="AVMA003"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/><path d="M11 7h5v6"/></svg><span class="label">子系统设定</span></a>
+    <a data-nav="AVMA004"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a4 4 0 0 0 6 .6l3-3a4 4 0 0 0-6-6l-1.5 1.5"/><path d="M14 11a4 4 0 0 0-6-.6l-3 3a4 4 0 0 0 6 6l1.5-1.5"/></svg><span class="label">厂别子系统对应</span></a>
+    <h4>通知配置</h4>
+    <a data-nav="AVMA007"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/></svg><span class="label">事件通知设定</span></a>
+    <a data-nav="AVMA009"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 6 2 7 2 7H4s2-1 2-7"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="label">警报设定</span></a>
+    <h4>查询报表</h4>
+    <a data-nav="AVPA004"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span class="label">警报处理查询</span></a>
+    <a data-nav="AVPA007"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg><span class="label">历史纪录查询</span></a>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumbs">警报作业 <span>/</span> <b>警报强制中断作业</b></div>
+      <div class="actions">
+        <div class="demo-switch" title="切换演示身份，仅影响本地交互">
+          <label><input type="radio" name="persona" value="admin" checked> 有中断权限</label>
+          <label><input type="radio" name="persona" value="operator"> 无中断权限</label>
+        </div>
+        <div class="user-chip"><span id="userInitial" class="avatar">陳</span><span id="userLabel">陳柏睿 · E0043258</span><span id="userPerm" class="perm">可中断</span></div>
+      </div>
+    </div>
+
+    <main>
+      <div class="page-heading">
+        <div>
+          <div class="eyebrow">Alarm Operations</div>
+          <h1>警报强制中断作业</h1>
+          <p class="description">检视处理中（Process）警报，授权使用者可填写原因并二次确认后强制中断流程；中断后层级关闭、待发通知取消、调度不再升级或重送。</p>
+        </div>
+        <div class="toolbar">
+          <span class="muted small" id="lastSync">最后同步 09:12:40</span>
+          <button class="btn" id="btnRefresh" type="button">刷新</button>
+          <button class="btn primary" id="btnOpenFirst" type="button">检视选中的警报</button>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><small>处理中警报</small><strong id="kpiProcess">3</strong><div class="delta">当前厂别 · 示例数据</div></div>
+        <div class="kpi"><small>待发送通知</small><strong id="kpiPending">2</strong><div class="delta">中断后转为 Skipped</div></div>
+        <div class="kpi"><small>本层级待回应</small><strong id="kpiAck">1</strong><div class="delta">中断无需回应人数达标</div></div>
+        <div class="kpi term"><small>已中断（今日）</small><strong id="kpiTerminated">1</strong><div class="delta">Terminated · 不可恢复</div></div>
+        <div class="kpi"><small>我的中断权限</small><strong id="kpiPerm" style="font-size:19px;line-height:1.4">Y</strong><div class="delta" id="kpiPermHint">使用者主档 CAN_TERMINATE</div></div>
+      </div>
+
+      <div class="hint" id="permHint"></div>
+
+      <div class="panel flat">
+        <div class="panel-head">
+          <h3>处理中警报</h3>
+          <div class="toolbar">
+            <span class="sub">点击任一列查看详情</span>
+            <input type="search" id="search" placeholder="搜寻警报识别码 / 标题 / 机台" style="height:28px;border:1px solid #d5dfe8;border-radius:6px;padding:0 10px;font-size:12px;min-width:220px">
+          </div>
+        </div>
+        <div style="overflow:auto">
+          <table class="grid" id="alarmTable">
+            <thead><tr><th>警报识别码</th><th>警报标题</th><th>状态</th><th>厂别 / 子系统 / 机台</th><th>当前层级</th><th>回应人数</th><th>产生时间</th><th style="text-align:right">操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="panel side-panel">
+          <h3>中断后的系统行为（本原型可实际操作）</h3>
+          <ul class="side-list">
+            <li><span class="n">1</span><div>警报状态 <span class="tag Terminated">Terminated</span>，写入结束时间与中断人、时间、原因。</div></li>
+            <li><span class="n">2</span><div>当前层级由 Active 关闭为 Closed，所有层级不再推进。</div></li>
+            <li><span class="n">3</span><div>待发送通知由 <span class="tag Pending">Pending</span> 转为 <span class="tag Skipped">Skipped</span>，不再发送 Email。</div></li>
+            <li><span class="n">4</span><div>调度不再升级、不再失败重送、不再触发自动完成或 NoNextLevel。</div></li>
+            <li><span class="n">5</span><div>写入 1 条 <span class="mono" style="font-size:11px">TRX_TYPE=AlarmTerminate</span> 交易，操作人、时间、原因齐全。</div></li>
+            <li><span class="n">6</span><div>AVPA013 不再计入；AVPA004 / AVPA007 可按 <span class="mono" style="font-size:11px">Terminated</span> 状态区分。</div></li>
+          </ul>
+        </div>
+        <div class="panel side-panel">
+          <h3>边界规则</h3>
+          <ul class="side-list">
+            <li><span class="n">✓</span><div>仅 <b>有权限 + Process</b> 可用；权限来自使用者主档，前端显隐不是安全边界。</div></li>
+            <li><span class="n">✓</span><div>中断原因必填，默认上限与 ACK 备注对齐。</div></li>
+            <li><span class="n">✓</span><div>历史交易详情只读，不出现中断入口。</div></li>
+            <li><span class="n">×</span><div>不做撤销、批量、审批流、新通知渠道。</div></li>
+          </ul>
+          <div class="chip-row"><span class="chip">POST /api/alarms/:key/terminate</span><span class="chip">CAN_TERMINATE</span><span class="chip">AlarmTerminate</span></div>
+        </div>
+      </div>
+
+      <div class="proto-foot">
+        <span>原型范围：警报强制中断作业 / 警报详情 / 中断二次确认 / 中断后详情。仅本地示例数据。</span>
+        <span>AMS 设计系统 · Ant Design Vue 4.2.6 主题 Token · 主色 #167d92</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="overlay" id="detailOverlay" hidden>
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="modal-head">
+      <div>
+        <h2 id="detailTitle">警报详情</h2>
+      </div>
+      <button class="x" type="button" data-close="detail" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-title-row">
+        <div>
+          <h3 id="alarmHeadline">CMP 研磨液流量异常</h3>
+          <div class="detail-meta"><span class="mono" id="alarmKeyLabel">ALM-20261126-0007</span><span id="alarmStatusTag" class="tag Process">Process</span><span id="alarmScope">F01 / MES / CMP-03</span></div>
+        </div>
+        <button class="btn ghost sm" type="button" id="btnReload" title="重新读取详情">刷新发送与确认状态</button>
+      </div>
+
+      <div class="tabs">
+        <button class="active" type="button" data-tab="MAIN">基本资讯</button>
+        <button type="button" data-tab="CONTENT">详细内容</button>
+        <button type="button" data-tab="COMMENT">回应备注</button>
+      </div>
+
+      <div data-pane="MAIN">
+        <div class="fields" id="infoFields"></div>
+      </div>
+      <div data-pane="CONTENT" hidden><p class="description" id="contentText"></p></div>
+      <div data-pane="COMMENT" hidden><p class="description" id="commentText"></p></div>
+
+      <div class="tool-zone">
+        <div class="level">LEVEL-<b id="levelNo">1</b> · <b id="ackCount">0</b> / <b id="ackNeed">2</b> 已回应人数</div>
+        <div class="right" id="toolActions"></div>
+      </div>
+
+      <div id="terminateBanner"></div>
+
+      <div class="record-section">
+      <div class="tabs" id="recordTabs">
+        <button class="active" type="button" data-tab="NOTIFICATIONS">通知发送记录</button>
+        <button type="button" data-tab="TRANSACTIONS">交易履历</button>
+        <button type="button" data-tab="LEVELS">事件层级</button>
+        <button type="button" data-tab="ACKS">回应记录</button>
+      </div>
+      <div class="record-table" id="recordWrap">
+        <table class="grid" id="recordTable"><thead></thead><tbody></tbody></table>
+      </div>
+      </div>
+    <div class="modal-foot">
+      <span class="muted small" id="detailFooterNote">详情为可交互原型，所有数据均为本地示例。</span>
+      <button class="btn" type="button" data-close="detail">关闭</button>
+    </div>
+  </section>
+</div>
+
+<!-- 中断二次确认 -->
+<div class="overlay" id="confirmOverlay" hidden>
+  <section class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmRisk">
+    <div class="modal-head">
+      <h2 id="confirmTitle">确认强制中断警报？</h2>
+      <button class="x" type="button" data-close="confirm" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-lead">您正在中断一笔处理中的警报流程，请确认目标与原因。</p>
+      <div class="confirm-target">
+        <div><span>警报识别码</span><b class="mono" id="confirmKey">—</b></div>
+        <div><span>警报标题</span><b id="confirmTitleText">—</b></div>
+        <div><span>所属范围</span><b id="confirmScope">—</b></div>
+      </div>
+      <div class="risk" id="confirmRisk"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg><div>中断后警报将结束且无法恢复；当前层级将关闭，不再发送通知、升级或失败重送。中断不会撤销已发出的邮件。</div></div>
+      <div class="field">
+        <label class="lbl" for="cmtInput">中断原因<em>*</em></label>
+        <textarea id="cmtInput" maxlength="500" placeholder="请填写中断原因（例如：机台已修复、误报、事件配置错误）" aria-describedby="cmtErr"></textarea>
+        <div class="foot"><span id="cmtErr" class="err" role="alert">请填写中断原因</span><span id="cmtCount">0 / 500</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" type="button" data-close="confirm">取消</button>
+      <button class="btn danger" type="button" id="btnConfirmTerminate">确认中断</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="dot"></span><span id="toastText"></span></div>
+
+<script>
+(function(){
+  'use strict';
+  var now = '2026-11-26T09:12:40Z';
+  var people = {
+    admin: {id:'E0043258', name:'陳柏睿', initial:'陳', perm:'Y', title:'设备工程部 · 值班主管'},
+    operator: {id:'E0043262', name:'王仲杰', initial:'王', perm:'N', title:'设备工程部 · 值班工程师'}
+  };
+  var data = [
+    {ALARM_KEY:'ALK-0007', ALARM_ID:'ALM-20261126-0007', TITLE:'CMP 研磨液流量异常', FACTORY_ID:'F01', FACTORY_NAME:'一厂', SUB_SYS_ID:'MES', SUB_SYS_NAME:'研磨子系统', EQP_ID:'CMP-03', ALARM_INFO_ID:'CMP-FLOW-01', EVENT_ID:'EV-CMP-02', EVENT_NAME:'CMP 流量异常通知', CREATE_DT:'2026-11-26T08:58:12Z', CONTENT:'CMP-03 研磨液流量连续 3 分钟低于下限（1.2 L/min），请确认管路与泵浦状态。', CURRENT_LEVEL:1, LEVEL_REQUIRED:2, LEVEL_ACK_COUNT:0, ACK_REQUIRED:2, STATUS:'Process', PRIORITY:2, ACK_CMT:'', TERMINATE_DT:null, TERMINATE_CMT:'', TERMINATE_USER_ID:'', TERMINATE_USER_NAME:'',
+      NOTIFICATIONS:[{USER_ID:'E0043260', USER_NAME:'林彥廷', CHANNEL:'Email', RESULT:'Success', SEND_DT:'2026-11-26T08:58:40Z', MESSAGE:'SMTP 服务器已接受邮件'},{USER_ID:'E0043262', USER_NAME:'王仲杰', CHANNEL:'Email', RESULT:'Pending', SEND_DT:'', MESSAGE:'等待 SMTP 发送'}],
+      LEVELS:[{LEVEL_ID:1, REQUIRED_ACK:2, ACK_COUNT:0, RESEND_COUNT:0, START_DT:'2026-11-26T08:58:12Z', STATUS:'Active'}],
+      ACKS:[],
+      TRANSACTIONS:[{SEQ:1, TRX_TYPE:'Create', STATUS_BEFORE:'Open', STATUS_AFTER:'Process', USER_NAME:'系统', TRX_DT:'2026-11-26T08:58:12Z', NOTE:'警报建立'}]
+    },
+    {ALARM_KEY:'ALK-0008', ALARM_ID:'ALM-20261126-0008', TITLE:'蚀刻槽温度超出上限', FACTORY_ID:'F01', FACTORY_NAME:'一厂', SUB_SYS_ID:'ETCH', SUB_SYS_NAME:'蚀刻子系统', EQP_ID:'ETC-11', ALARM_INFO_ID:'ETC-TEMP-03', EVENT_ID:'EV-ETC-01', EVENT_NAME:'蚀刻温度异常通知', CREATE_DT:'2026-11-26T09:02:05Z', CONTENT:'ETC-11 蚀刻槽温度 68.4°C 超过上限 66°C，已持续 2 分钟。', CURRENT_LEVEL:2, LEVEL_REQUIRED:1, LEVEL_ACK_COUNT:0, ACK_REQUIRED:1, STATUS:'Process', PRIORITY:3, ACK_CMT:'', TERMINATE_DT:null, TERMINATE_CMT:'', TERMINATE_USER_ID:'', TERMINATE_USER_NAME:'',
+      NOTIFICATIONS:[{USER_ID:'E0043263', USER_NAME:'许雅婷', CHANNEL:'Email', RESULT:'Fail', SEND_DT:'2026-11-26T09:04:30Z', MESSAGE:'SMTP 超时，等待失败重送'}],
+      LEVELS:[{LEVEL_ID:1, REQUIRED_ACK:2, ACK_COUNT:2, RESEND_COUNT:0, START_DT:'2026-11-26T09:02:05Z', STATUS:'Closed'},{LEVEL_ID:2, REQUIRED_ACK:1, ACK_COUNT:0, RESEND_COUNT:1, START_DT:'2026-11-26T09:08:05Z', STATUS:'Active'}],
+      ACKS:[{USER_ID:'E0043260', USER_NAME:'林彥廷', ACK_DT:'2026-11-26T09:05:10Z', ACK_CMT:'已确认收到，处理中'},{USER_ID:'E0043259', USER_NAME:'黃俊豪', ACK_DT:'2026-11-26T09:06:22Z', ACK_CMT:'收到'}],
+      TRANSACTIONS:[{SEQ:1, TRX_TYPE:'Create', STATUS_BEFORE:'Open', STATUS_AFTER:'Process', USER_NAME:'系统', TRX_DT:'2026-11-26T09:02:05Z', NOTE:'警报建立'},{SEQ:2, TRX_TYPE:'LevelUpgrade', STATUS_BEFORE:'Process', STATUS_AFTER:'Process', USER_NAME:'系统', TRX_DT:'2026-11-26T09:08:05Z', NOTE:'升级至 LEVEL-2'}]
+    },
+    {ALARM_KEY:'ALK-0004', ALARM_ID:'ALM-20261126-0004', TITLE:'UPS 电池组电压偏低', FACTORY_ID:'F01', FACTORY_NAME:'一厂', SUB_SYS_ID:'PWR', SUB_SYS_NAME:'电力子系统', EQP_ID:'UPS-01', ALARM_INFO_ID:'PWR-UPS-02', EVENT_ID:'EV-PWR-03', EVENT_NAME:'UPS 异常通知', CREATE_DT:'2026-11-26T08:31:44Z', CONTENT:'UPS-01 电池组电压 402V 低于告警值 410V。', CURRENT_LEVEL:1, LEVEL_REQUIRED:1, LEVEL_ACK_COUNT:1, ACK_REQUIRED:0, STATUS:'Process', PRIORITY:1, ACK_CMT:'已处理', TERMINATE_DT:null, TERMINATE_CMT:'', TERMINATE_USER_ID:'', TERMINATE_USER_NAME:'',
+      NOTIFICATIONS:[{USER_ID:'E0043260', USER_NAME:'林彥廷', CHANNEL:'Email', RESULT:'Success', SEND_DT:'2026-11-26T08:32:10Z', MESSAGE:'SMTP 服务器已接受邮件'}],
+      LEVELS:[{LEVEL_ID:1, REQUIRED_ACK:1, ACK_COUNT:1, RESEND_COUNT:0, START_DT:'2026-11-26T08:31:44Z', STATUS:'Active'}],
+      ACKS:[{USER_ID:'E0043260', USER_NAME:'林彥廷', ACK_DT:'2026-11-26T08:40:05Z', ACK_CMT:'已处理'}],
+      TRANSACTIONS:[{SEQ:1, TRX_TYPE:'Create', STATUS_BEFORE:'Open', STATUS_AFTER:'Process', USER_NAME:'系统', TRX_DT:'2026-11-26T08:31:44Z', NOTE:'警报建立'},{SEQ:2, TRX_TYPE:'UserAck', STATUS_BEFORE:'Process', STATUS_AFTER:'Process', USER_NAME:'林彥廷', TRX_DT:'2026-11-26T08:40:05Z', NOTE:'已处理'}]
+    },
+    {ALARM_KEY:'ALK-0002', ALARM_ID:'ALM-20261126-0002', TITLE:'空压机压力不足', FACTORY_ID:'F01', FACTORY_NAME:'一厂', SUB_SYS_ID:'CDA', SUB_SYS_NAME:'空压子系统', EQP_ID:'CDA-02', ALARM_INFO_ID:'CDA-PRESS-01', EVENT_ID:'EV-CDA-01', EVENT_NAME:'空压异常通知', CREATE_DT:'2026-11-26T07:20:03Z', CONTENT:'CDA-02 供气压力 4.1 bar 低于下限 4.5 bar。', CURRENT_LEVEL:1, LEVEL_REQUIRED:1, LEVEL_ACK_COUNT:0, ACK_REQUIRED:0, STATUS:'Terminated', PRIORITY:2, ACK_CMT:'', TERMINATE_DT:'2026-11-26T07:46:30Z', TERMINATE_CMT:'机台已修复，空压恢复正常，结束警报流程', TERMINATE_USER_ID:'E0043258', TERMINATE_USER_NAME:'陳柏睿',
+      NOTIFICATIONS:[{USER_ID:'E0043261', USER_NAME:'李佳穎', CHANNEL:'Email', RESULT:'Success', SEND_DT:'2026-11-26T07:20:30Z', MESSAGE:'SMTP 服务器已接受邮件'},{USER_ID:'E0043262', USER_NAME:'王仲杰', CHANNEL:'Email', RESULT:'Skipped', SEND_DT:'2026-11-26T07:46:31Z', MESSAGE:'警报已中断，取消发送'}],
+      LEVELS:[{LEVEL_ID:1, REQUIRED_ACK:1, ACK_COUNT:0, RESEND_COUNT:0, START_DT:'2026-11-26T07:20:03Z', STATUS:'Closed'}],
+      ACKS:[],
+      TRANSACTIONS:[{SEQ:1, TRX_TYPE:'Create', STATUS_BEFORE:'Open', STATUS_AFTER:'Process', USER_NAME:'系统', TRX_DT:'2026-11-26T07:20:03Z', NOTE:'警报建立'},{SEQ:2, TRX_TYPE:'AlarmTerminate', STATUS_BEFORE:'Process', STATUS_AFTER:'Terminated', USER_NAME:'陳柏睿', TRX_DT:'2026-11-26T07:46:30Z', NOTE:'机台已修复，空压恢复正常，结束警报流程'}]
+    }
+  ];
+  var state = {persona:'admin', selected:'ALK-0007', detailKey:null, tab:'MAIN', recordTab:'NOTIFICATIONS', confirmTarget:null, busy:false, toastTimer:null};
+  function $(s, r){return (r||document).querySelector(s)}
+  function $$(s, r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+  function clone(v){return JSON.parse(JSON.stringify(v))}
+  function find(key){return data.filter(function(a){return a.ALARM_KEY===key})[0]}
+  function person(){return people[state.persona]}
+  function canTerminate(a){return !!a && !a.HISTORY_CONTEXT && a.STATUS==='Process' && person().perm==='Y'}
+  function fmt(dt){ if(!dt) return '—'; var d=new Date(dt); if(isNaN(d.getTime())) return dt; function p(n){return (n<10?'0':'')+n} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()) }
+  function statusLabel(s){return ({Process:'Process',Completed:'Completed',NoNextLevel:'NoNextLevel',Terminated:'Terminated'})[s]||s}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g, function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]})}
+  function notify(msg, isErr){ var t=$('#toast'); $('#toastText').textContent=msg; t.classList.toggle('err',!!isErr); t.classList.add('show'); clearTimeout(state.toastTimer); state.toastTimer=setTimeout(function(){t.classList.remove('show')}, 4200) }
+
+  function renderPersona(){
+    var p=person();
+    $('#userInitial').textContent=p.initial; $('#userLabel').textContent=p.name+' · '+p.id;
+    $('#userPerm').textContent=p.perm==='Y'?'可中断':'无中断权限';
+    $('#userPerm').classList.toggle('no',p.perm!=='Y');
+    $('#kpiPerm').textContent=p.perm; $('#kpiPermHint').textContent=p.perm==='Y'?'使用者主档 CAN_TERMINATE = Y':'使用者主档 CAN_TERMINATE = N';
+    var h=$('#permHint');
+    if(p.perm==='Y'){
+      h.className='hint';
+      h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><div>当前身份 <b>'+esc(p.name)+'</b> 具备警报强制中断权限，可在处理中警报详情执行中断；服务端仍会再次校验权限、状态与原因。</div>';
+    } else {
+      h.className='hint warn';
+      h.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg><div>当前身份 <b>'+esc(p.name)+'</b> 没有强制中断权限（CAN_TERMINATE = N）。详情中的中断按钮为禁用态并给出说明，服务端会拒绝越权请求。</div>';
+    }
+  }
+
+  function renderTable(){
+    var q=($('#search').value||'').trim().toLowerCase();
+    var rows=data.filter(function(a){
+      var text=(a.ALARM_ID+' '+a.TITLE+' '+a.EQP_ID+' '+a.STATUS).toLowerCase();
+      return !q || text.indexOf(q)>=0;
+    });
+    var tbody=$('#alarmTable tbody'); tbody.innerHTML='';
+    rows.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.dataset.key=a.ALARM_KEY; tr.className = a.ALARM_KEY===state.selected?'selected':'';
+      var op = a.STATUS==='Process'
+        ? '<button class="btn sm '+((person().perm==='Y')?'danger-outline':'')+'" data-open="'+a.ALARM_KEY+'" type="button">'+(person().perm==='Y'?'查看 / 中断':'查看')+'</button>'
+        : '<button class="btn sm" data-open="'+a.ALARM_KEY+'" type="button">查看</button>';
+      tr.innerHTML='<td class="mono">'+esc(a.ALARM_ID)+'</td><td>'+esc(a.TITLE)+'</td><td><span class="tag '+esc(a.STATUS)+'">'+esc(statusLabel(a.STATUS))+'</span></td><td>'+esc(a.FACTORY_ID+' / '+a.SUB_SYS_ID+' / '+a.EQP_ID)+'</td><td>LEVEL-'+esc(a.CURRENT_LEVEL)+'</td><td>'+esc(a.LEVEL_ACK_COUNT)+' / '+esc(a.LEVEL_REQUIRED)+'</td><td class="muted small">'+esc(fmt(a.CREATE_DT))+'</td><td style="text-align:right">'+op+'</td>';
+      tbody.appendChild(tr);
+    });
+    if(!rows.length){tbody.innerHTML='<tr><td colspan="8" class="muted" style="text-align:center;padding:26px">查无符合条件的警报</td></tr>'}
+    var p=data.filter(function(a){return a.STATUS==='Process'});
+    $('#kpiProcess').textContent=p.length;
+    var pending=0, ack=0; p.forEach(function(a){a.NOTIFICATIONS.forEach(function(n){if(n.RESULT==='Pending') pending++}); ack+=Math.max(0,(a.LEVEL_REQUIRED||0)-(a.LEVEL_ACK_COUNT||0))});
+    $('#kpiPending').textContent=pending; $('#kpiAck').textContent=ack;
+    $('#kpiTerminated').textContent=data.filter(function(a){return a.STATUS==='Terminated'}).length;
+  }
+
+  var recordColumns = {
+    NOTIFICATIONS:[['USER_ID','使用者代码'],['USER_NAME','使用者名称'],['CHANNEL','发送方式'],['RESULT','状态'],['SEND_DT','发送时间'],['MESSAGE','说明']],
+    TRANSACTIONS:[['SEQ','序号'],['TRX_TYPE','交易类别'],['STATUS_BEFORE','修改前'],['STATUS_AFTER','修改后'],['USER_NAME','使用者名称'],['TRX_DT','修改时间'],['NOTE','备注']],
+    LEVELS:[['LEVEL_ID','层级'],['REQUIRED_ACK','需要回应的人数'],['ACK_COUNT','已回应人数'],['RESEND_COUNT','重送次数'],['START_DT','开始时间'],['STATUS','状态']],
+    ACKS:[['USER_ID','使用者代码'],['USER_NAME','使用者名称'],['ACK_DT','确认时间'],['ACK_CMT','回应备注']]
+  };
+  var infoCols = [['ALARM_ID','警报识别码'],['FACTORY_ID','厂别代码'],['FACTORY_NAME','厂别名称'],['SUB_SYS_ID','子系统代码'],['SUB_SYS_NAME','子系统名称'],['EQP_ID','机台代码'],['ALARM_INFO_ID','警报代码'],['EVENT_ID','事件代码'],['EVENT_NAME','事件名称'],['CREATE_DT','产生时间'],['CURRENT_LEVEL','目前事件层级'],['USER_NAME','当前账号']];
+
+  function renderDetail(){
+    var a=find(state.detailKey); if(!a) return;
+    var p=person();
+    $('#alarmHeadline').textContent=a.TITLE;
+    $('#alarmKeyLabel').textContent=a.ALARM_ID;
+    var tag=$('#alarmStatusTag'); tag.className='tag '+a.STATUS; tag.textContent=statusLabel(a.STATUS);
+    $('#alarmScope').textContent=a.FACTORY_ID+' / '+a.SUB_SYS_ID+' / '+a.EQP_ID;
+    $('#levelNo').textContent=a.CURRENT_LEVEL; $('#ackCount').textContent=a.LEVEL_ACK_COUNT; $('#ackNeed').textContent=a.LEVEL_REQUIRED;
+    $('#contentText').textContent=a.CONTENT;
+    $('#commentText').textContent=a.ACK_CMT||'暂无回应备注';
+
+    $('#infoFields').innerHTML=infoCols.map(function(c){
+      var v = c[0]==='USER_NAME' ? (p.name+' '+p.id) : (c[0]==='CREATE_DT'?fmt(a[c[0]]):(a[c[0]]||'—'));
+      return '<label><span>'+esc(c[1])+'</span><strong>'+esc(v)+'</strong></label>';
+    }).join('');
+
+    var tools='';
+    if(a.STATUS==='Process'){
+      if(p.perm==='Y'){
+        tools='<button class="btn danger" id="btnTerminate" type="button">强制中断</button>';
+      } else {
+        tools='<span class="tool-note locked">您没有强制中断权限，请联系具权限人员处理。</span><button class="btn danger" type="button" disabled>强制中断</button>';
+      }
+    } else if(a.STATUS==='Terminated'){
+      tools='<span class="tool-note">警报已中断，流程已结束</span><button class="btn danger" type="button" disabled>强制中断</button>';
+    } else {
+      tools='<span class="tool-note">仅处理中（Process）的警报可中断</span><button class="btn danger" type="button" disabled>强制中断</button>';
+    }
+    $('#toolActions').innerHTML=tools;
+
+    var banner=$('#terminateBanner');
+    if(a.STATUS==='Terminated'){
+      banner.innerHTML='<div class="terminate-banner" role="status"><div class="badge">!</div><div style="flex:1"><h4>警报已中断 · Terminated</h4><p>流程已结束且不可恢复。当前层级关闭，待发通知 Skipped，调度不再升级、失败重送或推进 ACK。</p><dl><dt>中断时间</dt><dd>'+esc(fmt(a.TERMINATE_DT))+'</dd><dt>中断操作人</dt><dd>'+esc(a.TERMINATE_USER_NAME+' ('+a.TERMINATE_USER_ID+')')+'</dd><dt>中断原因</dt><dd>'+esc(a.TERMINATE_CMT||'—')+'</dd></dl></div></div>';
+    } else if(a.NOTIFICATIONS.some(function(n){return n.RESULT==='Skipped'})){
+      banner.innerHTML='<div class="terminate-banner"><div class="badge">i</div><div><h4>部分通知已取消</h4><p>中断时处于待发送状态的通知已转为 Skipped，未发送 Email。</p></div></div>';
+    } else banner.innerHTML='';
+
+    var cols=recordColumns[state.recordTab];
+    var head=$('#recordTable thead'), body=$('#recordTable tbody');
+    // detail flex layout: tabs + scrollable record area
+    $('#recordWrap').classList.toggle('compact', state.recordTab==='TRANSACTIONS');
+    head.innerHTML='<tr>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'</tr>';
+    var rows=a[state.recordTab]||[];
+    body.innerHTML = rows.length ? rows.map(function(r){
+      return '<tr style="cursor:default">'+cols.map(function(c){
+        var v=r[c[0]];
+        if(c[0]==='SEND_DT'||c[0]==='TRX_DT'||c[0]==='START_DT'||c[0]==='ACK_DT') v=fmt(v);
+        if(c[0]==='RESULT'||c[0]==='STATUS') return '<td><span class="tag '+esc(v)+'">'+esc(v)+'</span></td>';
+        if(c[0]==='TRX_TYPE') return '<td><span class="mono" style="font-size:11.5px">'+esc(v)+'</span></td>';
+        if(c[0]==='NOTE') return '<td class="wrap" style="min-width:180px;max-width:340px">'+esc(v||'—')+'</td>';
+        return '<td>'+(v===''||v==null?'—':esc(v))+'</td>';
+      }).join('')+'</tr>';
+    }).join('') : '<tr><td colspan="'+cols.length+'" class="muted" style="text-align:center;padding:22px">暂无资料</td></tr>';
+  }
+
+  function openDetail(key){
+    state.detailKey=key; state.selected=key; state.tab='MAIN'; state.recordTab='NOTIFICATIONS';
+    syncTabs(); renderTable(); $('#detailOverlay').hidden=false; renderDetail();
+  }
+  function closeDetail(){ $('#detailOverlay').hidden=true; state.detailKey=null; }
+  function syncTabs(){
+    $$('[data-tab]').forEach(function(b){ var pane=$('[data-pane="'+b.dataset.tab+'"]'); if(!pane) return; var on=b.dataset.tab===state.tab; b.classList.toggle('active',on); pane.hidden=!on; });
+  }
+  function syncRecordTabs(){
+    $$('.modal .tabs')[1].querySelectorAll('[data-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===state.recordTab); });
+  }
+
+  function openConfirm(){
+    var a=find(state.detailKey); if(!a) return;
+    if(!canTerminate(a)){ notify('该警报当前不可中断', true); return; }
+    state.confirmTarget=a.ALARM_KEY; state.busy=false;
+    $('#confirmKey').textContent=a.ALARM_ID; $('#confirmTitleText').textContent=a.TITLE;
+    $('#confirmScope').textContent=a.FACTORY_ID+' / '+a.SUB_SYS_ID+' / '+a.EQP_ID;
+    var input=$('#cmtInput'); input.value=''; input.classList.remove('invalid'); $('#cmtErr').classList.remove('show'); $('#cmtCount').textContent='0 / 500';
+    $('#btnConfirmTerminate').disabled=false; $('#btnConfirmTerminate').textContent='确认中断';
+    $('#confirmOverlay').hidden=false; setTimeout(function(){input.focus()},30);
+  }
+  function closeConfirm(){ $('#confirmOverlay').hidden=true; state.confirmTarget=null; $('#cmtInput').value=''; }
+
+  function submitTerminate(){
+    if(state.busy) return;
+    var a=find(state.confirmTarget); if(!a) return;
+    var cmt=$('#cmtInput').value.trim();
+    var input=$('#cmtInput'), err=$('#cmtErr');
+    if(!cmt){ input.classList.add('invalid'); err.textContent='请填写中断原因'; err.classList.add('show'); input.focus(); return; }
+    if(cmt.length>500){ input.classList.add('invalid'); err.textContent='中断原因不可超过 500 个字符'; err.classList.add('show'); return; }
+    if(!canTerminate(a)){ closeConfirm(); notify('该警报已非处理中状态，请刷新详情', true); renderDetail(); return; }
+    state.busy=true; var btn=$('#btnConfirmTerminate'); btn.disabled=true; btn.textContent='中断中…';
+    setTimeout(function(){
+      var t=new Date();
+      a.STATUS='Terminated'; a.COMPLETE_DT=t.toISOString(); a.TERMINATE_DT=t.toISOString(); a.TERMINATE_CMT=cmt;
+      a.TERMINATE_USER_ID=person().id; a.TERMINATE_USER_NAME=person().name;
+      a.LEVELS.forEach(function(l){ if(l.STATUS==='Active') l.STATUS='Closed' });
+      a.NOTIFICATIONS.forEach(function(n){ if(n.RESULT==='Pending'){ n.RESULT='Skipped'; n.SEND_DT=t.toISOString(); n.MESSAGE='警报已中断，取消发送'; } });
+      a.TRANSACTIONS.push({SEQ:a.TRANSACTIONS.length+1, TRX_TYPE:'AlarmTerminate', STATUS_BEFORE:'Process', STATUS_AFTER:'Terminated', USER_NAME:person().name, TRX_DT:t.toISOString(), NOTE:cmt});
+      state.busy=false; closeConfirm(); renderTable(); notify('警报已中断'); renderDetail();
+    }, 420);
+  }
+
+  // events
+  document.addEventListener('click', function(e){
+    var open=e.target.closest('[data-open]');
+    if(open){ e.stopPropagation(); openDetail(open.dataset.open); return; }
+    var close=e.target.closest('[data-close]');
+    if(close){ if(close.dataset.close==='confirm') closeConfirm(); else closeDetail(); return; }
+    var tab=e.target.closest('[data-tab]');
+    if(tab){
+      if(tab.dataset.tab==='MAIN'||tab.dataset.tab==='CONTENT'||tab.dataset.tab==='COMMENT'){ state.tab=tab.dataset.tab; syncTabs(); }
+      else { state.recordTab=tab.dataset.tab; syncRecordTabs(); renderDetail(); }
+      return;
+    }
+    if(e.target.id==='btnTerminate'){ openConfirm(); return; }
+    if(e.target.id==='btnConfirmTerminate'){ submitTerminate(); return; }
+    if(e.target.id==='btnReload'){ renderDetail(); notify('已刷新发送与确认状态'); return; }
+    if(e.target.id==='btnRefresh'){ renderTable(); notify('已刷新处理中警报'); return; }
+    if(e.target.id==='btnOpenFirst'){ var row=find(state.selected); if(row) openDetail(row.ALARM_KEY); return; }
+    var tr=e.target.closest('#alarmTable tbody tr');
+    if(tr && tr.dataset.key){ state.selected=tr.dataset.key; renderTable(); }
+    var nav=e.target.closest('[data-nav]');
+    if(nav){ $$('.sidebar a').forEach(function(a){a.classList.remove('active')}); nav.classList.add('active'); }
+  });
+  $('#detailOverlay').addEventListener('mousedown', function(e){ if(e.target===this) closeDetail(); });
+  $('#confirmOverlay').addEventListener('mousedown', function(e){ if(e.target===this) closeConfirm(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(!$('#confirmOverlay').hidden) closeConfirm(); else if(!$('#detailOverlay').hidden) closeDetail(); } });
+  $$('input[name=persona]').forEach(function(r){ r.addEventListener('change', function(){ state.persona=this.value; renderPersona(); renderTable(); if(state.detailKey) renderDetail(); if(!$('#confirmOverlay').hidden) closeConfirm(); }); });
+  $('#search').addEventListener('input', renderTable);
+  $('#cmtInput').addEventListener('input', function(){ this.classList.remove('invalid'); $('#cmtErr').classList.remove('show'); $('#cmtCount').textContent=this.value.length+' / 500'; });
+  $('#cmtInput').addEventListener('keydown', function(e){ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)) submitTerminate(); });
+
+  renderPersona(); renderTable();
+  // 便于自动化验收/截图：openDetail(key) / openConfirm() / persona('admin'|'operator') / get(key) / closeAll()
+  window.__proto={openDetail:openDetail, openConfirm:openConfirm, persona:function(p){state.persona=p;$$('input[name=persona]').forEach(function(r){r.checked=r.value===p});renderPersona();renderTable();if(state.detailKey)renderDetail()}, get:function(k){return find(k)}, closeAll:function(){closeConfirm();closeDetail()}};
+})();
+</script>
+</body>
+</html>
