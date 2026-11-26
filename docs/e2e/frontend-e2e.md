@@ -102,6 +102,26 @@ Playwright 通过 `e2e/serve.mjs` 提供同源静态服务，并把 `/api/**`、
 
 ---
 
+## TC-FE-E2E-006 无效警报查询（AVPA008）
+
+**优先级**：P1　**代码**：`06-invalid-alarms.spec.ts`
+
+前置：通过 API 以未知厂别 `E2E-NO-FACTORY` 触发 `POST /api/alarms/test`，制造 `NO_FACTORY` 无效警报（返回仍为 `422 {ok:false,message:"未设定厂别"}`）。
+共享后端已有其他无效警报记录，断言不依赖固定条数，统一用唯一标题定位本次数据。
+
+| # | 步骤 | 预期 |
+| - | ---- | ---- |
+| 1 | 登录 → 侧栏「查询报表」 | 分组内出现「无效警报查询」（`#/page/AVPA008`） |
+| 2 | 打开页面 | URL `#/page/AVPA008`；未查询时显示“请执行查询” |
+| 3 | 点“查询” | 出现“查询条件”弹窗；提示“默认近 24 小时，可调整”；`资料新增时间` 已填区间 |
+| 4 | 直接提交查询 | 弹窗关闭；表格出现列“失效类型/失效原因”；默认区间内可见前置制造的无效警报标题 |
+| 5 | `POST /api/reports/AVPA008/query`，`CREATE_DT` 未启用 | `400`，`message=无效警报查询必须指定时间区间` |
+| 6 | 提交 2020 年区间 + 唯一标题；再提交覆盖当前时间的区间 | 前者 `rows=[]`；后者恰好 1 行，`FAILURE_TYPE=NO_FACTORY`、`FAILURE_REASON=未设定厂别`、`SOURCE=TEST_API`、`INVALID_ID` 形如 `IVD-yyyyMMdd-NNNNNN` |
+| 7 | 查询条件含未声明字段 | `400 查询字段无效` |
+| 8 | 页面查询后用“过滤列表”收敛到唯一标题 → 点“汇出” | 浏览器下载 `*.xlsx` 文件 |
+
+---
+
 ## 用例 ↔ 代码映射
 
 | 用例 | 文件 | 覆盖点 |
@@ -111,3 +131,4 @@ Playwright 通过 `e2e/serve.mjs` 提供同源静态服务，并把 `/api/**`、
 | TC-FE-E2E-003 | `03-master-data.spec.ts` | 主档新增/列表/隐藏/恢复、唯一键错误 |
 | TC-FE-E2E-004 | `04-alarm-workflow.spec.ts` | 测试告警触发、详情、ACK 入口与不自动确认 |
 | TC-FE-E2E-005 | `05-alarm-list.spec.ts` | 待我确认、汇总计数联动、单会话约束 |
+| TC-FE-E2E-006 | `06-invalid-alarms.spec.ts` | 无效警报菜单/路由、默认近 24 小时、时间区间必填、窗口过滤、导出下载 |

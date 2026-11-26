@@ -44,7 +44,7 @@ updated_at: 2026-11-26
 - [x] 4.3 同文件覆盖导出：导出过滤后全部行、表头仅声明列、空结果仅表头。
 - [x] 4.4 覆盖迁移：旧快照（无 AVPA008）启动后自动补齐且幂等；新库初始化含 AVPA008；既有 AVPA004/007/013 定义不变。
 - [x] 4.5 `frontend/src/__tests__/legacy-i18n.test.js` 增加新增词条断言（与现有测试风格一致）。
-- [ ] 4.6（后续 E2E 节点） `e2e/frontend/support/ams.js` 增加 `MENU.invalidAlarms`；新增 Playwright 用例：侧栏「查询报表」进入“无效警报查询”→ 显示“请执行查询”→ 执行默认时间区间查询 → 表格渲染 → 导出可下载；不改既有导航断言。
+- [x] 4.6（E2E 节点已完成用例编写，执行状态见 4.8） `e2e/frontend/support/ams.js` 增加 `MENU.invalidAlarms`；新增 Playwright 用例：侧栏「查询报表」进入“无效警报查询”→ 显示“请执行查询”→ 执行默认时间区间查询 → 表格渲染 → 导出可下载；不改既有导航断言。
 - [x] 4.7 更新 `docs/e2e/backend-api-e2e.md`、`docs/e2e/frontend-e2e.md`、`docs/e2e/unit-tests.md` 中 AVPA008 相关用例 ID 与预期，保持与代码测试名一致。
 - [ ] 4.8 执行验证并记录：`cd backend && mvn test`、`cd frontend && npm run test:unit`、`bash scripts/run-java-e2e.sh`、`bash scripts/run-frontend-e2e.sh`；记录通过数与未执行项。
 
