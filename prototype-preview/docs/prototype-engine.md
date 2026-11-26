@@ -5,7 +5,7 @@
 | 仓库 / 关联远端 | `DawnGuoDev/CX-AMS-1123` / `https://github.com/DawnGuoDev/CX-AMS-1123.git` |
 | 原型分支 | `codex/prototype-preview` |
 | 工程目录 | `prototype-preview/`（相对仓库根） |
-| 已验证提交 | `PENDING_VERIFIED_COMMIT` |
+| 已验证提交 | `6c9095242a8019605589a2968dbece9a69c9cca2` |
 | 业务来源基线 | `release @ 13c84348c339d0acea9062954b043b1ec7e56e5d`（2026-11-26） |
 | 构建入口 | `cd prototype-preview && npm install && npm run build` |
 | 预览入口 | `cd prototype-preview && npm run dev`（5173）或 `cd prototype-preview/dist && python3 -m http.server 4173` |

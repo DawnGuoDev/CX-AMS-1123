@@ -13,7 +13,7 @@
   "prototype": {
     "branch": "codex/prototype-preview",
     "projectPath": "prototype-preview",
-    "verifiedCommit": null,
+    "verifiedCommit": "6c9095242a8019605589a2968dbece9a69c9cca2",
     "publishName": "CX-AMS-1123原型工程演示",
     "deterministicRoutes": ["#/home", "#/page/AVPA013", "#/page/ACK_LIST", "#/page/TEST", "#/page/SBRM_USER", "#/page/SBRM_FACTORY", "#/page/SBRM_EQP"]
   },
