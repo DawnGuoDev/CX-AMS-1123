@@ -20,7 +20,7 @@ async function load(){if(props.code==='TEST')await loadOptions();else rows.value
 async function submit(){
   await act(async()=>{
     const result=await api('/alarms/test',form.value)
-    notify(result.logOnly?'已记录：子系统 BYPASS，不发送邮件':'告警已触发，邮件等待 SMTP 发送')
+    notify('告警已触发，邮件等待 SMTP 发送')
     await openAlarm(result.alarm)
   })
 }

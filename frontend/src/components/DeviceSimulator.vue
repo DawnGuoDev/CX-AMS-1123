@@ -24,8 +24,7 @@ const setting = computed(() => {
 const event = computed(() => config.value?.events.find(row => row.EVENT_KEY === setting.value?.EVENT_KEY && row.ACTIVE !== 'N'))
 const levels = computed(() => (config.value?.levels || []).filter(row => row.EVENT_KEY === event.value?.EVENT_KEY && row.ACTIVE !== 'N')
   .sort((a, b) => Number(a.EVENT_LEVEL_ID) - Number(b.EVENT_LEVEL_ID)))
-const bypass = computed(() => config.value?.subsystems.find(row => row.SUB_SYS_KEY === props.form.subsysKey)?.BYPASS === 'Y')
-const ready = computed(() => selected.value && setting.value?.ACTIVE !== 'N' && event.value && (bypass.value || levels.value.length))
+const ready = computed(() => selected.value && setting.value?.ACTIVE !== 'N' && event.value && levels.value.some(row => Number(row.EVENT_LEVEL_ID) === 1))
 const points = computed(() => samples.value.map((sample, i) => `${20 + i * 560 / Math.max(1, samples.value.length - 1)},${100 - (sample.value - threshold.value) * 4}`).join(' '))
 function recipients(level) {
   return (level.USER_KEYS || []).map(key => {
@@ -73,7 +72,7 @@ async function sample(data) {
     })
     if (disposed) return
     counts.value.accepted++
-    log(result.logOnly ? 'BYPASS：仅记录，不发送邮件' : '已受理；邮件异步发送，请打开详情查看 SMTP 结果', result.alarm)
+    log('已受理；邮件异步发送，请打开详情查看 SMTP 结果', result.alarm)
   } catch (e) {
     if (disposed) return
     if (e.status === 422 && e.message === '忽略相同警报') {
@@ -134,7 +133,7 @@ onUnmounted(() => { disposed = true; runner?.stop(); document.removeEventListene
         <div class="toolbar"><strong>通知配置预览</strong><a-button :disabled="busy || loading" @click="loadConfig" type="default" html-type="button">{{ loading ? '读取中…' : '刷新配置' }}</a-button></div>
         <p v-if="!selected" class="muted">请先选择厂别、子系统、机台和警报代码。</p>
         <template v-else-if="ready">
-          <p>{{ event.EVENT_ID }} · {{ event.EVENT_NAME }}；重复抑制 {{ setting.IGNORE_PERIOD ?? 900 }} 秒<span v-if="bypass">；BYPASS：仅记录</span></p>
+          <p>{{ event.EVENT_ID }} · {{ event.EVENT_NAME }}；重复抑制 {{ setting.IGNORE_PERIOD ?? 900 }} 秒</p>
           <p v-for="level in levels" :key="level.EVENT_LEVEL_KEY" class="sim-recipients">LEVEL-{{ level.EVENT_LEVEL_ID }} · {{ level.LEVEL_INTERVAL }} 分钟升级 · ACK {{ level.NUMBER_OF_ACK_USERS }} 人<br>{{ recipients(level) }}</p>
         </template>
         <p v-else-if="!loading" class="warning">当前组合没有可用通知配置，请检查警报设定、事件及层级。</p>
@@ -155,7 +154,7 @@ onUnmounted(() => { disposed = true; runner?.stop(); document.removeEventListene
     <div class="kpis sim-kpis">
       <div class="kpi"><small>当前温度</small><strong>{{ current ? `${current.value} °C` : '—' }}</strong><small>{{ current ? `${current.high ? '超温' : '正常'} · 采样 ${current.index}/${current.total}` : '等待采样' }}</small></div>
       <div class="kpi"><small>超温触发次数</small><strong>{{ counts.crossings }}</strong><small>包含预览检测</small></div>
-      <div class="kpi"><small>已创建告警</small><strong>{{ counts.accepted }}</strong><small>含 BYPASS 记录</small></div>
+      <div class="kpi"><small>已创建告警</small><strong>{{ counts.accepted }}</strong><small>服务器已受理</small></div>
       <div class="kpi"><small>重复抑制</small><strong>{{ counts.suppressed }}</strong><small>本次未创建</small></div>
     </div>
     <svg v-if="samples.length" class="sim-chart" viewBox="0 0 600 190" role="img" aria-label="本轮温度趋势，虚线表示超温阈值">

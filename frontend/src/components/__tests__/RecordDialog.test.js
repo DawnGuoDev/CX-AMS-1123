@@ -35,14 +35,26 @@ describe('RecordDialog', () => {
     wrapper.unmount()
   })
 
-  it('emits close when the overlay itself is clicked, but not the dialog', async () => {
+  it('keeps form contents when clicked or dragged onto the overlay', async () => {
     const wrapper = mountDialog()
+    const input = document.createElement('input')
+    input.value = '尚未保存的事件名称'
+    dialog().querySelector('.dialog-body').append(input)
     dialog().querySelector('.body-content').click()
     await wrapper.vm.$nextTick()
     expect(wrapper.emitted('close')).toBeUndefined()
     document.body.querySelector('.ant-modal-wrap').click()
     await wrapper.vm.$nextTick()
-    expect(wrapper.emitted('close')).toHaveLength(1)
+    expect(wrapper.emitted('close')).toBeUndefined()
+    input.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, buttons: 1 }))
+    const overlay = document.body.querySelector('.ant-modal-wrap')
+    overlay.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, buttons: 1 }))
+    overlay.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+    overlay.click()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('close')).toBeUndefined()
+    expect(dialog()).not.toBeNull()
+    expect(input.value).toBe('尚未保存的事件名称')
     wrapper.unmount()
   })
 
