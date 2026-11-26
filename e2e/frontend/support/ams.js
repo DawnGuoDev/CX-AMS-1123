@@ -52,6 +52,52 @@ export async function apiToken(request, user = ADMIN) {
   return body.token
 }
 
+/** Default title prefix / content for alarms created by the tests. */
+export const ALARM_TEXT = { title: 'E2E 警报', content: 'alarm e2e' }
+
+/**
+ * Creates an alarm through the console API and returns the enriched alarm. The trigger API rejects
+ * a repeated alarm for the same factory/subsystem/equipment/setting inside its ignore window, so
+ * every spec file reserves its own combination and marks the payload so it can be found in lists.
+ */
+export async function triggerAlarm(request, token, marker, setting, text = ALARM_TEXT) {
+  const response = await request.post('/api/alarms/test', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { ...setting, title: `${text.title} ${marker}`, content: text.content },
+  })
+  expect(response.ok(), `trigger failed: HTTP ${response.status()} ${await response.text()}`).toBeTruthy()
+  const body = await response.json()
+  expect(body.ok, `trigger failed: ${JSON.stringify(body)}`).toBe(true)
+  expect(body.alarm.STATUS).toBe('Process')
+  return body.alarm
+}
+
+/** Sum of AVPA013 (instant summary) counts; the report only counts Process alarms. */
+export async function summaryTotal(request, token) {
+  const response = await request.post('/api/reports/AVPA013/query', {
+    headers: { Authorization: `Bearer ${token}` }, data: { conditions: {} },
+  })
+  expect(response.ok(), await response.text()).toBeTruthy()
+  return (await response.json()).rows.reduce((sum, row) => sum + Number(row.ALARM_COUNT || 0), 0)
+}
+
+/** Detail payload for an alarm (optionally at the given transaction), read through the API. */
+export async function alarmDetail(request, token, key, transaction) {
+  const query = transaction ? `?transaction=${encodeURIComponent(transaction)}` : ''
+  const response = await request.get(`/api/alarms/${key}${query}`, { headers: { Authorization: `Bearer ${token}` } })
+  expect(response.ok(), await response.text()).toBeTruthy()
+  return (await response.json()).alarm
+}
+
+/** Runs an AVPA report query and returns its rows. */
+export async function reportRows(request, token, report, conditions) {
+  const response = await request.post(`/api/reports/${report}/query`, {
+    headers: { Authorization: `Bearer ${token}` }, data: { conditions },
+  })
+  expect(response.ok(), await response.text()).toBeTruthy()
+  return (await response.json()).rows
+}
+
 /** Select an Ant Design Vue option in its portaled dropdown. */
 export async function selectOption(page, select, label) {
   await select.click()

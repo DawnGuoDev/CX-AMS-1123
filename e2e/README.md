@@ -15,7 +15,8 @@ e2e/
    ├─ 03-master-data.spec.ts      TC-FE-E2E-003
    ├─ 04-alarm-workflow.spec.ts   TC-FE-E2E-004
    ├─ 05-alarm-list.spec.ts       TC-FE-E2E-005
-   └─ support/ams.js             登录、菜单路由、API token、唯一数据标记
+   ├─ 06-alarm-terminate.spec.ts  TC-FE-E2E-006
+   └─ support/ams.js             登录、菜单路由、API token、唯一数据标记、告警/报表数据准备
 ```
 
 ## 一键执行（推荐）

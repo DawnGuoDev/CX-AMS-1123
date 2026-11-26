@@ -111,16 +111,49 @@ Playwright 通过 `e2e/serve.mjs` 提供同源静态服务，并把 `/api/**`、
 | TC-FE-E2E-003 | `03-master-data.spec.ts` | 主档新增/列表/隐藏/恢复、唯一键错误 |
 | TC-FE-E2E-004 | `04-alarm-workflow.spec.ts` | 测试告警触发、详情、ACK 入口与不自动确认 |
 | TC-FE-E2E-005 | `05-alarm-list.spec.ts` | 待我确认、汇总计数联动、单会话约束 |
+| TC-FE-E2E-006 | `06-alarm-terminate.spec.ts` | 强制中断主流程、取消、历史只读、报表口径、无权限拒绝 |
 
 ## TC-FE-E2E-006 警报强制中断
 
-**代码**：`e2e/frontend/06-alarm-terminate.spec.ts`
+**代码**：`e2e/frontend/06-alarm-terminate.spec.ts`　**依据**：SPEC-AMS-ALARM-TERMINATE-001 REQ-002~006
+
+公共准备：每个用例通过 API 触发一条唯一标题的处理中警报（各自占一组 厂别/子系统/机台/警报代码，
+规避触发接口的忽略期间去重）；有权限账号 `E0043258`，无权限账号 `E0043260`（主档 `CAN_TERMINATE=N`）。
+
+### 6-1 授权用户完成中断并收敛状态与报表
 
 | 步骤 | 操作 | 预期 |
 | ---- | ---- | ---- |
-| 1 | 通过 API 触发唯一标题的处理中警报，记录 AVPA013 处理中总数 | 触发成功，`STATUS=Process`，总数 +1 |
+| 1 | 通过 API 触发唯一标题的处理中警报，记录 AVPA013 处理中总数 | 触发成功，`STATUS=Process` |
 | 2 | 以有中断权限账号 `E0043258` 登录，进入「警报强制中断作业」 | 列表出现该警报 |
-| 3 | 打开详情，点击「强制中断」 | 出现二次确认对话框，未填原因时「确认中断」不可点击 |
-| 4 | 填写中断原因并确认 | 对话框关闭，详情状态 `Terminated`，横幅显示时间/操作人/原因，交易履历含 `AlarmTerminate` 与原因 |
-| 5 | 返回作业列表并查询 AVPA007 | 列表不再出现该警报；`TRX_TYPE=AlarmTerminate` 可命中；AVPA013 总数回到触发前 |
-| 6 | 以无权限账号 `E0043260` 登录并打开任一处理中警报 | 「强制中断」按钮禁用并提示无权限；直接调用接口返回 400「您没有强制中断权限」 |
+| 3 | 打开详情，点击「强制中断」 | 出现二次确认对话框（含目标识别码与不可逆提示），未填原因时「确认中断」不可点击，原因输入上限 500 |
+| 4 | 填写中断原因并确认 | 对话框关闭并提示「警报已中断」，详情状态 `Terminated`，横幅显示时间/操作人/原因，按钮消失，交易履历含 `AlarmTerminate` 与原因 |
+| 5 | 返回作业列表；查询 AVPA007 / AVPA004 / AVPA013 与详情接口 | 列表不再出现该警报；AVPA007 按 `TRX_TYPE=AlarmTerminate`、`STATUS=Terminated` 命中且 `NOTE`=原因；AVPA004 按 `STATUS=Terminated` 命中且 `COMPLETE_DT` 非空；AVPA013 总数回到触发前；详情 `CAN_TERMINATE=false` |
+
+### 6-2 取消不产生写入
+
+| 步骤 | 操作 | 预期 |
+| ---- | ---- | ---- |
+| 1 | 打开处理中警报详情，点击「强制中断」，填写原因后关闭对话框（右上角关闭） | 对话框消失，详情仍为 `Process` |
+| 2 | 再次打开二次确认并点击「取消」 | 原因已清空；接口查询仍为 `Process`、`CAN_TERMINATE=true`、无 `AlarmTerminate` 交易、无中断原因 |
+
+### 6-3 历史交易只读、非处理中不可中断
+
+| 步骤 | 操作 | 预期 |
+| ---- | ---- | ---- |
+| 1 | Process 状态下通过 API 中断，随后查询详情 | `STATUS=Terminated`、`CAN_TERMINATE=false` |
+| 2 | 打开 `/#/alarm/:key?transaction=:trxKey` 历史详情 | 详情可打开，无「强制中断」按钮与二次确认；接口 `HISTORY_CONTEXT` 存在且 `CAN_TERMINATE=false` |
+
+### 6-4 无权限账号
+
+| 步骤 | 操作 | 预期 |
+| ---- | ---- | ---- |
+| 1 | 以无权限账号 `E0043260` 登录并打开任一处理中警报 | 详情 `CAN_TERMINATE=false`；「强制中断」按钮禁用并提示「您没有强制中断权限，请联系具权限人员处理。」 |
+| 2 | 绕过前端直接调用 `POST /api/alarms/:key/terminate` | 400「您没有强制中断权限」；警报仍为 `Process`，无 `TERMINATE_DT` |
+
+### 非 E2E 覆盖项
+
+- 后端事务/并发（仅 1 条 `AlarmTerminate`）、中断后 ≥2 个调度周期不再升级/重送、Pending→Skipped：由 `backend/.../AlarmTerminateIntegrationTest.java` 覆盖（E2E 临时后端关闭调度 `ams.scheduling=false`）。
+- 无原因/超长原因、不存在 key、非 Process 重复提交的接口校验：由 `AlarmTerminateIntegrationTest` 覆盖；E2E 仅覆盖前端原因必填与长度上限呈现。
+- 未登录 401 沿用全局鉴权（`BackendAuthE2ETest`），不属于本功能新增范围。
+- 主档字段 `CAN_TERMINATE` 维护与履历、Excel 导入导出：由主档 E2E/集成测试覆盖。
