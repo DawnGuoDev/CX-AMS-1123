@@ -18,6 +18,16 @@ function withTimeRange(from = '2026-01-01T00:00:00', to = '2099-12-31T23:59:59')
   return { CREATE_DT: { enabled: true, operator: 'between', from, to } }
 }
 
+/**
+ * Mirrors what the browser sends (filters.toServerConditions): the month/day/time fields of a
+ * datetime-local input become "...T00:00:00.000Z" / "...T10:40:35.000Z" when the draft is closed,
+ * and every condition carries its column type. A backend that only compares whole-second ISO
+ * strings can silently drop these values.
+ */
+function browserTimeRange(from = '2026-01-01T00:00:00.000Z', to = '2099-12-31T23:59:59.000Z') {
+  return { CREATE_DT: { enabled: true, type: 'date', operator: 'between', value: '', from, to } }
+}
+
 /** Fails the trigger on an unknown factory; this is the NO_FACTORY branch of AlarmEngine.trigger(). */
 async function triggerInvalid(request: APIRequestContext, token: string, title: string) {
   const response = await request.post('/api/alarms/test', {
@@ -49,8 +59,11 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
     // Browser login replaces the API session for the same seed user (single-session rule), so data
     // is prepared first and the UI only reads.
     await login(page)
+    // Navigate first, then assert the heading: like the other report pages (02-navigation.spec.ts),
+    // AVPA008 must resolve its own title from meta.pageTitles, not fall back to 页面不存在.
     await openMenu(page, MENU.invalidAlarms)
     await expect(page).toHaveURL(/#\/page\/AVPA008$/)
+    await expect(page.locator('.page-heading h1')).toHaveText(MENU.invalidAlarms.title)
     await expect(page.locator('.panel')).toContainText('请执行查询')
 
     await page.getByRole('button', { name: '查询', exact: true }).click()
@@ -84,6 +97,19 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
     expect(noRange.response.status(), JSON.stringify(noRange.body)).toBe(400)
     expect(noRange.body.message).toBe('无效警报查询必须指定时间区间')
 
+    // CREATE_DT key missing entirely (old clients): still the time-range rule, not a 500 or the
+    // generic "至少选择一个查询条件" message.
+    const missingRange = await queryInvalidAlarms(request, token, {
+      FAILURE_TYPE: { enabled: true, operator: 'eq', value: 'NO_FACTORY' },
+    })
+    expect(missingRange.response.status(), JSON.stringify(missingRange.body)).toBe(400)
+    expect(missingRange.body.message).toBe('无效警报查询必须指定时间区间')
+
+    // Empty conditions as sent by "清除" + "查询": the report-specific rule wins over the generic one.
+    const emptyConditions = await queryInvalidAlarms(request, token, {})
+    expect(emptyConditions.response.status(), JSON.stringify(emptyConditions.body)).toBe(400)
+    expect(emptyConditions.body.message).toBe('无效警报查询必须指定时间区间')
+
     // Window that excludes the record just created: it must not be returned.
     const outside = await queryInvalidAlarms(request, token, {
       CREATE_DT: { enabled: true, operator: 'between', from: '2020-01-01T00:00:00', to: '2020-12-31T23:59:59' },
@@ -105,6 +131,30 @@ test.describe('TC-FE-E2E-006 无效警报查询', () => {
     expect(row.FAILURE_REASON).toBe('未设定厂别')
     expect(row.SOURCE).toBe('TEST_API')
     expect(row.INVALID_ID).toMatch(/^IVD-\d{8}-\d{6}$/)
+    expect(row.SOURCE_USER_ID).toBe('E0043258')
+
+    // Same window but serialized exactly as the UI sends it (millisecond precision + type tag).
+    const uiWindow = await queryInvalidAlarms(request, token, {
+      ...browserTimeRange(),
+      TITLE: { enabled: true, type: 'text', operator: 'eq', value: title },
+    })
+    expect(uiWindow.response.status(), JSON.stringify(uiWindow.body)).toBe(200)
+    expect(uiWindow.body.rows).toHaveLength(1)
+    expect(uiWindow.body.rows[0].TITLE).toBe(title)
+
+    // Partial window (only "from") must keep the record; only "to" before it must exclude it.
+    const onlyFrom = await queryInvalidAlarms(request, token, {
+      CREATE_DT: { enabled: true, type: 'date', operator: 'between', from: browserTimeRange().CREATE_DT.from, to: '' },
+      TITLE: { enabled: true, operator: 'eq', value: title },
+    })
+    expect(onlyFrom.response.status(), JSON.stringify(onlyFrom.body)).toBe(200)
+    expect(onlyFrom.body.rows).toHaveLength(1)
+    const onlyTo = await queryInvalidAlarms(request, token, {
+      CREATE_DT: { enabled: true, type: 'date', operator: 'between', from: '', to: '2020-01-01T00:00:00.000Z' },
+      TITLE: { enabled: true, operator: 'eq', value: title },
+    })
+    expect(onlyTo.response.status(), JSON.stringify(onlyTo.body)).toBe(200)
+    expect(onlyTo.body.rows).toHaveLength(0)
 
     // Unknown field names are still rejected by the shared report contract.
     const badField = await queryInvalidAlarms(request, token, {
