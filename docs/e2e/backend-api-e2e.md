@@ -31,7 +31,7 @@
 | 4 | 带该 token `GET /api/bootstrap` | 200；`nav` 非空，含 path 的节点以 `#/` 开头；`options.factory` 为数组；`meta.masters.SBRM_FACTORY.code` 正确 |
 | 5 | 新客户端（无 token）访问 `/api/bootstrap` | 401 |
 | 6 | `POST /api/logout` 后复用原 token | 401（会话已失效） |
-| 7 | 用同一账号再次登入并访问 bootstrap | 200 |
+| 7 | 用同一账号再次登入并访问 bootstrap | 200；且步骤 3 的旧 token 仍可访问 bootstrap（同账号多会话，原“新登入使旧 token 失效”已废弃） |
 
 安全要求：token、密码不写入测试报告；`user` 对象不得出现密码摘要字段。
 
@@ -93,3 +93,39 @@
 | 7 | `POST .../export {mode:'unknown'}` | 非 5xx |
 
 清理：停用导入的测试行。
+
+---
+
+## TC-API-E2E-005 同账号并发多会话与登出隔离
+
+**优先级**：P0　**类型**：认证 / 会话隔离　**代码**：`BackendAuthE2ETest#shouldKeepSessionsIndependentForSameAccount`
+
+| # | 步骤 | 预期 |
+| - | ---- | ---- |
+| 1 | 同一账号连续两次 `POST /api/login`，分别取得 token1、token2 | 均 200；token1 ≠ token2；两者均匹配 `[0-9a-f]{64}` |
+| 2 | 用 token1 `GET /api/bootstrap` | 200；`user.USER_ID=E0043258`；`loginAt` 为第一次登录时间 |
+| 3 | 用 token2 `GET /api/bootstrap` | 200；`loginAt` 为第二次登录时间（按会话独立，不因他人登录改变） |
+| 4 | `POST /api/logout`（token1） | 200 |
+| 5 | 用 token1 `GET /api/bootstrap` | 401 |
+| 6 | 用 token2 `GET /api/bootstrap` | 200（登出不影响其他会话） |
+| 7 | `POST /api/logout`（token2）后再访问 | 401 |
+
+---
+
+## TC-API-E2E-006 跨账号隔离、账号停用与闲置超时
+
+**优先级**：P0　**类型**：安全 / 生命周期　**代码**：`BackendAuthE2ETest#shouldIsolateAccountsAndExpireIdleSessions`
+
+前置：以可配置的闲置超时启动实例（建议 `--ams.session.idle-timeout-minutes=0.02`，即约 1.2 秒，具体参数名以技术设计为准）；另一账号取种子中已启用的使用者。
+
+| # | 步骤 | 预期 |
+| - | ---- | ---- |
+| 1 | 账号 A、账号 B 分别登入取得 tokenA、tokenB | 均 200 |
+| 2 | A 登出，B 访问 bootstrap | tokenB 仍 200；`user.USER_ID` 为 B |
+| 3 | 管理员将 B 置为 `ACTIVE=N`，B 访问 bootstrap | 401，`message` 含“账号已停用” |
+| 4 | A 恢复登入并访问 bootstrap | 200（停用 B 不影响 A） |
+| 5 | 账号 C 登入后等待超过配置的闲置超时，再访问 bootstrap | 401，`message` 含“登入已逾时” |
+| 6 | 账号 D 登入后每隔 200ms 访问 bootstrap，持续超过超时时长 | 始终 200（滑动过期，活跃会话不被误判过期） |
+| 7 | 用随机 64 位十六进制伪造 token 访问 bootstrap | 401；真实会话不受影响 |
+
+清理：恢复被停用账号的 `ACTIVE=Y`。

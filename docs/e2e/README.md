@@ -47,6 +47,8 @@ cd e2e && npm ci && npx playwright install chromium && npm test   # 前端 E2E
 | 用例 ID | 层级 | 标题 | 代码 |
 | ------- | ---- | ---- | ---- |
 | TC-API-E2E-001 | 后端接口 | 登入 → bootstrap → 未授权拒绝 → 登出失效 | `e2e/BackendAuthE2ETest` |
+| TC-API-E2E-005 | 后端接口 | 同账号并发多会话、登出仅失效自身 token | `e2e/BackendAuthE2ETest` |
+| TC-API-E2E-006 | 后端接口 | 跨账号隔离、账号停用、闲置超时与滑动续期 | `e2e/BackendAuthE2ETest` |
 | TC-API-E2E-002 | 后端接口 | 厂别主档 新增/修改/停用/历史/恢复 | `e2e/MasterDataE2ETest` |
 | TC-API-E2E-003 | 后端接口 | 测试告警触发 → 详情/通知记录 → 未送达时 ACK 拒绝且不计数 | `e2e/AlarmWorkflowE2ETest` |
 | TC-API-E2E-004 | 后端接口 | 汇出范本/导入校验/校验失败不落库/404 契约 | `e2e/MasterImportExportE2ETest` |
@@ -55,5 +57,7 @@ cd e2e && npm ci && npx playwright install chromium && npm test   # 前端 E2E
 | TC-FE-E2E-003 | 前端 | 厂别主档：新增、列表可见、停用后隐藏 | `frontend/03-master-data.spec.ts` |
 | TC-FE-E2E-004 | 前端 | 测试告警触发 → 告警详情 → 邮件 ACK 确认页 | `frontend/04-alarm-workflow.spec.ts` |
 | TC-FE-E2E-005 | 前端 | 待我确认列表为空（SMTP 未配置）与即时汇总计数联动 | `frontend/05-alarm-list.spec.ts` |
+| TC-FE-E2E-006 | 前端 | 同账号多标签页登出隔离与刷新保持 | `frontend/06-multi-session.spec.ts` |
+| TC-FE-E2E-007 | 前端 | 会话失效提示、登出后刷新仍为登录页 | `frontend/06-multi-session.spec.ts` |
 
 状态判定：PASS = 执行且断言通过；FAIL = 已执行但断言不符；BLOCKED = 环境前置不满足（浏览器缺失、端口/构建产物缺失）。

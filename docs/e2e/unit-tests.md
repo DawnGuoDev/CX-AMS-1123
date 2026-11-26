@@ -9,7 +9,7 @@
 | `unit/JsonHelpersTest` | 纯单元 | `m/obj/rows/list` 类型归一化；`s/n/str` 空值安全；`eq/active`；`time` 解析与回退；`require` 业务异常；`clean` 去除密码字段；`encode/parse` 往返与错误 JSON |
 | `unit/AuthPasswordTest` | 纯单元 | SHA-256 六十四位十六进制、固定盐前缀、确定性、不同密码不同摘要、种子初始密码与存储哈希一致 |
 | `unit/ReportConditionsTest` | 单元（Mockito） | 报表查询：至少一个条件；contains/notContains/starts/ends/eq/neq 大小写不敏感；日期 between/eq/neq/lt/lte/gt/gte（按秒）；空日期不匹配；非法查询字段被拒绝 |
-| `WorkflowIntegrationTest`（既有） | Spring 集成 | 认证单会话、真实 SMTP 与 ACK 闭环、重复告警抑制、失败重送、层级升级、Excel 汇入导出、页面 API 契约 |
+| `WorkflowIntegrationTest`（既有） | Spring 集成 | 同账号多会话隔离（原“认证单会话”已按多用户需求变更）、真实 SMTP 与 ACK 闭环、重复告警抑制、失败重送、层级升级、Excel 汇入导出、页面 API 契约 |
 | `ManualAlignmentIntegrationTest`（既有） | Spring 集成 | 使用者字段与审计、事件层级校验、报表时间运算、可见快照汇出、基础主档唯一性等 |
 
 执行：
