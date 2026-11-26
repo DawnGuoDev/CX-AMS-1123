@@ -1,0 +1,22 @@
+.ds-scope { --ds-primary: #167d92; --ds-border: #dde5ed; --ds-muted: #7a8998; --ds-bg: #f3f6fa; --ds-success: #178779; --ds-success-bg: #e4f5ef; --ds-warning: #a0710b; --ds-warning-bg: #fff5dc; --ds-danger: #c14848; --ds-danger-bg: #fcecec; --ds-neutral: #788491; --ds-neutral-bg: #eceff3; color: #23364a; }
+.ds-section { margin-bottom: 28px; }
+.ds-section > h2 { margin-bottom: 6px; }
+.ds-source { color: var(--ds-muted); font-size: 12px; margin-bottom: 14px; }
+.ds-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 20px; }
+.ds-token { border: 1px solid var(--ds-border); border-radius: 6px; padding: 18px; background: #fff; }
+.ds-token small { display: block; color: var(--ds-muted); margin-top: 8px; }
+.ds-status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.ds-status { border-radius: 4px; padding: 16px; font-size: 13px; }
+.ds-success { color: var(--ds-success); background: var(--ds-success-bg); }
+.ds-warning { color: var(--ds-warning); background: var(--ds-warning-bg); }
+.ds-danger { color: var(--ds-danger); background: var(--ds-danger-bg); }
+.ds-neutral { color: var(--ds-neutral); background: var(--ds-neutral-bg); }
+.ds-density { display: grid; gap: 12px; }
+.ds-density-label { color: var(--ds-muted); font-size: 12px; }
+.ds-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
+.ds-component-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 18px 0 22px; }
+.ds-component-list ul { margin: 8px 0 0; padding-left: 18px; color: var(--ds-muted); font-size: 12px; line-height: 1.8; }
+.ds-combo-note { margin-top: 12px; color: var(--ds-muted); font-size: 12px; }
+.ds-combo-actions { display: flex; gap: 10px; margin-top: 16px; }
+@media (max-width: 1150px) { .ds-card-grid, .ds-component-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ds-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .ds-card-grid, .ds-component-list { grid-template-columns: 1fr; } .ds-status-grid { grid-template-columns: 1fr; } }
