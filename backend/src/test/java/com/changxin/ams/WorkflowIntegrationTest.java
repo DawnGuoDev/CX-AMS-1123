@@ -198,6 +198,59 @@ class WorkflowIntegrationTest {
         Store reopened=new Store(jdbc);
         assertThat(reopened.read(()->s(reopened.table("alarms").getFirst(),"TITLE"))).isEqualTo("SMTP 测试告警");
     }
+    @Test void invalidAlarmsPersistEveryFailureAndReportSupportsRange() {
+        var originalLevels=store.read(()->rows(copy(m("levels",store.table("event_levels"))).get("levels")));
+        var missingFactory=body();missingFactory.put("factoryKey","MISSING_FACTORY");
+        assertThat(store.write(()->engine.trigger(missingFactory,user))).containsEntry("message","未设定厂别");
+        var missingSubsystem=body();missingSubsystem.put("subsysKey","MISSING_SUBSYSTEM");
+        assertThat(store.write(()->engine.trigger(missingSubsystem,user))).containsEntry("message","未设定子系统");
+        var missingEqp=body();missingEqp.put("eqpKey","MISSING_EQP");
+        assertThat(store.write(()->engine.trigger(missingEqp,user))).containsEntry("message","未设定机台");
+        var missingEvent=body();missingEvent.put("alarmCode","MISSING_ALARM");
+        assertThat(store.write(()->engine.trigger(missingEvent,user))).containsEntry("message","找不到事件");
+        store.write(()->store.mustFind("alarm_settings","ALARM_INFO_ID","PRT_NODYE").put("ACTIVE","N"));
+        assertThat(send()).containsEntry("message","警报设定未启用");
+        store.write(()->store.mustFind("alarm_settings","ALARM_INFO_ID","PRT_NODYE").put("ACTIVE","Y"));
+        assertThat(send()).containsEntry("ok",true);
+        assertThat(send()).containsEntry("message","忽略相同警报");
+        store.write(()->{store.table("alarms").clear();store.table("alarm_transactions").clear();
+            store.table("alarm_levels").clear();store.table("alarm_notifications").clear();return null;});
+        store.write(()->store.table("event_levels").removeIf(r->eq(r,"EVENT_KEY","EVT01") && n(r,"EVENT_LEVEL_ID")==1));
+        var motorAlarm=body();motorAlarm.put("alarmCode","PRT_MOTOR_ERR");
+        assertThat(store.write(()->engine.trigger(motorAlarm,user))).containsEntry("message","未设定层级1");
+        store.write(()->{store.table("event_levels").clear();store.table("event_levels").addAll(originalLevels);
+            store.mustFind("event_levels","EVENT_LEVEL_KEY","LV0001").put("USER_KEYS",List.of());return null;});
+        assertThat(store.write(()->engine.trigger(motorAlarm,user))).containsEntry("message","未设定发送人员");
+
+        var invalids=store.read(()->store.table("invalid_alarms"));
+        assertThat(invalids).hasSize(8);
+        assertThat(invalids).extracting(r->r.get("REASON")).containsExactly(
+            "未设定发送人员","未设定层级1","忽略相同警报","警报设定未启用","找不到事件","未设定机台","未设定子系统","未设定厂别");
+        var missing=invalids.stream().filter(r->eq(r,"EQP_ID","MISSING_EQP")).findFirst().orElseThrow();
+        assertThat(missing).containsEntry("ALARM_INFO_ID","PRT_NODYE").containsEntry("TITLE","SMTP 测试告警")
+            .containsEntry("FACTORY_ID","Fab01").containsEntry("SUB_SYS_NAME","制造执行系统")
+            .containsEntry("RECEIVE_TYPE","Mock").containsEntry("SOURCE_TYPE","Test");
+        assertThat(store.read(()->store.table("invalid_alarms"))).allSatisfy(r->assertThat(r)
+            .containsKeys("INVALID_KEY","INVALID_ID","CREATE_DT","CONTENT"));
+        var from=invalids.getLast().get("CREATE_DT");var to=invalids.getFirst().get("CREATE_DT");
+        var conditions=m("CREATE_DT",m("enabled",true,"operator","between","from",from,"to",to),
+            "REASON",m("enabled",true,"operator","contains","value","层级"));
+        var rows=store.read(()->reports.query("AVPA014",conditions));
+        assertThat(rows).hasSize(1);assertThat(rows.getFirst()).containsEntry("REASON","未设定层级1");
+        assertThat(store.read(()->reports.query("AVPA014",m("REASON",m("enabled",true,"value","不存在的失效原因"))))).isEmpty();
+        assertThatThrownBy(()->store.read(()->reports.query("AVPA014",m("UNKNOWN",m("enabled",false)))))
+            .isInstanceOf(ApiException.class).hasMessageContaining("查询字段无效");
+    }
+    @Test void oldCheckedSnapshotGetsAdditiveInvalidAlarmDefinitions() throws Exception {
+        store.write(()->{store.data().remove("invalid_alarms");obj(obj(store.data().get("meta")).get("seq")).remove("invalid_alarms");
+            store.table("report_defs").removeIf(r->eq(r,"REPORT_ID","AVPA014"));
+            store.table("functions").removeIf(r->eq(r,"FUNCTION_KEY","AVPA014"));return null;});
+        var reopened=new Store(jdbc);
+        assertThat(reopened.read(()->reopened.table("invalid_alarms"))).isEmpty();
+        assertThat(reopened.read(()->n(obj(obj(reopened.data().get("meta")).get("seq")),"invalid_alarms"))).isZero();
+        assertThat(reopened.read(()->reopened.table("report_defs").stream().filter(r->eq(r,"REPORT_ID","AVPA014")).count())).isEqualTo(1);
+        assertThat(reopened.read(()->reopened.table("functions").stream().filter(r->eq(r,"FUNCTION_KEY","AVPA014")).count())).isEqualTo(1);
+    }
     @Test void checkedPagesWorkAndRemovedApisReturn404() throws Exception {
         String token=login();
         for(String kind:List.of("masters","mappings","masterDetails")) {

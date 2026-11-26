@@ -106,7 +106,22 @@ public class AlarmEngine {
         return result;
     }
     private Map<String, Object> invalid(Map<String, Object> body, String reason) {
+        recordInvalid(body, reason);
         return m("ok",false,"status",422,"message",reason);
+    }
+    private void recordInvalid(Map<String, Object> body, String reason) {
+        var factory = store.find("factories","FACTORY_KEY",body.get("factoryKey"));
+        var subsystem = store.find("subsystems","SUB_SYS_KEY",body.get("subsysKey"));
+        String key = store.key("invalid_alarms");
+        store.table("invalid_alarms").addFirst(m(
+            "INVALID_KEY",key,"INVALID_ID",key,"CREATE_DT",now(),"REASON",reason,
+            "FACTORY_ID",factory == null ? body.get("factoryKey") : factory.get("FACTORY_ID"),
+            "FACTORY_NAME",factory == null ? "" : factory.get("FACTORY_NAME"),
+            "SUB_SYS_ID",subsystem == null ? body.get("subsysKey") : subsystem.get("SUB_SYS_ID"),
+            "SUB_SYS_NAME",subsystem == null ? "" : subsystem.get("SUB_SYS_NAME"),
+            "EQP_ID",body.get("eqpKey"),"ALARM_INFO_ID",body.get("alarmCode"),
+            "TITLE",body.get("title"),"CONTENT",body.get("content"),
+            "RECEIVE_TYPE","Mock","SOURCE_TYPE","Test"));
     }
     public Map<String, Object> trigger(Map<String, Object> body, Map<String, Object> user) {
         var f = store.find("factories","FACTORY_KEY",body.get("factoryKey"));

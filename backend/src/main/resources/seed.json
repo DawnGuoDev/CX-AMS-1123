@@ -20,7 +20,8 @@
       "report_defs": 5,
       "functions": 43,
       "history": 10,
-      "alarmId": 1042
+      "alarmId": 1042,
+      "invalid_alarms": 0
     },
     "seededAt": "2026-11-23T15:14:56.670Z",
     "schema": "checked-mvp-1"
@@ -1287,6 +1288,124 @@
         }
       ],
       "CONDITIONS": []
+    },
+    {
+      "REPORT_ID": "AVPA014",
+      "REPORT_NAME": "无效警报查询",
+      "REPORT_DESC": "查询未成功触发的警报与失效原因。",
+      "ATLEAST_ONE_CONDITION": "N",
+      "COLUMNS": [
+        {
+          "field": "INVALID_ID",
+          "label": "无效警报识别码"
+        },
+        {
+          "field": "CREATE_DT",
+          "label": "资料时间"
+        },
+        {
+          "field": "REASON",
+          "label": "失效原因"
+        },
+        {
+          "field": "FACTORY_ID",
+          "label": "厂别代码"
+        },
+        {
+          "field": "FACTORY_NAME",
+          "label": "厂别名称"
+        },
+        {
+          "field": "SUB_SYS_ID",
+          "label": "子系统代码"
+        },
+        {
+          "field": "SUB_SYS_NAME",
+          "label": "子系统名称"
+        },
+        {
+          "field": "EQP_ID",
+          "label": "机台代码"
+        },
+        {
+          "field": "ALARM_INFO_ID",
+          "label": "警报代码"
+        },
+        {
+          "field": "TITLE",
+          "label": "警报标题"
+        },
+        {
+          "field": "RECEIVE_TYPE",
+          "label": "资料取得方式"
+        },
+        {
+          "field": "SOURCE_TYPE",
+          "label": "来源类型"
+        }
+      ],
+      "CONDITIONS": [
+        {
+          "field": "INVALID_ID",
+          "label": "无效警报识别码",
+          "type": "text"
+        },
+        {
+          "field": "CREATE_DT",
+          "label": "资料时间",
+          "type": "date"
+        },
+        {
+          "field": "REASON",
+          "label": "失效原因",
+          "type": "text"
+        },
+        {
+          "field": "FACTORY_ID",
+          "label": "厂别代码",
+          "type": "text"
+        },
+        {
+          "field": "FACTORY_NAME",
+          "label": "厂别名称",
+          "type": "text"
+        },
+        {
+          "field": "SUB_SYS_ID",
+          "label": "子系统代码",
+          "type": "text"
+        },
+        {
+          "field": "SUB_SYS_NAME",
+          "label": "子系统名称",
+          "type": "text"
+        },
+        {
+          "field": "EQP_ID",
+          "label": "机台代码",
+          "type": "text"
+        },
+        {
+          "field": "ALARM_INFO_ID",
+          "label": "警报代码",
+          "type": "text"
+        },
+        {
+          "field": "TITLE",
+          "label": "警报标题",
+          "type": "text"
+        },
+        {
+          "field": "RECEIVE_TYPE",
+          "label": "资料取得方式",
+          "type": "text"
+        },
+        {
+          "field": "SOURCE_TYPE",
+          "label": "来源类型",
+          "type": "text"
+        }
+      ]
     }
   ],
   "functions": [
@@ -1406,7 +1525,7 @@
       "FUNCTION_NAME": "测试告警触发",
       "PARENT_KEY": null,
       "PATH": "#/page/TEST",
-      "SORT": 10,
+      "SORT": 11,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
@@ -1417,11 +1536,23 @@
       "FUNCTION_NAME": "待我确认",
       "PARENT_KEY": null,
       "PATH": "#/page/ACK_LIST",
-      "SORT": 11,
+      "SORT": 12,
+      "FUNC_TYPE": "PAGE",
+      "VISIBLE": "Y",
+      "ACTIVE": "Y"
+    },
+    {
+      "FUNCTION_KEY": "AVPA014",
+      "FUNCTION_ID": "AVPA014",
+      "FUNCTION_NAME": "无效警报查询",
+      "PARENT_KEY": null,
+      "PATH": "#/page/AVPA014",
+      "SORT": 10,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
     }
   ],
-  "history": []
+  "history": [],
+  "invalid_alarms": []
 }

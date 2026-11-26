@@ -21,14 +21,14 @@ const groups = [
   { key: 'operations', label: '警报作业', icon: ThunderboltOutlined, codes: ['AVPA013', 'ACK_LIST', 'TEST'] },
   { key: 'basics', label: '基础资料', icon: DatabaseOutlined, codes: ['SBRM_USER', 'SBRM_FACTORY', 'SBRM_EQP', 'AVMA003', 'AVMA004'] },
   { key: 'notifications', label: '通知配置', icon: BellOutlined, codes: ['AVMA007', 'AVMA009'] },
-  { key: 'reports', label: '查询报表', icon: FileSearchOutlined, codes: ['AVPA004', 'AVPA007'] },
+  { key: 'reports', label: '查询报表', icon: FileSearchOutlined, codes: ['AVPA004', 'AVPA007', 'AVPA014'] },
   { key: 'other', label: '其他功能', icon: SettingOutlined, codes: [] },
 ]
 const icons = {
   AVPA013: DashboardOutlined, ACK_LIST: InboxOutlined, TEST: ExperimentOutlined,
   SBRM_USER: TeamOutlined, SBRM_FACTORY: HomeOutlined, SBRM_EQP: ToolOutlined,
   AVMA003: ApartmentOutlined, AVMA004: LinkOutlined, AVMA007: ApartmentOutlined,
-  AVMA009: BellOutlined, AVPA004: FileSearchOutlined, AVPA007: HistoryOutlined,
+  AVMA009: BellOutlined, AVPA004: FileSearchOutlined, AVPA007: HistoryOutlined, AVPA014: FileSearchOutlined,
 }
 // Group only links supplied by the backend, so the navigation retains its visibility rules.
 const links = computed(() => {

@@ -10,7 +10,7 @@ public class Reports {
     private final Store store; private final AlarmEngine engine;
     public Reports(Store store, AlarmEngine engine) { this.store=store; this.engine=engine; }
     public Map<String,Object> definition(String code) {
-        if (!List.of("AVPA004","AVPA007","AVPA013").contains(code)) throw new ApiException(404,"报表不存在");
+        if (!List.of("AVPA004","AVPA007","AVPA013","AVPA014").contains(code)) throw new ApiException(404,"报表不存在");
         var def=copy(store.mustFind("report_defs","REPORT_ID",code));
         if(!code.equals("AVPA013")) {
             for(String[] f:new String[][]{{"CONTENT_TYPE","警报讯息内容类型"},{"LEVEL_PROCESS_DT","每次处理启始时间"},
@@ -38,7 +38,9 @@ public class Reports {
         if (code.equals("AVPA013")) return summary("","");
         if (eq(def,"ATLEAST_ONE_CONDITION","Y")) require(conditions.values().stream().map(Json::obj).anyMatch(c ->
             Boolean.TRUE.equals(c.get("enabled")) && (!s(c,"value").isBlank() || !s(c,"from").isBlank() || !s(c,"to").isBlank())),"至少选择一个查询条件");
-        List<Map<String,Object>> source=store.table("alarms").stream().map(r -> engine.enrich(r,null)).toList();
+        List<Map<String,Object>> source=code.equals("AVPA014")
+            ? store.table("invalid_alarms").stream().map(r -> copy(r)).toList()
+            : store.table("alarms").stream().map(r -> engine.enrich(r,null)).toList();
         if (code.equals("AVPA007")) {
             var byKey=new HashMap<String,Map<String,Object>>(); source.forEach(r -> byKey.put(s(r,"ALARM_KEY"),r));
             source=store.table("alarm_transactions").stream().filter(r -> byKey.containsKey(s(r,"ALARM_KEY"))).map(t -> {

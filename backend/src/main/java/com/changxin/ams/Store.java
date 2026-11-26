@@ -34,6 +34,7 @@ public class Store {
         } else {
             data = obj(parse(saved.getFirst()));
             require(eq(obj(data.get("meta")),"schema","checked-mvp-1"),"数据库属于旧版演示，请使用新的 ams-mvp 数据库");
+            if (ensureInvalidAlarmData()) persist();
         }
     }
     private Map<String, Object> load(String file) throws IOException {
@@ -68,6 +69,33 @@ public class Store {
     }
     private void persist() {
         jdbc.update("MERGE INTO AMS_STATE (ID,PAYLOAD) KEY(ID) VALUES (1,?)", encode(data));
+    }
+    /** checked-mvp-1 stores saved before the invalid alarm feature need only these additive definitions. */
+    private boolean ensureInvalidAlarmData() throws IOException {
+        var seed = load("seed.json");
+        boolean changed = false;
+        if (!data.containsKey("invalid_alarms")) changed = true;
+        table("invalid_alarms");
+        var seq = obj(obj(data.get("meta")).get("seq"));
+        if (!seq.containsKey("invalid_alarms")) { seq.put("invalid_alarms", 0); changed = true; }
+        var invalidDef = table("report_defs").stream()
+            .filter(r -> eq(r, "REPORT_ID", "AVPA014")).findFirst();
+        if (invalidDef.isEmpty()) {
+            table("report_defs").add(copy(table(seed, "report_defs").stream()
+                .filter(r -> eq(r, "REPORT_ID", "AVPA014")).findFirst().orElseThrow()));
+            changed = true;
+        }
+        var invalidMenu = table("functions").stream()
+            .filter(r -> eq(r, "FUNCTION_KEY", "AVPA014")).findFirst();
+        if (invalidMenu.isEmpty()) {
+            table("functions").add(copy(table(seed, "functions").stream()
+                .filter(r -> eq(r, "FUNCTION_KEY", "AVPA014")).findFirst().orElseThrow()));
+            changed = true;
+        }
+        return changed;
+    }
+    private List<Map<String, Object>> table(Map<String, Object> source, String name) {
+        return rows(source.computeIfAbsent(name, k -> new ArrayList<>()));
     }
     public Map<String, Object> data() { return data; }
     public List<Map<String, Object>> table(String name) {
