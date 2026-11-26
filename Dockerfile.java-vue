@@ -36,10 +36,10 @@ RUN chmod 755 /bin/busybox /opt/application/run.sh && \
     for a in sh ls echo cat head tail wc pwd env which test grep find du df ps netstat ip \
              ifconfig ss sleep stat mkdir touch rm cp mv chmod awk sed xargs sort uniq \
              basename dirname md5sum hostname uname date id whoami; do ln -sf /bin/busybox /bin/$a; done && \
-    mkdir -p /tmp /run /var/tmp /etc && chmod 1777 /tmp && \
-    printf '127.0.0.1 localhost\n' > /etc/hosts && \
-    printf 'localhost\n' > /etc/hostname && \
-    printf 'nameserver 127.0.0.53\n' > /etc/resolv.conf && \
+    mkdir -p /tmp /run /var/tmp /rootfs/etc && chmod 1777 /tmp && \
+    printf '127.0.0.1 localhost\n' > /rootfs/etc/hosts && \
+    printf 'localhost\n' > /rootfs/etc/hostname && \
+    printf 'nameserver 127.0.0.53\n' > /rootfs/etc/resolv.conf && \
     /bin/busybox | head -1
 
 FROM scratch
@@ -60,7 +60,7 @@ COPY --from=applets /bin /bin
 COPY --from=applets /tmp /tmp
 COPY --from=applets /run /run
 COPY --from=applets /var/tmp /var/tmp
-COPY --from=applets /etc /etc
+COPY --from=applets /rootfs/etc /etc
 COPY --from=applets /opt/application /opt/application
 
 COPY --from=backend /app/backend/target/ams-1.0.0.jar /app/ams.jar
