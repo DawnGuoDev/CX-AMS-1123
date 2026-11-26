@@ -5,9 +5,10 @@ import { state,t,openAlarm } from '../state'
 import MasterPage from './MasterPage.vue'
 import OperationsPage from './OperationsPage.vue'
 import ReportPage from './ReportPage.vue'
+import { pageTitle } from '../page-title'
 const props=defineProps({code:String,alarmKey:String})
 const master=computed(()=>state.meta.masters?.[props.code]||state.meta.mappings?.[props.code]||state.meta.masterDetails?.[props.code])
-const title=computed(()=>master.value?.title||state.meta.pageTitles?.[props.code]||({HOME:'即时警报汇总',ACK:'邮件警报确认'})[props.code]||'页面不存在')
+const title=computed(()=>pageTitle(props.code,master.value,state.meta.pageTitles))
 onMounted(()=>{if(props.code==='ACK')openAlarm(props.alarmKey)})
 </script>
 <template>

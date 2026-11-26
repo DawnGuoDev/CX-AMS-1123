@@ -4,6 +4,9 @@ import static com.changxin.ams.Json.*;
 import static org.assertj.core.api.Assertions.*;
 
 import java.io.ByteArrayInputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -46,17 +49,20 @@ class InvalidAlarmReportIntegrationTest {
         assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_NO_SUBSYS);
         assertThat(invalid(m("factoryKey","F01","subsysKey","SS03","eqpKey","BAD","alarmCode","PRT_NODYE"))).containsEntry("message","未设定机台");
         assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_NO_EQP);
-        assertThat(invalid(m("factoryKey","F01","subsysKey","SS03","eqpKey","EQP01","alarmCode","BAD"))).containsEntry("message","找不到事件");
-        assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_EVENT_NOT_FOUND);
-
         store.write(()->{store.mustFind("alarm_settings","ALARM_INFO_ID","PRT_NODYE").put("ACTIVE","N");return null;});
         assertThat(invalid(body())).containsEntry("message","警报设定未启用");
         assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_SETTING_DISABLED);
 
         reset();
-        store.write(()->{store.table("event_levels").removeIf(r -> eq(r,"EVENT_KEY","EVT01"));return null;});
+        store.write(()->{store.table("alarm_settings").removeIf(r -> eq(r,"ALARM_INFO_ID","PRT_NODYE"));return null;});
         assertThat(invalid(body())).containsEntry("message","找不到事件");
-        assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_NO_LEVEL1).containsEntry("FAILURE_REASON","未设定层级1");
+        assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_EVENT_NOT_FOUND);
+
+        reset();
+        store.write(()->{store.table("event_levels").removeIf(r -> eq(r,"EVENT_KEY","EVT01"));return null;});
+        assertThat(invalid(body())).containsEntry("message","未设定层级1");
+        assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_TYPE",AlarmEngine.FAILURE_NO_LEVEL1);
+        assertThat(invalidAlarms().getFirst()).containsEntry("FAILURE_REASON","未设定层级1");
 
         reset();
         store.write(()->{store.mustFind("event_levels","EVENT_LEVEL_KEY","LV0001").put("USER_KEYS",List.of());return null;});
@@ -96,15 +102,21 @@ class InvalidAlarmReportIntegrationTest {
         assertThat(all).isSortedAccordingTo((a,b)->s(b,"CREATE_DT").compareTo(s(a,"CREATE_DT")));
 
         var first=s(all.getLast(),"CREATE_DT");
-        var exact=m("CREATE_DT",m("enabled",true,"type","date","operator","between","from",first,"to",first));
+        // Browser payloads are second-precision local times, not the nanosecond ISO form stored in CREATE_DT.
+        var seconds=LocalDateTime.ofInstant(Instant.parse(first),ZoneId.systemDefault()).withNano(0).toString();
+        // All three records can fall in the same displayed second, so combine the exact window
+        // with an identity filter the way a user narrows results in the browser.
+        var exact=m("CREATE_DT",m("enabled",true,"type","date","operator","between","from",seconds,"to",seconds),
+            "ALARM_INFO_ID",m("enabled",true,"operator","eq","value","C003"));
         assertThat(store.read(()->reports.query("AVPA008",exact))).hasSize(1);
         var left=m("CREATE_DT",m("enabled",true,"type","date","operator","between","from","2000-01-01T00:00:00Z","to",""));
         assertThat(store.read(()->reports.query("AVPA008",left))).hasSize(3);
         var right=m("CREATE_DT",m("enabled",true,"type","date","operator","between","from","","to","2999-01-01T00:00:00Z"));
         assertThat(store.read(()->reports.query("AVPA008",right))).hasSize(3);
 
-        var conditions=time(); conditions.put("FAILURE_TYPE",m("enabled",true,"operator","eq","value","NO_EQP"));
-        conditions.put("ALARM_INFO_ID",m("enabled",true,"operator","eq","value","C003"));
+        // Mirrors the browser, which tags each condition with its column type before sending it.
+        var conditions=time(); conditions.put("FAILURE_TYPE",m("enabled",true,"operator","eq","value","NO_EQP","type","text"));
+        conditions.put("ALARM_INFO_ID",m("enabled",true,"operator","eq","value","C003","type","text"));
         var filtered=store.read(()->reports.query("AVPA008",conditions));
         assertThat(filtered).hasSize(1);
         assertThat(filtered.getFirst()).containsEntry("ALARM_INFO_ID","C003").containsEntry("FAILURE_REASON","未设定机台");
@@ -133,6 +145,14 @@ class InvalidAlarmReportIntegrationTest {
         try(var book=new XSSFWorkbook(new ByteArrayInputStream(Base64.getDecoder().decode(s(empty,"base64"))))) {
             assertThat(book.getSheetAt(0).getLastRowNum()).isZero();
         }
+    }
+
+    @Test void reportPagesKeepTheirHeadingsAfterBootstrap() {
+        // Report pages are not in metadata.masters, so Workspace.vue falls back to meta.pageTitles.
+        var meta=store.read(()->store.metadata);
+        var titles=obj(meta.get("pageTitles"));
+        for(String code:List.of("AVPA004","AVPA007","AVPA008","AVPA013"))
+            assertThat(s(titles,code)).as("pageTitles.%s",code).isNotBlank().isNotEqualTo("页面不存在");
     }
 
     @Test void oldSnapshotMigratesInvalidAlarmReportIdempotently() throws Exception {
