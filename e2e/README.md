@@ -15,6 +15,7 @@ e2e/
    ├─ 03-master-data.spec.ts      TC-FE-E2E-003
    ├─ 04-alarm-workflow.spec.ts   TC-FE-E2E-004
    ├─ 05-alarm-list.spec.ts       TC-FE-E2E-005
+   ├─ 06-invalid-alarm-query.spec.ts  TC-FE-E2E-006（AVPA014 汇出用例需系统 `unzip` 读取 xlsx）
    └─ support/ams.js             登录、菜单路由、API token、唯一数据标记
 ```
 

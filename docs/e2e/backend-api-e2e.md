@@ -93,3 +93,29 @@
 | 7 | `POST .../export {mode:'unknown'}` | 非 5xx |
 
 清理：停用导入的测试行。
+
+---
+
+## TC-API-E2E-006 无效警报留存与 AVPA014 报表查询汇出
+
+**优先级**：P1　**类型**：业务流程 + 报表契约 + 鉴权　**代码**：`InvalidAlarmReportE2ETest#shouldPersistFailuresAndServeReport`
+
+前置：种子 `F01=Fab01`、`F02` 未与 `SS03` 对应；`PRT_NODYE` 为 `F01/SS03/EQP01` 的启用中警报设定；本次触发标题共用唯一标记。
+
+| # | 步骤 | 预期 |
+| - | ---- | ---- |
+| 1 | `GET /api/report-defs/AVPA014` | 200；`REPORT_NAME=无效警报查询`；`ATLEAST_ONE_CONDITION=N`；COLUMNS 含 INVALID_ID/CREATE_DT/REASON/四要素/TITLE/RECEIVE_TYPE/SOURCE_TYPE |
+| 2 | 依次以 `MISSING_FACTORY`（未设定厂别）、`F02+SS03`（未设定子系统）、`MISSING_EQP`（未设定机台）、`MISSING_ALARM`（找不到事件）触发 | 均 422、`ok=false`、`message` 为对应中文原因；按标题查询各恰好 1 条记录 |
+| 3 | `PUT /api/master/AVMA009/{key}` 将 `PRT_NODYE` 停用后触发，再恢复 | 422“警报设定未启用”，落库 1 条；恢复后设定重新可用 |
+| 4 | 成功触发一次 `PRT_NODYE` 后立即再次触发同一四要素 | 第二次 422“忽略相同警报”且落库 1 条 |
+| 5 | 触发 `PRT_MOTOR_ERR` | 422“未设定层级1”（该分支落库由 `WorkflowIntegrationTest` 覆盖） |
+| 6 | 再次成功触发（不同标题） | 200、`STATUS=Process`；该标题不属于无效警报记录 |
+| 7 | 按标题标记查询 AVPA014 | 恰好 6 条，原因集合与步骤 2–4 一致，`CREATE_DT` 倒序 |
+| 8 | 检查字段 | `MISSING_FACTORY` 原样保留且厂别名称为空；`MISSING_EQP` 记录厂别名称 `Fab01`、`SUB_SYS_ID=SS03`；`INVALID_ID` 非空；`RECEIVE_TYPE=Mock`、`SOURCE_TYPE=Test` |
+| 9 | 以该记录自身 `CREATE_DT` 作为 between 起止 | 命中该记录（端点包含） |
+| 10 | 标题+原因等于+机台包含组合；不存在原因；2000 年空区间 | 交集 1 条；后两者 `rows` 为空且 200 |
+| 11 | `POST /api/reports/AVPA014/query` 传 `UNKNOWN_FIELD` | 400、`ok=false` |
+| 12 | `POST /api/reports/AVPA014/export` 传当前 rows | 200；`filename=无效警报查询.xlsx`；表头等于定义列标签且行数一致；资料时间与失效原因单元格有值，含 `MISSING_EQP` 行 |
+| 13 | 无 token 访问 report-defs / query / `POST /api/alarms/test` | 均为 401；未认证触发不产生无效记录 |
+
+清理：测试内恢复被停用的警报设定；无效警报记录为只读追加数据，不做删除。
