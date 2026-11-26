@@ -23,6 +23,10 @@
 
 通知人员直接在事件的每个层级勾选，人员群组和事件通知群组不在本次实现中。删除了旧 Node 运行时及 Java/Vue 中的群组管理、机况/机型规则、Chamber、自动切机况、BRM/菜单/报表设计器、通知装置管理、SQL 条件触发、手动自选渠道发送、独立强制中断和无效告警报表代码。旧接口返回 404。
 
+## 原型工程
+
+原型初始化工程在独立分支 `codex/prototype-preview` 的 `prototype-preview/` 目录（基于 `release @ 13c84348`），用于页面与交互验证，数据由前端 Mock 提供。构建、预览命令与当前迁移范围见 [docs/prototype-engine.md](docs/prototype-engine.md)。
+
 ## 本地运行
 
 依赖：JDK 21、Maven 3.9、Node.js 20.19+（建议 22 LTS）。
