@@ -18,7 +18,7 @@
       "alarm_notifications": 409,
       "alarm_acks": 33,
       "report_defs": 5,
-      "functions": 43,
+      "functions": 44,
       "history": 10,
       "alarmId": 1042
     },
@@ -49,6 +49,7 @@
       "MTR_DATE": "2026-11-16T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "Y",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -69,6 +70,7 @@
       "MTR_DATE": "2026-11-15T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -89,6 +91,7 @@
       "MTR_DATE": "2026-11-14T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -109,6 +112,7 @@
       "MTR_DATE": "2026-11-13T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -129,6 +133,7 @@
       "MTR_DATE": "2026-11-12T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -149,6 +154,7 @@
       "MTR_DATE": "2026-11-11T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -169,6 +175,7 @@
       "MTR_DATE": "2026-11-10T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -189,6 +196,7 @@
       "MTR_DATE": "2026-11-09T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -209,6 +217,7 @@
       "MTR_DATE": "2026-11-08T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -229,6 +238,7 @@
       "MTR_DATE": "2026-11-07T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -249,6 +259,7 @@
       "MTR_DATE": "2026-11-06T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     },
     {
@@ -269,6 +280,7 @@
       "MTR_DATE": "2026-11-05T15:14:56.663Z",
       "MTR_USER_KEY": "U001",
       "MTR_USER_NAME": "陈柏睿",
+      "CAN_TERMINATE": "N",
       "PASSWORD_HASH": "f5e3ba5ed34e6578c91e327f5e752dac9047c2a9085568d5502f1814888d5636"
     }
   ],
@@ -1413,6 +1425,17 @@
       "PARENT_KEY": null,
       "PATH": "#/page/ACK_LIST",
       "SORT": 11,
+      "FUNC_TYPE": "PAGE",
+      "VISIBLE": "Y",
+      "ACTIVE": "Y"
+    },
+    {
+      "FUNCTION_KEY": "ALARM_LIST",
+      "FUNCTION_ID": "ALARM_LIST",
+      "FUNCTION_NAME": "警报强制中断作业",
+      "PARENT_KEY": null,
+      "PATH": "#/page/ALARM_LIST",
+      "SORT": 12,
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"

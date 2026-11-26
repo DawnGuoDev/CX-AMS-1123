@@ -16,7 +16,7 @@ async function loadOptions(){
 }
 watch(()=>form.value.factoryKey,()=>{form.value.subsysKey='';form.value.alarmCode='';act(loadOptions)})
 watch(()=>[form.value.subsysKey,form.value.eqpKey],()=>{form.value.alarmCode='';act(loadOptions)})
-async function load(){if(props.code==='TEST')await loadOptions();else rows.value=(await api('/alarms/pending')).rows}
+async function load(){if(props.code==='TEST')await loadOptions();else rows.value=(await api(props.code==='ALARM_LIST'?'/alarms/process':'/alarms/pending')).rows}
 async function submit(){
   await act(async()=>{
     const result=await api('/alarms/test',form.value)
@@ -24,7 +24,7 @@ async function submit(){
     await openAlarm(result.alarm)
   })
 }
-onMounted(()=>{act(load);if(props.code==='ACK_LIST')timer=setInterval(()=>{if(!document.hidden)act(load)},10000)})
+onMounted(()=>{act(load);if(['ACK_LIST','ALARM_LIST'].includes(props.code))timer=setInterval(()=>{if(!document.hidden)act(load)},10000)})
 onUnmounted(()=>clearInterval(timer))
 </script>
 <template>

@@ -54,9 +54,11 @@ public class ApiController {
             case "summary/master" -> m("ok",true,"rows",reports.summary("",""));
             case "summary/detail" -> m("ok",true,"rows",reports.summary(s(q,"factory"),s(q,"subsys")));
             case "alarms/pending" -> m("ok",true,"rows",reports.pending(user));
+            case "alarms/process" -> m("ok",true,"rows",store.table("alarms").stream().filter(r -> eq(r,"STATUS","Process"))
+                .map(r -> engine.enrich(r,user)).sorted(Comparator.comparingInt((Map<String,Object> r) -> n(r,"PRIORITY")).reversed()).toList());
             case "alarms/test/options" -> alarmOptions(q);
             default -> {
-                if (p.length==2 && p[0].equals("alarms")) yield m("ok",true,"alarm",s(q,"transaction").isBlank()
+                if (p.length==2 && p[0].equals("alarms") && !p[1].equals("process")) yield m("ok",true,"alarm",s(q,"transaction").isBlank()
                     ? engine.detail(p[1],user) : engine.historicalDetail(p[1],s(q,"transaction"),user));
                 throw new ApiException(404,"API 不存在");
             }
@@ -92,6 +94,7 @@ public class ApiController {
             if (p[2].equals("query")) return m("ok",true,"rows",data,"columns",columns,"total",data.size(),"lastUpdate",now());
         }
         if (method.equals("POST") && p.length==3 && p[0].equals("alarms") && p[2].equals("ack")) return engine.action(p[1],"ack",body,user);
+        if (method.equals("POST") && p.length==3 && p[0].equals("alarms") && p[2].equals("terminate")) return engine.terminate(p[1],body,user);
         if (method.equals("POST") && path.equals("alarms/test")) return engine.trigger(body,user);
         throw new ApiException(404,"API 不存在");
     }

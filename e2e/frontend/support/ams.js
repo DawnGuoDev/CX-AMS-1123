@@ -28,6 +28,7 @@ export const MENU = {
   factories: { route: '/page/SBRM_FACTORY', title: '厂别管理', label: '厂别管理' },
   alarmTest: { route: '/page/TEST', title: '测试告警触发', label: '测试告警触发' },
   pending: { route: '/page/ACK_LIST', title: '待我确认', label: '待我确认' },
+  alarmTerminate: { route: '/page/ALARM_LIST', title: '警报强制中断作业', label: '警报强制中断作业' },
   alarmQuery: { route: '/page/AVPA004', title: '警报处理查询', label: '警报处理查询' },
 }
 

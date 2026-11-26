@@ -101,6 +101,13 @@
           "optionSet": "department",
           "width": 150,
           "filter": true
+        },
+        {
+          "name": "CAN_TERMINATE",
+          "label": "警报强制中断权限",
+          "type": "checkbox",
+          "grid": true,
+          "filter": true
         }
       ],
       "filters": [
@@ -111,7 +118,8 @@
       ],
       "defaults": {
         "SHIFT_KEY": "A",
-        "GENDER": "M"
+        "GENDER": "M",
+        "CAN_TERMINATE": "N"
       }
     },
     "SBRM_FACTORY": {
@@ -517,6 +525,7 @@
     "AVPA004": "警报处理查询",
     "AVPA007": "历史记录查询",
     "TEST": "测试告警触发",
-    "ACK_LIST": "待我确认"
+    "ACK_LIST": "待我确认",
+    "ALARM_LIST": "警报强制中断作业"
   }
 }

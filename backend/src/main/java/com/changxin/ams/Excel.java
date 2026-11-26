@@ -68,7 +68,12 @@ public class Excel {
                     String headerName=formatter.formatCellValue(header.getCell(j));
                     String key=kind.equals("masters") ? rows(meta.get("fields")).stream().filter(f -> eq(f,"label",headerName))
                         .map(f -> s(f,"name")).findFirst().orElse(headerName) : headerName;
-                    if (!key.isBlank()) values.put(key,formatter.formatCellValue(source.getCell(j)));
+                    if (!key.isBlank()) {
+                        var cell=source.getCell(j);
+                        // An untouched (blank) cell in a copied template must not clear existing values on import.
+                        if (cell!=null && cell.getCellType()!=org.apache.poi.ss.usermodel.CellType.BLANK)
+                            values.put(key,formatter.formatCellValue(cell));
+                    }
                 }
                 if (values.values().stream().allMatch(v -> str(v).isBlank())) continue;
                 var result=m("rowNo",i+1,"values",values,"valid",true,"message","可汇入");

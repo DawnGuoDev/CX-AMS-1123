@@ -233,7 +233,7 @@ public class Masters {
         out.put("department", store.table("users").stream().map(r -> s(r,"ORGAN_KEY")).distinct().map(v -> m("value",v,"label",v)).toList());
         Map<String, String> enums = Map.ofEntries(
             Map.entry("shift","A,B,C,D"),Map.entry("gender","M,F"),Map.entry("yesno","Y,N"),
-            Map.entry("alarmStatus","Process,Completed,NoNextLevel"),Map.entry("activeStatus","Y,N"));
+            Map.entry("alarmStatus","Process,Completed,NoNextLevel,Terminated"),Map.entry("activeStatus","Y,N"));
         enums.forEach((k,v) -> out.put(k, Arrays.stream(v.split(",")).map(x -> m("value",x,"label",x)).toList()));
         return out;
     }

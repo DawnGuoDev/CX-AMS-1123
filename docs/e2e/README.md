@@ -55,5 +55,6 @@ cd e2e && npm ci && npx playwright install chromium && npm test   # 前端 E2E
 | TC-FE-E2E-003 | 前端 | 厂别主档：新增、列表可见、停用后隐藏 | `frontend/03-master-data.spec.ts` |
 | TC-FE-E2E-004 | 前端 | 测试告警触发 → 告警详情 → 邮件 ACK 确认页 | `frontend/04-alarm-workflow.spec.ts` |
 | TC-FE-E2E-005 | 前端 | 待我确认列表为空（SMTP 未配置）与即时汇总计数联动 | `frontend/05-alarm-list.spec.ts` |
+| TC-FE-E2E-006 | 前端 | 有权限强制中断（原因/二次确认/报表口径）与无权限禁用 | `frontend/06-alarm-terminate.spec.ts` |
 
 状态判定：PASS = 执行且断言通过；FAIL = 已执行但断言不符；BLOCKED = 环境前置不满足（浏览器缺失、端口/构建产物缺失）。
