@@ -182,6 +182,28 @@ class AlarmTerminateE2ETest extends E2ETestBase {
         assertThat(terminateTransactionCount(key)).isEqualTo(1);
     }
 
+    /**
+     * REQ-003: {@code :key} accepts {@code ALARM_KEY} or {@code ALARM_ID} (same lookup as the ack route),
+     * so an operator can terminate from a report row that only shows the alarm id.
+     */
+    @Test
+    void shouldLocateTheAlarmByAlarmIdAsWellAsByAlarmKey() {
+        var key = trigger("EQP01", "PRT_NODYE");
+        var alarmId = client.get("/api/alarms/" + key).requireOk("detail for ALARM_ID").text("/alarm/ALARM_ID");
+        assertThat(alarmId).isNotBlank();
+
+        var terminated = client.post("/api/alarms/" + alarmId + "/terminate", Map.of("cmt", "以警报识别码中断"))
+                .requireOk("terminate by ALARM_ID");
+        assertThat(terminated.text("/alarm/ALARM_KEY")).isEqualTo(key);
+        assertThat(terminated.text("/alarm/STATUS")).isEqualTo("Terminated");
+
+        // The alias is not a second alarm: releasing the ALARM_ID key can only hit the same record once.
+        var direct = client.post("/api/alarms/" + key + "/terminate", Map.of("cmt", "重复中断"));
+        assertThat(direct.status()).isEqualTo(400);
+        assertThat(direct.text("/message")).isEqualTo("该警报已非处理中状态");
+        assertThat(terminateTransactionCount(key)).isEqualTo(1);
+    }
+
     @Test
     void shouldReturnNotFoundForUnknownAlarm() {
         var missing = client.post("/api/alarms/alarms-999999/terminate", Map.of("cmt", "不存在"));

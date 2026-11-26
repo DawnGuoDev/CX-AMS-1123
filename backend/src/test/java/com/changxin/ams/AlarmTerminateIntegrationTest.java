@@ -65,6 +65,13 @@ class AlarmTerminateIntegrationTest {
     long transactions(String key, String type) {
         return store.read(()->store.table("alarm_transactions").stream().filter(r -> eq(r,"ALARM_KEY",key) && eq(r,"TRX_TYPE",type)).count());
     }
+    /** PUT replaces the whole record; the stored hash must never be echoed back as a password field. */
+    void saveUser(String userKey, String canTerminate) {
+        var row=store.read(()->copy(store.mustFind("users","USER_KEY",userKey)));
+        row.put("CAN_TERMINATE",canTerminate);
+        row.remove("PASSWORD_HASH");
+        store.write(()->masters.save("masters","SBRM_USER",userKey,row,user));
+    }
     String loginToken(String id) throws Exception {
         return s(obj(parse(http.perform(post("/api/login").contentType(MediaType.APPLICATION_JSON)
             .content(encode(m("userId",id,"password","123456")))).andExpect(status().isOk())
@@ -167,8 +174,10 @@ class AlarmTerminateIntegrationTest {
         String key=key();
         terminate(key,"误报");
         int messages=smtp.messages.size(), trx=store.read(()->store.table("alarm_transactions").stream().filter(r -> eq(r,"ALARM_KEY",key)).toList()).size();
-        store.write(()->{store.table("alarm_levels").forEach(r -> r.put("START_DT",Instant.EPOCH.toString()));
-            store.table("alarm_notifications").forEach(r -> r.put("SEND_DT",Instant.EPOCH.toString()));return null;});
+        // Only this alarm is aged: rewinding every row would make unrelated libraries escalate too and
+        // hide a regression that keeps a Terminated alarm inside the scheduler scan.
+        store.write(()->{store.table("alarm_levels").stream().filter(r -> eq(r,"ALARM_KEY",key)).forEach(r -> r.put("START_DT",Instant.EPOCH.toString()));
+            store.table("alarm_notifications").stream().filter(r -> eq(r,"ALARM_KEY",key)).forEach(r -> r.put("SEND_DT",Instant.EPOCH.toString()));return null;});
         tick();engine.dispatch();tick();engine.dispatch();
         assertThat(smtp.messages).hasSize(messages);
         assertThat(store.read(()->store.table("alarm_transactions").stream().filter(r -> eq(r,"ALARM_KEY",key)).toList())).hasSize(trx);
@@ -220,9 +229,14 @@ class AlarmTerminateIntegrationTest {
         var options=store.read(()->masters.options());
         assertThat(rows(options.get("alarmStatus"))).extracting(r -> s(r,"value")).containsSubsequence("Process","Completed","NoNextLevel","Terminated");
         assertThat(store.read(()->masters.nav())).anySatisfy(n -> assertThat(n).containsEntry("key","ALARM_LIST").containsEntry("name","警报强制中断作业"));
-        store.write(()->masters.save("masters","SBRM_USER","U002",
-            m("USER_ID","E0043260","USER_NAME","林彦廷","E_MAIL","e0043260@example.invalid","CAN_TERMINATE","Y"),user));
+        // The whole stored row is echoed back as the edit payload, exactly like the master page does.
+        saveUser("U002","Y");
         assertThat(store.read(()->s(store.mustFind("users","USER_KEY","U002"),"CAN_TERMINATE"))).isEqualTo("Y");
+        // Echoing the record back must not rewrite the password: the file keeps a hash and the hash is intact.
+        var u002=store.read(()->copy(store.mustFind("users","USER_KEY","U002")));
+        assertThat(s(u002,"PASSWORD_HASH")).isNotBlank().isNotEqualTo("123456");
+        assertThat(store.read(()->s(store.table("users").stream().filter(u -> eq(u,"USER_ID","E0043260"))
+            .findFirst().orElseThrow(),"PASSWORD_HASH"))).isEqualTo(s(u002,"PASSWORD_HASH"));
         assertThat(store.read(()->s(store.table("history").getFirst(),"AFTER_JSON"))).contains("CAN_TERMINATE");
         var meta=store.read(()->masters.meta("masters","SBRM_USER"));
         var created=store.write(()->masters.save("masters","SBRM_USER",null,

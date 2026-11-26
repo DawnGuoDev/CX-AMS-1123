@@ -111,7 +111,7 @@ Playwright 通过 `e2e/serve.mjs` 提供同源静态服务，并把 `/api/**`、
 | TC-FE-E2E-003 | `03-master-data.spec.ts` | 主档新增/列表/隐藏/恢复、唯一键错误 |
 | TC-FE-E2E-004 | `04-alarm-workflow.spec.ts` | 测试告警触发、详情、ACK 入口与不自动确认 |
 | TC-FE-E2E-005 | `05-alarm-list.spec.ts` | 待我确认、汇总计数联动、单会话约束 |
-| TC-FE-E2E-006 | `06-alarm-terminate.spec.ts` | 强制中断主流程、取消、失败保留、历史只读、主档权限、菜单可见性、报表口径、无权限拒绝 |
+| TC-FE-E2E-006 | `06-alarm-terminate.spec.ts` | 强制中断主流程、既有状态报表口径回归、取消、失败保留、历史只读、保留回应记录、主档权限、菜单可见性、无权限拒绝 |
 
 ## TC-FE-E2E-006 警报强制中断
 
@@ -132,6 +132,14 @@ Playwright 通过 `e2e/serve.mjs` 提供同源静态服务，并把 `/api/**`、
 | 5 | 填写中断原因并确认 | 对话框关闭并提示「警报已中断」；详情状态 `Terminated`；中断横幅显示时间/操作人/原因；按钮消失并说明「警报已中断，流程已结束」 |
 | 6 | 查看「通知发送记录」与「交易履历」 | 队列通知全部为 `Skipped`（说明「警报已中断，取消发送」，无 `Pending`）；交易履历含 `AlarmTerminate` 与原因 |
 | 7 | 关闭详情，进入「待我确认」，再查询 AVPA007 / AVPA004 / AVPA013 与详情接口 | 作业列表与待我确认均不再出现该警报；`GET /api/alarms/pending` 不含该 key；AVPA007 按 `TRX_TYPE=AlarmTerminate`、`STATUS=Terminated` 命中且 `NOTE`=原因；AVPA004 按 `STATUS=Terminated` 命中且 `COMPLETE_DT` 非空；AVPA013 总数回到触发前；详情 `CAN_TERMINATE=false` |
+
+### 6-1b 既有状态报表口径回归
+
+| 步骤 | 操作 | 预期 |
+| ---- | ---- | ---- |
+| 1 | 通过 API 触发一条处理中警报，按 `STATUS=Process` 查询 AVPA004 | 命中该警报，且结果全部为 `Process` |
+| 2 | 按 `STATUS=Completed` / `STATUS=NoNextLevel` 查询 AVPA004 | 空结果（新状态未改变既有口径） |
+| 3 | 按 `TRX_TYPE=AlarmTerminate` 查询 AVPA007 | 空结果（Process 警报无中断交易） |
 
 ### 6-2 取消不产生写入
 

@@ -11,6 +11,7 @@
 | `backend-api-e2e.md` | 后端接口 E2E 文本用例（真实 Spring Boot 进程 + HTTP） |
 | `frontend-e2e.md` | 前端 E2E 文本用例（Vite 构建产物 + Playwright + Chromium） |
 | `unit-tests.md` | 单元测试清单与执行方式 |
+| `alarm-terminate-coverage.md` | 警报强制中断（SPEC-AMS-ALARM-TERMINATE-001）用例 ↔ 设计条目映射、覆盖缺口与执行范围 |
 
 ## 测试分层
 

@@ -80,7 +80,8 @@ test.describe('TC-FE-E2E-006 警报强制中断', () => {
     await expect(detail.locator('tbody')).toContainText('AlarmTerminate')
     await expect(detail.locator('tbody')).toContainText('机台已修复，确认误报')
 
-    await detail.getByRole('button', { name: /close|关闭/i }).click()
+    // Ant Design renders the close icon as a button named by the dialog title, not by a "close" label.
+    await detail.getByRole('button', { name: '警报详情' }).click()
     await expect(detail).toHaveCount(0)
     // The work list only lists Process alarms, so the terminated alarm disappears from it.
     await expect(list).not.toContainText(marker)
@@ -129,6 +130,30 @@ test.describe('TC-FE-E2E-006 警报强制中断', () => {
     expect(finalDetail.TERMINATE_DT).toBeTruthy()
   })
 
+  test('keeps the existing report status semantics for non-terminated alarms', async ({ request }) => {
+    // REQ-006 regression: adding Terminated must not change what Process/Completed/NoNextLevel return.
+    const marker = unique('E2E-REGRESSION')
+    const token = await apiToken(request)
+    // F01/SS03/EQP01 is outside every ignore window reserved by the cases above, so this third
+    // alarm on that equipment is allowed (unlike the other PRT_NODYE helpers).
+    const alarm = await triggerAlarm(request, token, marker, { factoryKey: 'F01', subsysKey: 'SS03', eqpKey: 'EQP01', alarmCode: 'PRT_NODYE' })
+    const process = await reportRows(request, await apiToken(request), 'AVPA004', {
+      STATUS: { enabled: true, operator: 'eq', value: 'Process' },
+    })
+    expect(process.map(row => row.ALARM_KEY)).toContain(alarm.ALARM_KEY)
+    expect(process.every(row => row.STATUS === 'Process')).toBe(true)
+    expect(await reportRows(request, await apiToken(request), 'AVPA004', {
+      STATUS: { enabled: true, operator: 'eq', value: 'Completed' },
+    })).toHaveLength(0)
+    expect(await reportRows(request, await apiToken(request), 'AVPA004', {
+      STATUS: { enabled: true, operator: 'eq', value: 'NoNextLevel' },
+    })).toHaveLength(0)
+    // A Process alarm has no termination transaction, so the new type filter stays empty for it.
+    expect(await reportRows(request, await apiToken(request), 'AVPA007', {
+      TRX_TYPE: { enabled: true, operator: 'eq', value: 'AlarmTerminate' },
+    })).toHaveLength(0)
+  })
+
   test('keeps the confirmation open on cancel and sends nothing', async ({ page, request }) => {
     const marker = unique('E2E-CANCEL')
     const token = await apiToken(request)
@@ -144,7 +169,8 @@ test.describe('TC-FE-E2E-006 警报强制中断', () => {
     await expect(confirm).toBeVisible()
     await confirm.getByLabel('中断原因').fill('误触后取消')
     // Closing the dialog through its close icon (not just 取消) must also keep the alarm untouched.
-    await confirm.getByRole('button', { name: /close|关闭/i }).first().click()
+    await expect(detail.locator('.ant-modal-close')).toHaveCount(2)
+    await detail.locator('.ant-modal-close').nth(1).click()
     await expect(confirm).toHaveCount(0)
     await expect(detail.locator('.detail-meta .tag')).toHaveText('Process')
 
@@ -300,7 +326,11 @@ test.describe('TC-FE-E2E-006 警报强制中断', () => {
     // The entry belongs to the alarm operations group (design 2.5.7) and its list only has Process rows.
     const entry = page.locator('.sidebar a[href="#/page/ALARM_LIST"]')
     await expect(entry).toHaveText('警报强制中断作业')
-    await expect(page.locator('.grid tbody tr').filter({ hasNotText: 'Process' })).toHaveCount(0)
+    // Column filters skip the header row, so every rendered data row must be a Process alarm.
+    const rows = page.locator('.grid tbody tr').filter({ has: page.getByRole('button', { name: '查看', exact: true }) })
+    await expect(rows.first()).toBeVisible()
+    expect(await rows.count()).toBeGreaterThan(0)
+    for (const text of await rows.allTextContents()) expect(text).toContain('Process')
 
     // Simulate an operator retiring the function in the master data: the shared E2E backend exposes no
     // function-master API, so bootstrap is stubbed on reload with the same payload minus the menu item.
