@@ -17,8 +17,8 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 RUN groupadd --system ams && useradd --system --gid ams ams && mkdir /app/data && chown ams:ams /app/data
 COPY --from=backend /app/backend/target/ams-1.0.0.jar /app/ams.jar
+RUN mkdir -p /opt/application && printf '#!/bin/sh\nexec java -jar /app/ams.jar\n' > /opt/application/run.sh && chmod 755 /opt/application/run.sh
 USER ams
 ENV HOST=0.0.0.0 PORT=8080
 EXPOSE 8080
-RUN mkdir -p /opt/application && printf '#!/bin/sh\nexec java -jar /app/ams.jar\n' > /opt/application/run.sh && chmod 755 /opt/application/run.sh
 ENTRYPOINT ["/opt/application/run.sh"]
