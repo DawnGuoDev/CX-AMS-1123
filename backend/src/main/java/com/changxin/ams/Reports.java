@@ -10,7 +10,7 @@ public class Reports {
     private final Store store; private final AlarmEngine engine;
     public Reports(Store store, AlarmEngine engine) { this.store=store; this.engine=engine; }
     public Map<String,Object> definition(String code) {
-        if (!List.of("AVPA004","AVPA007","AVPA013").contains(code)) throw new ApiException(404,"报表不存在");
+        if (!List.of("AVPA004","AVPA007","AVPA008","AVPA013").contains(code)) throw new ApiException(404,"报表不存在");
         var def=copy(store.mustFind("report_defs","REPORT_ID",code));
         if(!code.equals("AVPA013")) {
             for(String[] f:new String[][]{{"CONTENT_TYPE","警报讯息内容类型"},{"LEVEL_PROCESS_DT","每次处理启始时间"},
@@ -36,9 +36,18 @@ public class Reports {
     public List<Map<String,Object>> query(String code, Map<String,Object> conditions) {
         var def=definition(code);
         if (code.equals("AVPA013")) return summary("","");
+        // AVPA008 always requires a time window, so report that rule first instead of the generic condition rule.
+        if (code.equals("AVPA008")) {
+            var timeCondition=obj(conditions.get("CREATE_DT"));
+            require(Boolean.TRUE.equals(timeCondition.get("enabled"))
+                && (!s(timeCondition,"value").isBlank() || !s(timeCondition,"from").isBlank() || !s(timeCondition,"to").isBlank()),
+                "无效警报查询必须指定时间区间");
+        }
         if (eq(def,"ATLEAST_ONE_CONDITION","Y")) require(conditions.values().stream().map(Json::obj).anyMatch(c ->
             Boolean.TRUE.equals(c.get("enabled")) && (!s(c,"value").isBlank() || !s(c,"from").isBlank() || !s(c,"to").isBlank())),"至少选择一个查询条件");
-        List<Map<String,Object>> source=store.table("alarms").stream().map(r -> engine.enrich(r,null)).toList();
+        List<Map<String,Object>> source=code.equals("AVPA008")
+            ? store.table("invalid_alarms").stream().map(Json::copy).toList()
+            : store.table("alarms").stream().map(r -> engine.enrich(r,null)).toList();
         if (code.equals("AVPA007")) {
             var byKey=new HashMap<String,Map<String,Object>>(); source.forEach(r -> byKey.put(s(r,"ALARM_KEY"),r));
             source=store.table("alarm_transactions").stream().filter(r -> byKey.containsKey(s(r,"ALARM_KEY"))).map(t -> {

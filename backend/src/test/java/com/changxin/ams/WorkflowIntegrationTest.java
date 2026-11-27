@@ -202,10 +202,10 @@ class WorkflowIntegrationTest {
             for(String code:obj(store.metadata.get(kind)).keySet())
                 http.perform(get("/api/"+route+"/"+code).header("Authorization","Bearer "+token)).andExpect(status().isOk());
         }
-        for(String code:List.of("AVPA004","AVPA007","AVPA013"))
+        for(String code:List.of("AVPA004","AVPA007","AVPA008","AVPA013"))
             http.perform(post("/api/reports/"+code+"/query").header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"conditions\":{\"CREATE_DT\":{\"enabled\":true,\"type\":\"date\",\"operator\":\"between\",\"from\":\"2020-01-01\"}}}")).andExpect(status().isOk());
-        for(String route:List.of("event-tree","devices","auto-status","functions","master/SBRM_USER_GROUP","report-defs/AVPA005","report-defs/AVPA008"))
+        for(String route:List.of("event-tree","devices","auto-status","functions","master/SBRM_USER_GROUP","report-defs/AVPA005"))
             http.perform(get("/api/"+route).header("Authorization","Bearer "+token)).andExpect(status().isNotFound());
         for(String route:List.of("alarms/manual","alarms/backfill","event-tree/save","sql/test","devices/save","batch-alarm/change"))
             http.perform(post("/api/"+route).header("Authorization","Bearer "+token).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isNotFound());
