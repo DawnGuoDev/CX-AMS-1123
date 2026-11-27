@@ -12,6 +12,10 @@
 | `frontend-e2e.md` | 前端 E2E 文本用例（Vite 构建产物 + Playwright + Chromium） |
 | `unit-tests.md` | 单元测试清单与执行方式 |
 | `alarm-terminate-coverage.md` | 警报强制中断（SPEC-AMS-ALARM-TERMINATE-001）用例 ↔ 设计条目映射、覆盖缺口与执行范围 |
+| `alarm-terminate-impact.md` | 相对 `release` 全部提交的影响范围、运行时触点、需测试条目与扩散风险 |
+| `alarm-terminate-static-check.md` | 本节点静态检查命令与结果、未执行项及原因（不含任何测试运行） |
+| `alarm-terminate-runbook.md` | 环境依赖、浏览器选择、账号与数据、执行命令、报告路径 |
+| `alarm-terminate-handover.md` | 文件清单、分支/提交、已知缺口与下游执行注意事项 |
 
 ## 测试分层
 
