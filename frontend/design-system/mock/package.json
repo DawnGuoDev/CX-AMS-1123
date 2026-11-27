@@ -1,0 +1,10 @@
+{
+  "name": "@changxin/ams-design-system-mock",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-only preview contract for AMS components; implementations live in ../src; this package is mock data only.",
+  "exports": {
+    ".": "./index.js"
+  }
+}

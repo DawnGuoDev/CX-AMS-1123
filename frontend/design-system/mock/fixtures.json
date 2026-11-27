@@ -1,0 +1,968 @@
+{
+  "meta": {
+    "mock": true,
+    "label": "AMS 本地演示数据",
+    "schema": "design-system-1.0",
+    "source_commit": "42080ffb357ad0ed76eed316c9c0737c6bbee080"
+  },
+  "tokens": {
+    "primary": "#167d92",
+    "border": "#dde5ed",
+    "muted": "#7a8998",
+    "bg": "#f3f6fa",
+    "text": "#23364a",
+    "radius": 6,
+    "fontSize": 13,
+    "tableSize": "middle",
+    "pageSize": 20
+  },
+  "masterMeta": {
+    "code": "SBRM_USER",
+    "title": "使用者设定",
+    "table": "users",
+    "keyField": "USER_KEY",
+    "idField": "USER_ID",
+    "uniqueFields": [
+      "USER_ID"
+    ],
+    "desc": "维护使用者基本资料与 Email 通知地址。",
+    "fields": [
+      {
+        "name": "USER_ID",
+        "label": "使用者代码",
+        "type": "text",
+        "required": true,
+        "readOnlyOnEdit": true,
+        "width": 110,
+        "filter": true
+      },
+      {
+        "name": "USER_NAME",
+        "label": "使用者名称",
+        "type": "text",
+        "required": true,
+        "width": 130,
+        "filter": true
+      },
+      {
+        "name": "LAST_NAME",
+        "label": "使用者姓",
+        "type": "text",
+        "grid": true
+      },
+      {
+        "name": "FIRST_NAME",
+        "label": "使用者名",
+        "type": "text",
+        "grid": true
+      },
+      {
+        "name": "MIDDLE_NAME",
+        "label": "中间名",
+        "type": "text"
+      },
+      {
+        "name": "IPPHONE_IM",
+        "label": "IPPhone(IM)",
+        "type": "text"
+      },
+      {
+        "name": "IPPHONE_EXT",
+        "label": "IPPhone(分机)",
+        "type": "text"
+      },
+      {
+        "name": "ALARM_SMS_PHONE",
+        "label": "警报短信电话",
+        "type": "text"
+      },
+      {
+        "name": "ALARM_PHONE",
+        "label": "警报电话",
+        "type": "text"
+      },
+      {
+        "name": "HIRE_DATE",
+        "label": "到职日",
+        "type": "date"
+      },
+      {
+        "name": "IS_EMPLOYEE",
+        "label": "是否公司员工",
+        "type": "checkbox"
+      },
+      {
+        "name": "GENDER",
+        "label": "性别",
+        "type": "select",
+        "optionSet": "gender",
+        "grid": true
+      },
+      {
+        "name": "PASSWORD",
+        "label": "密码",
+        "type": "password",
+        "grid": false,
+        "requiredOnCreate": true,
+        "help": "新增时必填；修改时留空保留原密码"
+      },
+      {
+        "name": "E_MAIL",
+        "label": "E-Mail",
+        "type": "text",
+        "width": 210,
+        "filter": true
+      },
+      {
+        "name": "PHONE",
+        "label": "电话",
+        "type": "text",
+        "grid": false
+      },
+      {
+        "name": "MOBILE",
+        "label": "Mobile",
+        "type": "text",
+        "grid": false
+      },
+      {
+        "name": "TITLE",
+        "label": "职称",
+        "type": "text",
+        "width": 130
+      },
+      {
+        "name": "SHIFT_KEY",
+        "label": "班别",
+        "type": "select",
+        "optionSet": "shift",
+        "width": 90
+      },
+      {
+        "name": "ORGAN_KEY",
+        "label": "部门",
+        "type": "select",
+        "optionSet": "department",
+        "width": 150,
+        "filter": true
+      }
+    ],
+    "filters": [
+      "USER_ID",
+      "USER_NAME",
+      "E_MAIL",
+      "ORGAN_KEY"
+    ],
+    "defaults": {
+      "SHIFT_KEY": "A",
+      "GENDER": "M"
+    }
+  },
+  "reportDefinition": {
+    "REPORT_ID": "AVPA004",
+    "REPORT_NAME": "警报处理查询",
+    "CMP_COLUMNS": [
+      {
+        "field": "ALARM_ID",
+        "label": "警报识别码"
+      },
+      {
+        "field": "CREATE_DT",
+        "label": "资料新增时间"
+      },
+      {
+        "field": "TITLE",
+        "label": "警报标题"
+      },
+      {
+        "field": "CONTENT",
+        "label": "警报详细内容"
+      },
+      {
+        "field": "STATUS",
+        "label": "状态"
+      },
+      {
+        "field": "FACTORY_ID",
+        "label": "厂别代码"
+      },
+      {
+        "field": "FACTORY_NAME",
+        "label": "厂别名称"
+      },
+      {
+        "field": "SUB_SYS_ID",
+        "label": "子系统代码"
+      },
+      {
+        "field": "SUB_SYS_NAME",
+        "label": "子系统名称"
+      },
+      {
+        "field": "EQP_ID",
+        "label": "机台代码"
+      },
+      {
+        "field": "ALARM_INFO_ID",
+        "label": "警报代码"
+      },
+      {
+        "field": "EVENT_ID",
+        "label": "事件通知代码"
+      },
+      {
+        "field": "CURRENT_LEVEL",
+        "label": "目前事件层级"
+      },
+      {
+        "field": "PRIORITY",
+        "label": "优先权代码"
+      },
+      {
+        "field": "FIRST_PROCESS_DT",
+        "label": "首次开始处理时间"
+      },
+      {
+        "field": "COMPLETE_DT",
+        "label": "处理完成日期时间"
+      },
+      {
+        "field": "RECEIVE_TYPE",
+        "label": "资料取得方式"
+      }
+    ],
+    "CONDITIONS": [
+      {
+        "field": "ALARM_ID",
+        "label": "警报识别码",
+        "type": "text"
+      },
+      {
+        "field": "CREATE_DT",
+        "label": "资料新增时间",
+        "type": "date"
+      },
+      {
+        "field": "TITLE",
+        "label": "警报标题",
+        "type": "text"
+      },
+      {
+        "field": "CONTENT",
+        "label": "警报详细内容",
+        "type": "text"
+      },
+      {
+        "field": "STATUS",
+        "label": "状态",
+        "type": "text"
+      },
+      {
+        "field": "FACTORY_ID",
+        "label": "厂别代码",
+        "type": "text"
+      },
+      {
+        "field": "FACTORY_NAME",
+        "label": "厂别名称",
+        "type": "text"
+      },
+      {
+        "field": "SUB_SYS_ID",
+        "label": "子系统代码",
+        "type": "text"
+      },
+      {
+        "field": "SUB_SYS_NAME",
+        "label": "子系统名称",
+        "type": "text"
+      },
+      {
+        "field": "EQP_ID",
+        "label": "机台代码",
+        "type": "text"
+      }
+    ]
+  },
+  "alarmColumns": [
+    {
+      "field": "ALARM_ID",
+      "label": "警报识别码"
+    },
+    {
+      "field": "TITLE",
+      "label": "警报标题"
+    },
+    {
+      "field": "STATUS",
+      "label": "状态"
+    },
+    {
+      "field": "FACTORY_ID",
+      "label": "厂别"
+    },
+    {
+      "field": "SUB_SYS_ID",
+      "label": "子系统"
+    },
+    {
+      "field": "EQP_ID",
+      "label": "机台"
+    },
+    {
+      "field": "CURRENT_LEVEL",
+      "label": "目前事件层级"
+    },
+    {
+      "field": "LEVEL_ACK_COUNT",
+      "label": "已回应人数"
+    },
+    {
+      "field": "LEVEL_REQUIRED",
+      "label": "需要回应的人数"
+    },
+    {
+      "field": "CREATE_DT",
+      "label": "资料新增时间"
+    }
+  ],
+  "historyColumns": [
+    {
+      "field": "ACTION",
+      "label": "交易类别"
+    },
+    {
+      "field": "RECORD_LABEL",
+      "label": "资料代码"
+    },
+    {
+      "field": "ACTIVE",
+      "label": "资料状态"
+    },
+    {
+      "field": "TRX_DT",
+      "label": "修改时间"
+    },
+    {
+      "field": "USER_ID",
+      "label": "修改人员代码"
+    },
+    {
+      "field": "USER_NAME",
+      "label": "修改人员名称"
+    },
+    {
+      "field": "IP",
+      "label": "客户端 IP"
+    },
+    {
+      "field": "HOST",
+      "label": "电脑名称"
+    },
+    {
+      "field": "BEFORE_JSON",
+      "label": "修改前"
+    },
+    {
+      "field": "AFTER_JSON",
+      "label": "修改后"
+    }
+  ],
+  "options": {
+    "gender": [
+      {
+        "value": "M",
+        "label": "男"
+      },
+      {
+        "value": "F",
+        "label": "女"
+      }
+    ],
+    "shift": [
+      {
+        "value": "A",
+        "label": "A 班"
+      },
+      {
+        "value": "B",
+        "label": "B 班"
+      },
+      {
+        "value": "C",
+        "label": "C 班"
+      }
+    ],
+    "department": [
+      {
+        "value": "设备工程部",
+        "label": "设备工程部"
+      },
+      {
+        "value": "制程工程部",
+        "label": "制程工程部"
+      },
+      {
+        "value": "资讯部",
+        "label": "资讯部"
+      }
+    ],
+    "user": [
+      {
+        "value": "U001",
+        "label": "E0043258 · 陈柏睿（演示）"
+      },
+      {
+        "value": "U002",
+        "label": "E0043260 · 林彦廷"
+      },
+      {
+        "value": "U003",
+        "label": "E0043271 · 许雅婷"
+      },
+      {
+        "value": "U004",
+        "label": "E0043288 · 王凯文"
+      },
+      {
+        "value": "U005",
+        "label": "E0043295 · 刘佳颖"
+      },
+      {
+        "value": "U006",
+        "label": "E0043302 · 吴柏翰"
+      },
+      {
+        "value": "U007",
+        "label": "E0043310 · 蔡宜芳"
+      },
+      {
+        "value": "U008",
+        "label": "E0043325 · 何孟勋"
+      },
+      {
+        "value": "U009",
+        "label": "E0043333 · 陈妮娜"
+      },
+      {
+        "value": "U010",
+        "label": "E0043341 · 张睿"
+      },
+      {
+        "value": "U011",
+        "label": "E0043350 · 黄若薇"
+      },
+      {
+        "value": "U012",
+        "label": "E0043362 · 林育贤"
+      }
+    ]
+  },
+  "masters": [
+    {
+      "FACTORY_KEY": "F01",
+      "FACTORY_ID": "Fab01",
+      "FACTORY_NAME": "一厂",
+      "FACTORY_DESC": "桃园厂区 12 英寸晶圆厂",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-03T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "FACTORY_KEY": "F02",
+      "FACTORY_ID": "Fab02",
+      "FACTORY_NAME": "二厂",
+      "FACTORY_DESC": "台中厂区 12 英寸晶圆厂",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-03T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "FACTORY_KEY": "F03",
+      "FACTORY_ID": "Fab03",
+      "FACTORY_NAME": "三厂",
+      "FACTORY_DESC": "台南厂区 8 英寸晶圆厂",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-03T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    }
+  ],
+  "rows": [
+    {
+      "USER_KEY": "U001",
+      "USER_ID": "E0043258",
+      "USER_NAME": "陈柏睿（演示）",
+      "ENGLISH_NAME": "BROCK",
+      "LAST_NAME": "陈",
+      "FIRST_NAME": "柏睿",
+      "GENDER": "M",
+      "E_MAIL": "usere0043258@example.invalid",
+      "PHONE": "03-5678100",
+      "MOBILE": "13800003258",
+      "TITLE": "设备工程师",
+      "SHIFT_KEY": "A",
+      "ORGAN_KEY": "设备工程部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-16T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U002",
+      "USER_ID": "E0043260",
+      "USER_NAME": "林彦廷",
+      "ENGLISH_NAME": "ALBERT",
+      "LAST_NAME": "林",
+      "FIRST_NAME": "彦廷",
+      "GENDER": "M",
+      "E_MAIL": "usere0043260@example.invalid",
+      "PHONE": "03-5678101",
+      "MOBILE": "13800003260",
+      "TITLE": "资深设备工程师",
+      "SHIFT_KEY": "A",
+      "ORGAN_KEY": "设备工程部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-15T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U003",
+      "USER_ID": "E0043271",
+      "USER_NAME": "许雅婷",
+      "ENGLISH_NAME": "AMY",
+      "LAST_NAME": "许",
+      "FIRST_NAME": "雅婷",
+      "GENDER": "F",
+      "E_MAIL": "usere0043271@example.invalid",
+      "PHONE": "03-5678102",
+      "MOBILE": "13800003271",
+      "TITLE": "制程工程师",
+      "SHIFT_KEY": "B",
+      "ORGAN_KEY": "制程工程部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-14T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U004",
+      "USER_ID": "E0043288",
+      "USER_NAME": "王凯文",
+      "ENGLISH_NAME": "KEVIN",
+      "LAST_NAME": "王",
+      "FIRST_NAME": "凯文",
+      "GENDER": "M",
+      "E_MAIL": "usere0043288@example.invalid",
+      "PHONE": "03-5678103",
+      "MOBILE": "13800003288",
+      "TITLE": "值班主管",
+      "SHIFT_KEY": "A",
+      "ORGAN_KEY": "制造部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-13T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U005",
+      "USER_ID": "E0043295",
+      "USER_NAME": "刘佳颖",
+      "ENGLISH_NAME": "GRACE",
+      "LAST_NAME": "刘",
+      "FIRST_NAME": "佳颖",
+      "GENDER": "F",
+      "E_MAIL": "usere0043295@example.invalid",
+      "PHONE": "03-5678104",
+      "MOBILE": "13800003295",
+      "TITLE": "厂务工程师",
+      "SHIFT_KEY": "B",
+      "ORGAN_KEY": "厂务部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-12T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U006",
+      "USER_ID": "E0043302",
+      "USER_NAME": "吴柏翰",
+      "ENGLISH_NAME": "PETER",
+      "LAST_NAME": "吴",
+      "FIRST_NAME": "柏翰",
+      "GENDER": "M",
+      "E_MAIL": "usere0043302@example.invalid",
+      "PHONE": "03-5678105",
+      "MOBILE": "13800003302",
+      "TITLE": "设备工程师",
+      "SHIFT_KEY": "C",
+      "ORGAN_KEY": "设备工程部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-11T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U007",
+      "USER_ID": "E0043310",
+      "USER_NAME": "蔡宜芳",
+      "ENGLISH_NAME": "IVY",
+      "LAST_NAME": "蔡",
+      "FIRST_NAME": "宜芳",
+      "GENDER": "F",
+      "E_MAIL": "usere0043310@example.invalid",
+      "PHONE": "03-5678106",
+      "MOBILE": "13800003310",
+      "TITLE": "制程工程师",
+      "SHIFT_KEY": "A",
+      "ORGAN_KEY": "制程工程部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-10T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U008",
+      "USER_ID": "E0043325",
+      "USER_NAME": "何孟勋",
+      "ENGLISH_NAME": "MARK",
+      "LAST_NAME": "何",
+      "FIRST_NAME": "孟勋",
+      "GENDER": "M",
+      "E_MAIL": "usere0043325@example.invalid",
+      "PHONE": "03-5678107",
+      "MOBILE": "13800003325",
+      "TITLE": "部门主管",
+      "SHIFT_KEY": "B",
+      "ORGAN_KEY": "制造部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-09T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U009",
+      "USER_ID": "E0043333",
+      "USER_NAME": "陈妮娜",
+      "ENGLISH_NAME": "NINA",
+      "LAST_NAME": "陈",
+      "FIRST_NAME": "妮娜",
+      "GENDER": "F",
+      "E_MAIL": "usere0043333@example.invalid",
+      "PHONE": "03-5678108",
+      "MOBILE": "13800003333",
+      "TITLE": "系统工程师",
+      "SHIFT_KEY": "A",
+      "ORGAN_KEY": "CIM",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-08T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U010",
+      "USER_ID": "E0043341",
+      "USER_NAME": "张睿",
+      "ENGLISH_NAME": "RAY",
+      "LAST_NAME": "张",
+      "FIRST_NAME": "睿",
+      "GENDER": "M",
+      "E_MAIL": "usere0043341@example.invalid",
+      "PHONE": "03-5678109",
+      "MOBILE": "13800003341",
+      "TITLE": "设备副理",
+      "SHIFT_KEY": "C",
+      "ORGAN_KEY": "设备工程部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-07T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U011",
+      "USER_ID": "E0043350",
+      "USER_NAME": "黄若薇",
+      "ENGLISH_NAME": "ZOE",
+      "LAST_NAME": "黄",
+      "FIRST_NAME": "若薇",
+      "GENDER": "F",
+      "E_MAIL": "usere0043350@example.invalid",
+      "PHONE": "03-5678110",
+      "MOBILE": "13800003350",
+      "TITLE": "品保工程师",
+      "SHIFT_KEY": "A",
+      "ORGAN_KEY": "品保部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-06T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    },
+    {
+      "USER_KEY": "U012",
+      "USER_ID": "E0043362",
+      "USER_NAME": "林育贤",
+      "ENGLISH_NAME": "LEO",
+      "LAST_NAME": "林",
+      "FIRST_NAME": "育贤",
+      "GENDER": "M",
+      "E_MAIL": "usere0043362@example.invalid",
+      "PHONE": "03-5678111",
+      "MOBILE": "13800003362",
+      "TITLE": "值班组长",
+      "SHIFT_KEY": "C",
+      "ORGAN_KEY": "制造部",
+      "ACTIVE": "Y",
+      "MTR_DATE": "2026-11-05T15:14:56.663Z",
+      "MTR_USER_KEY": "U001",
+      "MTR_USER_NAME": "陈柏睿"
+    }
+  ],
+  "alarms": [
+    {
+      "ALARM_KEY": "MOCK-1",
+      "ALARM_ID": "ALM202611261000",
+      "TITLE": "印刷机缺染料",
+      "STATUS": "Process",
+      "FACTORY_ID": "Fab01",
+      "FACTORY_NAME": "一厂",
+      "SUB_SYS_ID": "MES",
+      "SUB_SYS_NAME": "制造执行",
+      "EQP_ID": "PRT01",
+      "ALARM_INFO_ID": "PRT_NODYE",
+      "EVENT_ID": "EVT_PRINTER_NODYE",
+      "EVENT_NAME": "印刷机缺染料",
+      "CURRENT_LEVEL": 2,
+      "LEVEL_ACK_COUNT": 3,
+      "LEVEL_REQUIRED": 2,
+      "PRIORITY": 9,
+      "CREATE_DT": "2026-11-26T06:12:00.000Z",
+      "FIRST_PROCESS_DT": "2026-11-26T06:13:00.000Z",
+      "COMPLETE_DT": null,
+      "RECEIVE_TYPE": "MQ",
+      "CONTENT": "温度持续超过阈值 180°C，请设备人员检查冷却回路。",
+      "LEVEL_PROCESS_DT": "2026-11-26T06:15:00.000Z",
+      "ALARM_CMT": "演示资料"
+    },
+    {
+      "ALARM_KEY": "MOCK-2",
+      "ALARM_ID": "ALM202611261001",
+      "TITLE": "机台腔体过热",
+      "STATUS": "Completed",
+      "FACTORY_ID": "Fab01",
+      "FACTORY_NAME": "一厂",
+      "SUB_SYS_ID": "EAP",
+      "SUB_SYS_NAME": "设备自动化",
+      "EQP_ID": "CVD02",
+      "ALARM_INFO_ID": "EQP_OVERHEAT",
+      "EVENT_ID": "EVT_OVERHEAT",
+      "EVENT_NAME": "机台过热",
+      "CURRENT_LEVEL": 2,
+      "LEVEL_ACK_COUNT": 2,
+      "LEVEL_REQUIRED": 2,
+      "PRIORITY": 8,
+      "CREATE_DT": "2026-11-26T07:12:00.000Z",
+      "FIRST_PROCESS_DT": "2026-11-26T07:13:00.000Z",
+      "COMPLETE_DT": "2026-11-26T08:22:00.000Z",
+      "RECEIVE_TYPE": "MQ",
+      "CONTENT": "温度持续超过阈值 180°C，请设备人员检查冷却回路。",
+      "LEVEL_PROCESS_DT": "2026-11-26T07:15:00.000Z",
+      "ALARM_CMT": "演示资料"
+    },
+    {
+      "ALARM_KEY": "MOCK-3",
+      "ALARM_ID": "ALM202611261002",
+      "TITLE": "MES 通讯中断",
+      "STATUS": "NoNextLevel",
+      "FACTORY_ID": "Fab01",
+      "FACTORY_NAME": "一厂",
+      "SUB_SYS_ID": "MES",
+      "SUB_SYS_NAME": "制造执行",
+      "EQP_ID": "PRT01",
+      "ALARM_INFO_ID": "MES_OFFLINE",
+      "EVENT_ID": "EVT_MES_OFFLINE",
+      "EVENT_NAME": "MES 通讯中断",
+      "CURRENT_LEVEL": 1,
+      "LEVEL_ACK_COUNT": 1,
+      "LEVEL_REQUIRED": 2,
+      "PRIORITY": 7,
+      "CREATE_DT": "2026-11-26T08:12:00.000Z",
+      "FIRST_PROCESS_DT": "2026-11-26T08:13:00.000Z",
+      "COMPLETE_DT": null,
+      "RECEIVE_TYPE": "MQ",
+      "CONTENT": "温度持续超过阈值 180°C，请设备人员检查冷却回路。",
+      "LEVEL_PROCESS_DT": "2026-11-26T08:15:00.000Z",
+      "ALARM_CMT": "演示资料"
+    },
+    {
+      "ALARM_KEY": "MOCK-4",
+      "ALARM_ID": "ALM202611261003",
+      "TITLE": "FDC 数据延迟",
+      "STATUS": "Fail",
+      "FACTORY_ID": "Fab01",
+      "FACTORY_NAME": "一厂",
+      "SUB_SYS_ID": "FDC",
+      "SUB_SYS_NAME": "故障侦测",
+      "EQP_ID": "CVD02",
+      "ALARM_INFO_ID": "FDC_DELAY",
+      "EVENT_ID": "EVT_FDC_DELAY",
+      "EVENT_NAME": "FDC 数据延迟",
+      "CURRENT_LEVEL": 0,
+      "LEVEL_ACK_COUNT": 1,
+      "LEVEL_REQUIRED": 2,
+      "PRIORITY": 6,
+      "CREATE_DT": "2026-11-26T09:12:00.000Z",
+      "FIRST_PROCESS_DT": "2026-11-26T09:13:00.000Z",
+      "COMPLETE_DT": null,
+      "RECEIVE_TYPE": "MQ",
+      "CONTENT": "温度持续超过阈值 180°C，请设备人员检查冷却回路。",
+      "LEVEL_PROCESS_DT": "2026-11-26T09:15:00.000Z",
+      "ALARM_CMT": "演示资料"
+    }
+  ],
+  "detail": {
+    "ALARM_KEY": "MOCK-1",
+    "ALARM_ID": "ALM202611261000",
+    "TITLE": "印刷机缺染料",
+    "STATUS": "Process",
+    "FACTORY_ID": "Fab01",
+    "FACTORY_NAME": "一厂",
+    "SUB_SYS_ID": "MES",
+    "SUB_SYS_NAME": "制造执行",
+    "EQP_ID": "PRT01",
+    "ALARM_INFO_ID": "PRT_NODYE",
+    "EVENT_ID": "EVT_PRINTER_NODYE",
+    "EVENT_NAME": "印刷机缺染料",
+    "CREATE_DT": "2026-11-26T06:12:00.000Z",
+    "CONTENT_TYPE": "text/plain",
+    "CONTENT": "09:12 PRT01 染料液位 8%（低於 15%）。\n09:13 MES 发出 IRT_NODYE 警报，通知设备人员补充染料。\n09:15 已通知第一层：设备人员（3 人），需 2 人确认。",
+    "CURRENT_LEVEL": 1,
+    "LEVEL_ACK_COUNT": 1,
+    "LEVEL_REQUIRED": 2,
+    "CAN_ACK": true,
+    "ACK_CMT": "已联系设备人员",
+    "NOTIFICATIONS": [
+      {
+        "USER_ID": "E0043258",
+        "USER_NAME": "陈柏睿",
+        "CHANNEL": "Email",
+        "RESULT": "Success",
+        "SEND_DT": "2026-11-26T06:13:10.000Z",
+        "MESSAGE": "SMTP accepted"
+      },
+      {
+        "USER_ID": "E0043288",
+        "USER_NAME": "林欣宜",
+        "CHANNEL": "Email",
+        "RESULT": "Process",
+        "SEND_DT": "2026-11-26T06:13:12.000Z",
+        "MESSAGE": "等待回应"
+      }
+    ],
+    "TRANSACTIONS": [
+      {
+        "SEQ": 1,
+        "TRX_TYPE": "Create",
+        "STATUS_BEFORE": "—",
+        "STATUS_AFTER": "Process",
+        "USER_NAME": "系统",
+        "TRX_DT": "2026-11-26T06:12:00.000Z",
+        "NOTE": "警报建立"
+      }
+    ],
+    "LEVELS": [
+      {
+        "LEVEL_ID": 1,
+        "REQUIRED_ACK": 2,
+        "ACK_COUNT": 1,
+        "RESEND_COUNT": 0,
+        "START_DT": "2026-11-26T06:13:00.000Z",
+        "STATUS": "Active"
+      }
+    ],
+    "ACKS": [
+      {
+        "USER_ID": "E0043258",
+        "USER_NAME": "陈柏睿",
+        "ACK_DT": "2026-11-26T06:20:00.000Z",
+        "ACK_CMT": "已联系设备人员"
+      }
+    ]
+  },
+  "navLinks": [
+    {
+      "id": "SBRM_USER",
+      "code": "SBRM_USER",
+      "name": "使用者设定",
+      "path": "/page/SBRM_USER"
+    },
+    {
+      "id": "SBRM_FACTORY",
+      "code": "SBRM_FACTORY",
+      "name": "厂别设定",
+      "path": "/page/SBRM_FACTORY"
+    },
+    {
+      "id": "SBRM_EQP",
+      "code": "SBRM_EQP",
+      "name": "机台设定",
+      "path": "/page/SBRM_EQP"
+    },
+    {
+      "id": "AVMA003",
+      "code": "AVMA003",
+      "name": "子系统设定",
+      "path": "/page/AVMA003"
+    },
+    {
+      "id": "AVMA009",
+      "code": "AVMA009",
+      "name": "警报通知设定",
+      "path": "/page/AVMA009"
+    },
+    {
+      "id": "AVMA004",
+      "code": "AVMA004",
+      "name": "厂别子系统对应设定",
+      "path": "/page/AVMA004"
+    },
+    {
+      "id": "AVMA007",
+      "code": "AVMA007",
+      "name": "事件通知设定",
+      "path": "/page/AVMA007"
+    },
+    {
+      "id": "AVPA013",
+      "code": "AVPA013",
+      "name": "即时警报汇总",
+      "path": "/page/AVPA013"
+    },
+    {
+      "id": "AVPA004",
+      "code": "AVPA004",
+      "name": "警报处理查询",
+      "path": "/page/AVPA004"
+    },
+    {
+      "id": "AVPA007",
+      "code": "AVPA007",
+      "name": "历史记录查询",
+      "path": "/page/AVPA007"
+    },
+    {
+      "id": "TEST",
+      "code": "TEST",
+      "name": "测试告警触发",
+      "path": "/page/TEST"
+    },
+    {
+      "id": "ACK_LIST",
+      "code": "ACK_LIST",
+      "name": "待我确认",
+      "path": "/page/ACK_LIST"
+    }
+  ]
+}

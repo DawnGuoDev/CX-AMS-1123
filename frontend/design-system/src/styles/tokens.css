@@ -1,0 +1,13 @@
+/* Source of truth: frontend/src/App.vue ConfigProvider + frontend/src/style.css */
+:root {
+  --ams-primary: #167d92;
+  --ams-bg: #f3f6fa;
+  --ams-surface: #ffffff;
+  --ams-border: #dde5ed;
+  --ams-muted: #7a8998;
+  --ams-text: #23364a;
+  --ams-radius: 6px;
+  --ams-font-size: 13px;
+  --ams-sidebar-bg: #122337;
+  --ams-sidebar-active: #1c5063;
+}
