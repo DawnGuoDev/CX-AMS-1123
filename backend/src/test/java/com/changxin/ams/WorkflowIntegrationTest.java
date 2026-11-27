@@ -51,10 +51,10 @@ class WorkflowIntegrationTest {
             .content(encode(m("userId","E0043258","password","123456")))).andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString())),"token");
     }
-    @Test void authenticationSingleSessionAndNoPasswordDisclosure() throws Exception {
+    @Test void authenticationMultiSessionAndNoPasswordDisclosure() throws Exception {
         http.perform(get("/api/bootstrap")).andExpect(status().isUnauthorized());
         String first=login(),second=login();
-        http.perform(get("/api/bootstrap").header("Authorization","Bearer "+first)).andExpect(status().isUnauthorized());
+        http.perform(get("/api/bootstrap").header("Authorization","Bearer "+first)).andExpect(status().isOk());
         String data=http.perform(get("/api/bootstrap").header("Authorization","Bearer "+second)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(data).doesNotContain("PASSWORD_HASH","eqpGroup","userGroup","MCMS038","AVPA005");
     }
