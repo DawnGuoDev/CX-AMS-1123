@@ -19,13 +19,6 @@ describe('translation', () => {
     expect(t('厂别设定')).toBe('厂别管理')
   })
 
-  it('translates invalid alarm report columns and prompts', () => {
-    setLang('en')
-    for (const key of ['无效警报查询', '无效警报识别码', '失效类型', '失效原因', '来源接口', '触发人员', '重复警报识别码', '默认近 24 小时，可调整']) {
-      expect(t(key)).not.toBe(key)
-    }
-  })
-
   it('switches the active language', () => {
     expect(getLang()).toBe('zh-CN')
     setLang('en')

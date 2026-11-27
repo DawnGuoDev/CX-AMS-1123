@@ -11,7 +11,7 @@
 | `unit/ReportConditionsTest` | 单元（Mockito） | 报表查询：至少一个条件；contains/notContains/starts/ends/eq/neq 大小写不敏感；日期 between/eq/neq/lt/lte/gt/gte（按秒）；空日期不匹配；非法查询字段被拒绝 |
 | `WorkflowIntegrationTest`（既有） | Spring 集成 | 认证单会话、真实 SMTP 与 ACK 闭环、重复告警抑制、失败重送、层级升级、Excel 汇入导出、页面 API 契约 |
 | `ManualAlignmentIntegrationTest`（既有） | Spring 集成 | 使用者字段与审计、事件层级校验、报表时间运算、可见快照汇出、基础主档唯一性等 |
-| `InvalidAlarmReportIntegrationTest` | Spring 集成 | 8 类触发失败逐一落库且不建告警；422 契约、成功不落库、重复警报上下文；时间区间必填/边界/单侧/条件交集/倒序；导出声明列与空表头；旧快照幂等迁移 |
+
 执行：
 
 ```bash

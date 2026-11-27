@@ -9,7 +9,7 @@
 - 保留范围：使用者、厂别、机台、子系统、厂别子系统对应、事件通知、警报通知、即时汇总、处理查询、历史查询；加用户已授权的测试／设备模拟、待确认、邮件 ACK。
 - 保留定制：层级直接选人；仅 Email；页面名称改为“管理”；隐藏菜单与标题中的页面代码；登录默认账号、密码为空；设备模拟默认预览。
 - 主档 Excel 本轮增量、事件主从 Excel 和批量 ACK 已回退；一般主档与对应关系的既有 Excel 流程保留。报表汇出与单笔 ACK 仍在范围内。
-- 不恢复已删除的人员群组、通知群组、多通道、机台群组、SQL 触发、设备 Agent 管理和独立强制中断。新增无效警报查询仅覆盖当前可判定的 8 类触发失败；未设定发送方式与机况过滤不产生记录，因为对应能力已移除。
+- 不恢复已删除的人员群组、通知群组、多通道、机台群组、SQL 触发、设备 Agent 管理、独立强制中断和无效警报模块。
 - 按手册核对业务字段、操作步骤、数据约束及结果；Vue 视觉风格不照搬旧 IE。
 - 手册示例图中的厂别／机台／人员值及优先权、分钟、秒是示例数据，不覆盖现有配置。
 - 图 52 中出现同码不同厂别事件，但“事件通知代码”字段表明确写不可重复；本次继续采用字段表中的唯一性要求，不据示例图放宽约束。
@@ -41,12 +41,6 @@
 
 ## 验证记录
 
-| 编号 | 来源 | 要求 | 证据 |
-| -- | ---- | ---- | ---- |
-| DA28-01 | AMS DA 序号 28 | 8 类可判定触发失败写入无效警报，成功不写入，失败响应仍为 422 | `InvalidAlarmReportIntegrationTest.failureTypesAreRecordedWithReasonAndFailuresDoNotCreateAlarms` |
-| DA28-02 | AMS DA 序号 28 | 查询必须指定时间区间，支持边界、单侧、条件交集与倒序 | `InvalidAlarmReportIntegrationTest.invalidAlarmQueryRequiresTimeRangeSupportsFiltersAndSorts` |
-| DA28-03 | AMS DA 序号 28 | 导出仅含声明列，空结果保留表头 | `InvalidAlarmReportIntegrationTest.invalidAlarmExportUsesDeclaredColumnsAndFilteredRows` |
-| DA28-04 | AMS DA 序号 28 | 旧快照补齐集合/定义/菜单且二次启动幂等 | `InvalidAlarmReportIntegrationTest.oldSnapshotMigratesInvalidAlarmReportIdempotently` |
 - Vue 正式构建及 Spring Boot 打包通过，24 项集成测试通过。
 - 当前另有 17 项后端单元测试和 60 项前端测试通过；新增弹窗不因点击遮罩或向外拖拽关闭，可通过取消、关闭按钮或 Esc 退出。
 - 浏览器抽查使用者、事件层级、厂别对应、处理查询、即时报表下钻及历史交易。处理查询从 2 笔过滤到 1 笔，下载文件核对为 1 笔，重置恢复 2 笔。页面操作使用独立数据库。
