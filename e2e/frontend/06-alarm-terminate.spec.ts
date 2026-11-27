@@ -334,13 +334,16 @@ test.describe('TC-FE-E2E-006 警报强制中断', () => {
 
     // Simulate an operator retiring the function in the master data: the shared E2E backend exposes no
     // function-master API, so bootstrap is stubbed on reload with the same payload minus the menu item.
-    await page.evaluate(() => {
+    // Hash navigation reuses the already-bootstrapped SPA and never re-fetches /api/bootstrap, so
+    // the stub must be installed for the next document load and the page must really reload. The
+    // session lives in sessionStorage, so the reload stays signed in.
+    await page.addInitScript(() => {
       const original = window.fetch
       window.fetch = async (input, init) => {
         const response = await original(input, init)
         if (String(input).endsWith('/api/bootstrap')) {
           const body = await response.clone().json()
-          // nav() exposes the function key as "key" and the page route as "path".
+          // nav exposes the function key as "key" and the page route as "path".
           body.nav = body.nav.filter(node => node.key !== 'ALARM_LIST')
           return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
         }
@@ -348,6 +351,7 @@ test.describe('TC-FE-E2E-006 警报强制中断', () => {
       }
     })
     await page.goto('/#/page/ALARM_LIST')
+    await page.reload()
     await expect(page.locator('.sidebar nav a[href="#/page/ALARM_LIST"]')).toHaveCount(0)
     // Only the retired entry disappears; the existing operations navigation keeps working.
     await expect(page.locator('.sidebar nav a[href="#/page/ACK_LIST"]')).toHaveCount(1)
