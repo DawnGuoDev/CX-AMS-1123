@@ -39,23 +39,7 @@ public class Store {
             for(var subsystem:table("subsystems")) {
                 if(subsystem.containsKey("BYPASS")) {subsystem.remove("BYPASS");migrated=true;}
             }
-            migrated |= migrateInvalidAlarmReport();
             if(migrated) persist();
-        }
-    }
-
-    private boolean migrateInvalidAlarmReport() throws IOException {
-        try (var in = new ClassPathResource("seed.json").getInputStream()) {
-            var seed=obj(MAPPER.readValue(in, Map.class));
-            boolean changed=false;
-            if (data.get("invalid_alarms") == null) { data.put("invalid_alarms", new ArrayList<>()); changed=true; }
-            var meta=obj(data.get("meta")); var seq=obj(meta.get("seq"));
-            if (seq.get("invalid_alarms") == null) { seq.put("invalid_alarms", 0); changed=true; }
-            var report=rows(seed.get("report_defs")).stream().filter(r -> eq(r,"REPORT_ID","AVPA008")).findFirst().orElse(null);
-            if (report != null && find("report_defs","REPORT_ID","AVPA008") == null) { table("report_defs").add(copy(report)); changed=true; }
-            var function=rows(seed.get("functions")).stream().filter(r -> eq(r,"FUNCTION_KEY","AVPA008")).findFirst().orElse(null);
-            if (function != null && find("functions","FUNCTION_KEY","AVPA008") == null) { table("functions").add(copy(function)); changed=true; }
-            return changed;
         }
     }
     private Map<String, Object> load(String file) throws IOException {

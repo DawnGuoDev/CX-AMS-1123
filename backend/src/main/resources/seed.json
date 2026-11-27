@@ -20,8 +20,7 @@
       "report_defs": 5,
       "functions": 43,
       "history": 10,
-      "alarmId": 1042,
-      "invalid_alarms": 0
+      "alarmId": 1042
     },
     "seededAt": "2026-11-23T15:14:56.670Z",
     "schema": "checked-mvp-1"
@@ -1283,186 +1282,6 @@
         }
       ],
       "CONDITIONS": []
-    },
-    {
-      "REPORT_ID": "AVPA008",
-      "REPORT_NAME": "无效警报查询",
-      "REPORT_DESC": "查询未成功触发的警报与失效原因。",
-      "ATLEAST_ONE_CONDITION": "Y",
-      "COLUMNS": [
-        {
-          "field": "INVALID_ID",
-          "label": "无效警报识别码",
-          "type": "text"
-        },
-        {
-          "field": "CREATE_DT",
-          "label": "资料新增时间",
-          "type": "date"
-        },
-        {
-          "field": "FAILURE_TYPE",
-          "label": "失效类型",
-          "type": "text"
-        },
-        {
-          "field": "FAILURE_REASON",
-          "label": "失效原因",
-          "type": "text"
-        },
-        {
-          "field": "FACTORY_ID",
-          "label": "厂别代码",
-          "type": "text"
-        },
-        {
-          "field": "FACTORY_NAME",
-          "label": "厂别名称",
-          "type": "text"
-        },
-        {
-          "field": "SUB_SYS_ID",
-          "label": "子系统代码",
-          "type": "text"
-        },
-        {
-          "field": "SUB_SYS_NAME",
-          "label": "子系统名称",
-          "type": "text"
-        },
-        {
-          "field": "EQP_ID",
-          "label": "机台代码",
-          "type": "text"
-        },
-        {
-          "field": "EQP_NAME",
-          "label": "机台名称",
-          "type": "text"
-        },
-        {
-          "field": "ALARM_INFO_ID",
-          "label": "警报代码",
-          "type": "text"
-        },
-        {
-          "field": "EVENT_ID",
-          "label": "事件通知代码",
-          "type": "text"
-        },
-        {
-          "field": "TITLE",
-          "label": "警报标题",
-          "type": "text"
-        },
-        {
-          "field": "CONTENT",
-          "label": "警报详细内容",
-          "type": "text"
-        },
-        {
-          "field": "SOURCE",
-          "label": "来源接口",
-          "type": "text"
-        },
-        {
-          "field": "SOURCE_USER_ID",
-          "label": "触发人员",
-          "type": "text"
-        },
-        {
-          "field": "DUPLICATE_ALARM_KEY",
-          "label": "重复警报识别码",
-          "type": "text"
-        }
-      ],
-      "CONDITIONS": [
-        {
-          "field": "INVALID_ID",
-          "label": "无效警报识别码",
-          "type": "text"
-        },
-        {
-          "field": "CREATE_DT",
-          "label": "资料新增时间",
-          "type": "date"
-        },
-        {
-          "field": "FAILURE_TYPE",
-          "label": "失效类型",
-          "type": "text"
-        },
-        {
-          "field": "FAILURE_REASON",
-          "label": "失效原因",
-          "type": "text"
-        },
-        {
-          "field": "FACTORY_ID",
-          "label": "厂别代码",
-          "type": "text"
-        },
-        {
-          "field": "FACTORY_NAME",
-          "label": "厂别名称",
-          "type": "text"
-        },
-        {
-          "field": "SUB_SYS_ID",
-          "label": "子系统代码",
-          "type": "text"
-        },
-        {
-          "field": "SUB_SYS_NAME",
-          "label": "子系统名称",
-          "type": "text"
-        },
-        {
-          "field": "EQP_ID",
-          "label": "机台代码",
-          "type": "text"
-        },
-        {
-          "field": "EQP_NAME",
-          "label": "机台名称",
-          "type": "text"
-        },
-        {
-          "field": "ALARM_INFO_ID",
-          "label": "警报代码",
-          "type": "text"
-        },
-        {
-          "field": "EVENT_ID",
-          "label": "事件通知代码",
-          "type": "text"
-        },
-        {
-          "field": "TITLE",
-          "label": "警报标题",
-          "type": "text"
-        },
-        {
-          "field": "CONTENT",
-          "label": "警报详细内容",
-          "type": "text"
-        },
-        {
-          "field": "SOURCE",
-          "label": "来源接口",
-          "type": "text"
-        },
-        {
-          "field": "SOURCE_USER_ID",
-          "label": "触发人员",
-          "type": "text"
-        },
-        {
-          "field": "DUPLICATE_ALARM_KEY",
-          "label": "重复警报识别码",
-          "type": "text"
-        }
-      ]
     }
   ],
   "functions": [
@@ -1597,19 +1416,7 @@
       "FUNC_TYPE": "PAGE",
       "VISIBLE": "Y",
       "ACTIVE": "Y"
-    },
-    {
-      "FUNCTION_KEY": "AVPA008",
-      "FUNCTION_ID": "AVPA008",
-      "FUNCTION_NAME": "无效警报查询",
-      "PARENT_KEY": null,
-      "PATH": "#/page/AVPA008",
-      "SORT": 12,
-      "FUNC_TYPE": "PAGE",
-      "VISIBLE": "Y",
-      "ACTIVE": "Y"
     }
   ],
-  "history": [],
-  "invalid_alarms": []
+  "history": []
 }
