@@ -29,6 +29,7 @@ export const MENU = {
   alarmTest: { route: '/page/TEST', title: '测试告警触发', label: '测试告警触发' },
   pending: { route: '/page/ACK_LIST', title: '待我确认', label: '待我确认' },
   alarmQuery: { route: '/page/AVPA004', title: '警报处理查询', label: '警报处理查询' },
+  invalidAlarms: { route: '/page/AVPA008', title: '无效警报查询', label: '无效警报查询' },
 }
 
 export async function openMenu(page, menu = MENU.factories) {

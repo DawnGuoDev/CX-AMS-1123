@@ -1,11 +1,21 @@
 package com.changxin.ams;
 
 import static com.changxin.ams.Json.*;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AlarmEngine {
+    public static final String FAILURE_NO_FACTORY = "NO_FACTORY";
+    public static final String FAILURE_NO_SUBSYS = "NO_SUBSYS";
+    public static final String FAILURE_NO_EQP = "NO_EQP";
+    public static final String FAILURE_EVENT_NOT_FOUND = "EVENT_NOT_FOUND";
+    public static final String FAILURE_SETTING_DISABLED = "SETTING_DISABLED";
+    public static final String FAILURE_NO_LEVEL1 = "NO_LEVEL1";
+    public static final String FAILURE_NO_RECIPIENTS = "NO_RECIPIENTS";
+    public static final String FAILURE_DUPLICATE_IGNORED = "DUPLICATE_IGNORED";
     private final Store store;
     private final SmtpDelivery smtp;
     public AlarmEngine(Store store, SmtpDelivery smtp) { this.store = store; this.smtp = smtp; }
@@ -105,35 +115,75 @@ public class AlarmEngine {
         result.remove("LEVEL_RESEND_COUNT");
         return result;
     }
-    private Map<String, Object> invalid(Map<String, Object> body, String reason) {
+    private Map<String, Object> invalid(Map<String, Object> body, Map<String, Object> user, String failureType, String reason, String duplicateAlarmKey) {
+        recordInvalid(body, user, failureType, reason, duplicateAlarmKey);
         return m("ok",false,"status",422,"message",reason);
     }
+
+    private void recordInvalid(Map<String, Object> body, Map<String, Object> user, String failureType, String reason, String duplicateAlarmKey) {
+        var created=now();
+        var key=store.key("invalid_alarms");
+        var record=m("INVALID_KEY",key,"INVALID_ID","IVD-"+Instant.parse(created).atZone(ZoneOffset.UTC)
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd"))+"-"+key.substring(key.lastIndexOf('-')+1),
+            "CREATE_DT",created,"FAILURE_TYPE",failureType,"FAILURE_REASON",reason,
+            "FACTORY_KEY",body.get("factoryKey"),"SUB_SYS_KEY",body.get("subsysKey"),"EQP_KEY",body.get("eqpKey"),
+            "ALARM_INFO_ID",body.get("alarmCode"),"ALARM_INFO_KEY","", "EVENT_KEY","","EVENT_ID","","EVENT_NAME","",
+            "TITLE",s(body,"title").isBlank() ? "Empty Subject" : body.get("title"),
+            "CONTENT",s(body,"content").isBlank() ? "Empty Content" : body.get("content"),
+            "SOURCE","TEST_API","SOURCE_USER_ID",user == null ? "" : user.get("USER_ID"),
+            "DUPLICATE_ALARM_KEY",duplicateAlarmKey == null ? "" : duplicateAlarmKey);
+        joinMaster(record,"FACTORY_KEY","factories","FACTORY_ID","FACTORY_NAME");
+        joinMaster(record,"SUB_SYS_KEY","subsystems","SUB_SYS_ID","SUB_SYS_NAME");
+        joinMaster(record,"EQP_KEY","eqps","EQP_ID","EQP_NAME");
+        var candidates=store.table("alarm_settings").stream().filter(r -> eq(r,"FACTORY_KEY",body.get("factoryKey"))
+            && eq(r,"SUB_SYS_KEY",body.get("subsysKey")) && eq(r,"ALARM_INFO_ID",body.get("alarmCode"))).toList();
+        var setting=candidates.stream().filter(r -> eq(r,"EQP_KEY",body.get("eqpKey"))).findFirst()
+            .orElseGet(() -> candidates.stream().filter(r -> eq(r,"EQP_KEY","*")).findFirst().orElse(null));
+        if (setting != null) {
+            record.put("ALARM_INFO_KEY",setting.get("ALARM_INFO_KEY"));
+            var event=store.find("events","EVENT_KEY",setting.get("EVENT_KEY"));
+            if (event != null) {
+                record.put("EVENT_KEY",event.get("EVENT_KEY"));
+                record.put("EVENT_ID",event.get("EVENT_ID"));
+                record.put("EVENT_NAME",event.get("EVENT_NAME"));
+            }
+        }
+        store.table("invalid_alarms").addFirst(record);
+    }
+
+    private void joinMaster(Map<String, Object> record, String keyField, String table, String idField, String nameField) {
+        var row=store.find(table,keyField,record.get(keyField));
+        record.put(idField,row == null ? "" : row.get(idField));
+        record.put(nameField,row == null ? "" : row.get(nameField));
+    }
+
     public Map<String, Object> trigger(Map<String, Object> body, Map<String, Object> user) {
         var f = store.find("factories","FACTORY_KEY",body.get("factoryKey"));
-        if (f == null || !active(f)) return invalid(body,"未设定厂别");
+        if (f == null || !active(f)) return invalid(body,user,FAILURE_NO_FACTORY,"未设定厂别",null);
         var s = store.find("subsystems","SUB_SYS_KEY",body.get("subsysKey"));
         if (s == null || !active(s) || store.table("factory_subsys").stream().noneMatch(r ->
-            eq(r,"FACTORY_KEY",body.get("factoryKey")) && eq(r,"SUB_SYS_KEY",body.get("subsysKey")))) return invalid(body,"未设定子系统");
+            eq(r,"FACTORY_KEY",body.get("factoryKey")) && eq(r,"SUB_SYS_KEY",body.get("subsysKey")))) return invalid(body,user,FAILURE_NO_SUBSYS,"未设定子系统",null);
         var eqp = store.find("eqps","EQP_KEY",body.get("eqpKey"));
-        if (eqp == null || !active(eqp)) return invalid(body,"未设定机台");
+        if (eqp == null || !active(eqp)) return invalid(body,user,FAILURE_NO_EQP,"未设定机台",null);
         var candidates = store.table("alarm_settings").stream().filter(r -> eq(r,"FACTORY_KEY",body.get("factoryKey"))
             && eq(r,"SUB_SYS_KEY",body.get("subsysKey")) && eq(r,"ALARM_INFO_ID",body.get("alarmCode"))).toList();
         var setting = candidates.stream().filter(r -> eq(r,"EQP_KEY",body.get("eqpKey"))).findFirst().orElse(null);
         String match = "exact";
         if (setting == null) setting = candidates.stream().filter(r -> eq(r,"EQP_KEY","*")).findFirst().orElse(null);
-        if (setting == null) return invalid(body,"找不到事件");
-        if (!active(setting)) return invalid(body,"警报设定未启用");
+        if (setting == null) return invalid(body,user,FAILURE_EVENT_NOT_FOUND,"找不到事件",null);
+        if (!active(setting)) return invalid(body,user,FAILURE_SETTING_DISABLED,"警报设定未启用",null);
         var event = store.find("events","EVENT_KEY",setting.get("EVENT_KEY"));
-        if (event == null || !active(event)) return invalid(body,"找不到事件");
+        if (event == null || !active(event)) return invalid(body,user,FAILURE_EVENT_NOT_FOUND,"找不到事件",null);
         String settingKey = s(setting,"ALARM_INFO_KEY");
         int ignore = setting.containsKey("IGNORE_PERIOD") ? n(setting,"IGNORE_PERIOD") : 900;
-        boolean duplicate = store.table("alarms").stream().anyMatch(r -> eq(r,"FACTORY_KEY",body.get("factoryKey"))
+        String duplicateKey=store.table("alarms").stream().filter(r -> eq(r,"FACTORY_KEY",body.get("factoryKey"))
             && eq(r,"SUB_SYS_KEY",body.get("subsysKey")) && eq(r,"EQP_KEY",body.get("eqpKey")) && eq(r,"ALARM_INFO_KEY",settingKey)
-            && System.currentTimeMillis()-time(r.get("CREATE_DT")) < ignore * 1000L);
-        if (duplicate) return invalid(body,"忽略相同警报");
+            && System.currentTimeMillis()-time(r.get("CREATE_DT")) < ignore * 1000L).map(r -> s(r,"ALARM_KEY")).findFirst().orElse(null);
+        boolean duplicate=duplicateKey != null;
+        if (duplicate) return invalid(body,user,FAILURE_DUPLICATE_IGNORED,"忽略相同警报",duplicateKey);
         var first = levels(event.get("EVENT_KEY")).stream().filter(r -> n(r,"EVENT_LEVEL_ID")==1).findFirst().orElse(null);
-        if (first == null) return invalid(body,"未设定层级1");
-        if (members(first.get("EVENT_LEVEL_KEY")).isEmpty()) return invalid(body,"未设定发送人员");
+        if (first == null) return invalid(body,user,FAILURE_NO_LEVEL1,"未设定层级1",null);
+        if (members(first.get("EVENT_LEVEL_KEY")).isEmpty()) return invalid(body,user,FAILURE_NO_RECIPIENTS,"未设定发送人员",null);
         var alarm = create(body,setting,event); startLevel(alarm,first,user);
         return m("ok",true,"alarm",enrich(alarm,user),"matchedBy",match);
     }

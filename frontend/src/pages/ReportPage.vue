@@ -9,6 +9,7 @@ import RecordDialog from '../components/RecordDialog.vue'
 const props=defineProps({code:String})
 const data=ref({rows:[],columns:[]}),definition=ref({CONDITIONS:[]}),conditions=ref({}),draft=ref(null),drill=ref(null)
 const queried=ref(false),grid=ref(null),countdown=ref(10)
+const defaultTimeRange=props.code==='AVPA008'
 const isSummary=computed(()=>props.code==='AVPA013')
 let timer,loading=false
 async function load(next=conditions.value){
@@ -24,6 +25,7 @@ async function load(next=conditions.value){
 function beginQuery(){draft.value=clone(conditions.value)}
 function resetDraft(){draft.value=Object.fromEntries(definition.value.CONDITIONS.map(c=>[c.field,emptyFilter(c)]))}
 async function applyQuery(){await act(async()=>{await load(draft.value);draft.value=null})}
+function localTime(value){return value.toISOString().slice(0,19)}
 async function open(row){
   if(isSummary.value&&!drill.value){drill.value=row;await act(()=>load())}
   else if(row.ALARM_KEY)await openAlarm(row)
@@ -32,6 +34,10 @@ onMounted(()=>act(async()=>{
   definition.value=(await api(`/report-defs/${props.code}`)).row
   data.value.columns=definition.value.COLUMNS
   conditions.value=Object.fromEntries(definition.value.CONDITIONS.map(c=>[c.field,emptyFilter(c)]))
+  if(defaultTimeRange){
+    const now=new Date(), from=new Date(now.getTime()-24*60*60*1000)
+    conditions.value.CREATE_DT={...conditions.value.CREATE_DT,enabled:true,operator:'between',from:localTime(from),to:localTime(now)}
+  }
   if(isSummary.value){
     await load()
     timer=setInterval(()=>{if(!document.hidden){countdown.value--;if(countdown.value<=0){countdown.value=10;act(()=>load())}}},1000)
@@ -52,6 +58,7 @@ onUnmounted(()=>clearInterval(timer))
   <RecordDialog v-if="draft" title="查询条件" wide @close="draft=null">
     <form @submit.prevent="applyQuery">
       <p class="muted">勾选启用的条件同时生效；日期时间精确到秒。</p>
+      <p v-if="defaultTimeRange" class="muted">{{ t('默认近 24 小时，可调整') }}</p>
       <div class="query-fields">
         <label v-for="c in definition.CONDITIONS" :key="c.field">
           <span><UiCheckbox  v-model="draft[c.field].enabled"/> {{ t(c.label) }}</span>
